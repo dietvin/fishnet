@@ -220,9 +220,9 @@ impl<'a> CombinedRead<'a> {
 
 
         // Calculate the knots 
-        // let ref_knots = self.calculate_knots(&cigar, &CombinedRead::consumes_reference);
-        // let query_knots = self.calculate_knots(&cigar, &CombinedRead::consumes_query);
-        let (ref_knots, query_knots) = self.calculate_knots(&cigar);
+        let ref_knots = self.calculate_knots(&cigar, &CombinedRead::consumes_reference);
+        let query_knots = self.calculate_knots(&cigar, &CombinedRead::consumes_query);
+        // let (ref_knots, query_knots) = self.calculate_knots(&cigar);
         
         let mut file = std::fs::File::create(format!("/home/vincent/projects/resquiggle_tool/rustmora/understanding_knots/{}_ref_knots.txt", self.read_id)).unwrap();
         for el in &ref_knots {
@@ -297,45 +297,45 @@ impl<'a> CombinedRead<'a> {
     /// * `cigar` - Vector containing the cigar elements of the alignment
     /// * `consumes_fn` - Function that takes a reference to a Cigar element and determines if it consumes the reference
     /// or the query (intended to be used with consumes_reference or consumes_query)
-    // fn calculate_knots(&self, cigar: &Vec<Cigar>, consumes_fn: &dyn Fn(&Cigar) -> bool) -> Vec<u32> {
-    //     let mut total = 0;
-    //     let mut ref_knots = vec![0u32];
-
-    //     for el in cigar.iter() {
-    //         if consumes_fn(el) {
-    //             total += el.len();
-    //         }
-    //         if CombinedRead::is_match_ops(el) {
-    //             let offset = el.len();
-    //             ref_knots.push(total-offset);
-    //             ref_knots.push(total-1);
-    //         }
-    //     }
-    //     ref_knots.push(total);
-    //     ref_knots
-    // }
-    fn calculate_knots(&self, cigar: &Vec<Cigar>) -> (Vec<u32>, Vec<u32>) {
-        let mut current_site = 0u32;
-        let mut query_knots = vec![0u32];
+    fn calculate_knots(&self, cigar: &Vec<Cigar>, consumes_fn: &dyn Fn(&Cigar) -> bool) -> Vec<u32> {
+        let mut total = 0;
         let mut ref_knots = vec![0u32];
 
         for el in cigar.iter() {
-            let cig_len = el.len();
-            let start = current_site;
-            let end = current_site + cig_len - 1;
-
-            if CombinedRead::consumes_query(el) {
-                query_knots.push(start);
-                query_knots.push(end);
+            if consumes_fn(el) {
+                total += el.len();
             }
-            if CombinedRead::consumes_reference(el) {
-                ref_knots.push(start);
-                ref_knots.push(end);
+            if CombinedRead::is_match_ops(el) {
+                let offset = el.len();
+                ref_knots.push(total-offset);
+                ref_knots.push(total-1);
             }
-            current_site += cig_len;
-        }    
-        (query_knots, ref_knots)
+        }
+        ref_knots.push(total);
+        ref_knots
     }
+    // fn calculate_knots(&self, cigar: &Vec<Cigar>) -> (Vec<u32>, Vec<u32>) {
+    //     let mut current_site = 0u32;
+    //     let mut query_knots = vec![0u32];
+    //     let mut ref_knots = vec![0u32];
+
+    //     for el in cigar.iter() {
+    //         let cig_len = el.len();
+    //         let start = current_site;
+    //         let end = current_site + cig_len - 1;
+
+    //         if CombinedRead::consumes_query(el) {
+    //             query_knots.push(start);
+    //             query_knots.push(end);
+    //         }
+    //         if CombinedRead::consumes_reference(el) {
+    //             ref_knots.push(start);
+    //             ref_knots.push(end);
+    //         }
+    //         current_site += cig_len;
+    //     }    
+    //     (query_knots, ref_knots)
+    // }
 
     /// Determine if the given cigar element is one of Match (M), Equal (=) or Diff (X)
     fn is_match_ops(cigar: &Cigar) -> bool {
