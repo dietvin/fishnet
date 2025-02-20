@@ -1,4 +1,4 @@
-
+mod refinement;
 mod io;
 mod combined_data;
 use io::{bam_io, pod5_io};
