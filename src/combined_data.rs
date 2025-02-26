@@ -1,7 +1,7 @@
 use pod5::polars::prelude::AllowedOptimizations;
 use rust_htslib::bam::{ext::BamRecordExtensions, record::Cigar};
 use interp::{interp_slice, InterpMode};
-use super::io::pod5_io;
+use super::loader::pod5_io;
 use std::io::{self, Write};
 
 #[derive(Debug, thiserror::Error)]

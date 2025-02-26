@@ -1,7 +1,8 @@
+mod errors;
 mod refinement;
-mod io;
+mod loader;
 mod combined_data;
-use io::{bam_io, pod5_io};
+use loader::{bam_io, pod5_io};
 
 fn main() {
     let path: &str = "example_data/can_reads.pod5";
@@ -26,9 +27,9 @@ fn main() {
         let _ = combined_read.align_to_query().unwrap();
         let _ = combined_read.align_to_reference().unwrap();
 
-        println!("{}\n{:?}\n{:?}\n\n", 
-            read_id, 
-            combined_read.get_query_to_signal().unwrap(), 
-            combined_read.get_ref_to_signal().unwrap())
+    //     println!("{}\n{:?}\n{:?}\n\n", 
+    //         read_id, 
+    //         combined_read.get_query_to_signal().unwrap(), 
+    //         combined_read.get_ref_to_signal().unwrap())
     }
 }
