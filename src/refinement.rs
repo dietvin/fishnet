@@ -1,3 +1,3 @@
-mod forward_step;
-mod forward_step_dwell_penalty;
-pub mod forward_pass;
+mod dp_algorithm;
+mod refine_signal_mapping;
+mod signal_map_refiner;

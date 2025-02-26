@@ -4,10 +4,10 @@ use super::forward_step::forward_step_viterbi;
 use super::forward_step_dwell_penalty::forward_step_dwell_penalty;
 
 pub fn forward_pass (
-    all_scores: &mut [f32],
-    traceback: &mut [i32],
-    signal: &[f32],
-    levels: &[f32],
+    all_scores: &mut Vec<f32>,
+    traceback: &mut Vec<i32>,
+    signal: &Vec<f32>,
+    levels: &Vec<f32>,
     seq_band_start: &[u32],
     seq_band_end: &[u32],
     base_offsets: &[u32],
@@ -57,24 +57,24 @@ pub fn forward_pass (
         let current_offset = base_offsets[base_idx] as usize;
 
         if use_dwell_penalty {
-            forward_step_dwell_penalty(
-                &mut all_scores[current_offset..current_offset + current_bandwidth],
-                &mut traceback[current_offset..current_offset + current_bandwidth],
-                &all_scores[previous_offset..previous_offset + previous_bandwidth],
-                levels[base_idx],
-                &signal[current_band_start..current_band_end],
-                current_band_start - previous_band_start,
-                short_dwell_penalty
-            )
-        } else {
-            forward_step_viterbi(
-                &mut all_scores[current_offset..current_offset + current_bandwidth],
-                &mut traceback[current_offset..current_offset + current_bandwidth],
-                &all_scores[previous_offset..previous_offset + previous_bandwidth],
-                levels[base_idx],
-                &signal[current_band_start..current_band_end],
-                current_band_start - previous_band_start
-            );
+        //     forward_step_dwell_penalty(
+        //         &mut all_scores[current_offset..current_offset + current_bandwidth],
+        //         &mut traceback[current_offset..current_offset + current_bandwidth],
+        //         &all_scores[previous_offset..previous_offset + previous_bandwidth],
+        //         levels[base_idx],
+        //         &signal[current_band_start..current_band_end],
+        //         current_band_start - previous_band_start,
+        //         short_dwell_penalty
+        //     )
+        // } else {
+        //     forward_step_viterbi(
+        //         &mut all_scores[current_offset..current_offset + current_bandwidth],
+        //         &mut traceback[current_offset..current_offset + current_bandwidth],
+        //         &all_scores[previous_offset..previous_offset + previous_bandwidth],
+        //         levels[base_idx],
+        //         &signal[current_band_start..current_band_end],
+        //         current_band_start - previous_band_start
+        //     );
         }
 
         previous_band_start = current_band_start;

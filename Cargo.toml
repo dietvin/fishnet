@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+bitvec = "1.0.1"
 interp = "2.0.2"
 itertools = "0.14.0"
 pod5 = { git = "https://github.com/bsaintjo/pod5-rs", version = "0.1.0" }
