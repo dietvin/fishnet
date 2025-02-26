@@ -1,5 +1,5 @@
 use rust_htslib::bam::record::{Aux, Record};
-use super::super::errors::{bam_errors::BamReadError, pod5_errors::Pod5FileError};
+use super::super::error::loader_errors::{bam_errors::BamReadError, pod5_errors::Pod5FileError};
 
 // ########################################################################################################################
 //                                             Helper functions for BamRead
@@ -138,6 +138,14 @@ fn handle_unexpected_type<V>(value: Aux<'_>, tag: &str, exp_type: &str) -> Resul
 }
 
 
+
+
+
+
+
+
+
+
 // ########################################################################################################################
 //                                             Helper functions for Pod5File
 // ########################################################################################################################
@@ -157,12 +165,107 @@ fn handle_unexpected_type<V>(value: Aux<'_>, tag: &str, exp_type: &str) -> Resul
 /// # Errors
 /// * `Pod5FileError::ColumnDataMissingError` - If the binary_id is None
 /// * `Pod5FileError::Utf8Error` - If the binary data cannot be converted to a valid UTF-8 string
+use uuid::Uuid;
+
 pub fn read_id_from_binary(binary_id: Option<&[u8]>) -> Result<String, Pod5FileError> {
     let binary_id = binary_id.ok_or(Pod5FileError::ColumnDataMissingError { 
         column: "read_id".to_string(), 
         read_id: "NA".to_string()
     })?;
 
-    let read_id = std::str::from_utf8(binary_id)?.to_string();
+    let read_id = Uuid::from_slice(binary_id)?.to_string();
+    
     Ok(read_id)
+}
+
+
+
+
+
+
+
+
+
+
+// ########################################################################################################################
+//                                             Helper functions for file handling
+// ########################################################################################################################
+use std::{path::{PathBuf, Path}, ffi::OsStr, fs};
+use walkdir::WalkDir;
+use super::super::error::loader_errors::file_handling_errors::{DirHandlingError, FileHandlingError};
+
+pub fn find_files_in_dir(path: &str, file_type: &str, recursive: bool) -> Result<Vec<String>,DirHandlingError> {
+    let path_obj = Path::new(path);
+
+    if !path_obj.exists() || !path_obj.is_dir() {
+        return Err(
+            DirHandlingError::DirectoryNotFound(path.to_string())
+        );
+    }
+
+    let mut file_paths = Vec::new();
+
+    if recursive {
+        for entry in WalkDir::new(path)
+            .into_iter()
+            .filter_map(|e| e.ok()) {
+            let file_path = entry.into_path();
+
+            if valid_type_path(&file_path, file_type) {
+                // Maybe include check for non-unicode chars (return error if found)
+                file_paths.push(
+                    file_path.clone()
+                        .to_str()
+                        .ok_or(DirHandlingError::PathConvError(file_path))?
+                        .to_string()
+                    );
+            }
+        }
+    } else {
+        for entry in fs::read_dir(path)? {
+            let entry = entry?;
+            let file_path = entry.path();
+            if valid_type_path(&file_path, file_type) {
+                file_paths.push(
+                    file_path.clone()
+                        .to_str()
+                        .ok_or(DirHandlingError::PathConvError(file_path))?
+                        .to_string()
+                );
+            }
+        }
+    }
+
+    if file_paths.len() > 0 {
+        Ok(file_paths)
+    } else {
+        Err(DirHandlingError::NoFilesFound(file_type.to_string(), path.to_string()))
+    }
+}
+
+fn valid_type_path(file_path: &PathBuf, extension: &str) -> bool {
+    file_path.is_file() && file_path.extension() == Some(OsStr::new(extension))
+}
+
+pub fn get_files(file_paths: &Vec<String>, file_type: &str) -> Result<Vec<String>,FileHandlingError> {
+    let mut valid_paths = Vec::new();
+
+    for path in file_paths {
+        let file_path = Path::new(path);
+
+        if !file_path.exists() || !file_path.is_file() {
+            return Err(FileHandlingError::FileNotFound(path.clone()));
+        }
+
+        if file_path.extension() != Some(OsStr::new((file_type))) {
+            return Err(FileHandlingError::InvalidFileType(
+                path.clone(), 
+                file_type.to_string()
+            ));
+        } else {
+            valid_paths.push(path.clone());
+        }
+    }
+
+    Ok(valid_paths)
 }

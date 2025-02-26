@@ -1,7 +1,12 @@
 use std::collections::HashMap;
 use rust_htslib::bam::{record::CigarString, Record, Reader, Read};
-use super::super::errors::bam_errors::{BamReadError, BamFileError};
+use super::super::error::loader_errors::bam_errors::{BamReadError, BamFileError};
 use super::helpers;
+
+// ##################################################################################################
+// #                                            Structs                                             #
+// ##################################################################################################
+
 
 /// Represents a BAM record with specialized fields for sequencing data.
 /// The BAM record is stripped down to only the information that is needed
@@ -27,6 +32,23 @@ pub struct BamRead {
     trimmed_signal_length: Option<usize>, // stored in the ts tag
     subread_signal_length: Option<usize> // stored in the ns tag
 }
+
+
+/// A lazy-loading BAM file reader with random access by read ID
+///
+/// This struct provides indexed access to BAM records, building an in-memory
+/// index mapping read IDs to file offsets for efficient retrieval.
+#[derive(Debug)]
+pub struct BamFileLazy {
+    path: String,
+    bam_reader: Reader,
+    index: HashMap<String, i64>
+}
+
+
+// ##################################################################################################
+// #                                        Implementations                                         #
+// ##################################################################################################
 
 impl BamRead {
     /// Creates a new BamRead from a BAM record
@@ -271,17 +293,6 @@ impl BamRead {
     }
 }
 
-
-/// A lazy-loading BAM file reader with random access by read ID
-///
-/// This struct provides indexed access to BAM records, building an in-memory
-/// index mapping read IDs to file offsets for efficient retrieval.
-#[derive(Debug)]
-pub struct BamFileLazy {
-    path: String,
-    bam_reader: Reader,
-    index: HashMap<String, i64>
-}
 
 impl BamFileLazy {
     /// Creates a new BamFileLazy by indexing all records in the given BAM file

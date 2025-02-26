@@ -1,3 +1,7 @@
+use crate::error;
+
+use super::file_handling_errors::{FileHandlingError, DirHandlingError};
+
 #[derive(Debug, thiserror::Error)]
 pub enum Pod5ReadError {}
 
@@ -19,6 +23,11 @@ pub enum Pod5FileError {
     #[error("Failed to decode read ID as UTF-8: {0}")]
     Utf8Error(#[from] std::str::Utf8Error),
 
+    /// UTF-8 conversion errors for read IDs
+    #[error("Failed to decode binary id to UUID: {0}")]
+    UuidError(#[from] uuid::Error),
+
+
     /// Column data is null/missing
     #[error("Data is missing in column '{column}' for read ID '{read_id}'")]
     ColumnDataMissingError {
@@ -34,3 +43,24 @@ pub enum Pod5FileError {
     #[error("Read '{0}' not found in reads")]
     ReadNotFound(String)
 }
+
+#[derive(Debug, thiserror::Error)]
+pub enum Pod5IndexError {
+    /// Invalid directory when initialzing with a directory path
+    #[error("Invalid directory: {0}")]
+    IoInvalidDir(#[from] DirHandlingError),
+
+    /// Invalid file path in file list  when initialzing with file paths
+    #[error("Invalid file list: {0}")]
+    IoInvalidFileList(#[from] FileHandlingError), 
+
+    /// Invalid file path given to load_file
+    #[error("File not found: {0}")]
+    FileNotFound(String),
+
+    #[error("Error loading file: {0}")]
+    FileLoadingError(#[from] Pod5FileError),
+
+    #[error("Mutex error: {0}")]
+    MutexError(String)
+} 

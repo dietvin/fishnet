@@ -12,3 +12,4 @@ polars = { version = "0.46.0", features = ["lazy", "rows"] }
 rust-htslib = "0.46.0"
 thiserror = "2.0.11"
 uuid = "1.12.1"
+walkdir = "2.5.0"

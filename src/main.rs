@@ -1,35 +1,28 @@
-mod errors;
+mod error;
 mod refinement;
 mod loader;
 mod combined_data;
-use loader::{bam_io, pod5_io};
+use loader::{pod5};
 
 fn main() {
     let path: &str = "example_data/can_reads.pod5";
-    let read_dataset = pod5_io::ReadDataset::from_pod5(path).unwrap();
+    let paths = vec![path.to_string()];
+    let index = pod5::Pod5Index::from_files(&paths).unwrap();
 
-    let path = "example_data/can_mappings.bam";
-    let mut bam_index = bam_io::BamIndex::new(path).unwrap();
+    println!("{:?}, {:?}", index.num_files(), index.num_loaded_files());
 
-    let read_id = "6e37823a-9398-4be8-b111-65cab029f4e0";
-    let pod5_read = read_dataset.get(read_id).unwrap();
-    let bam_read = bam_index.get(read_id).unwrap();
-    let mut combined_read = combined_data::CombinedRead::from_pod5_and_bam_record(pod5_read, &bam_read, false).unwrap();
-    // println!("{:?}", combined_read.get_query_to_signal().unwrap().len());        
-    
-    let _ = combined_read.align_to_query();
-    let _ = combined_read.align_to_reference();
-
-    for read_id in read_dataset.keys() {
-        let pod5_read = read_dataset.get(read_id).unwrap();
-        let bam_read = bam_index.get(read_id).unwrap();
-        let mut combined_read = combined_data::CombinedRead::from_pod5_and_bam_record(pod5_read, &bam_read, false).unwrap();
-        let _ = combined_read.align_to_query().unwrap();
-        let _ = combined_read.align_to_reference().unwrap();
-
-    //     println!("{}\n{:?}\n{:?}\n\n", 
-    //         read_id, 
-    //         combined_read.get_query_to_signal().unwrap(), 
-    //         combined_read.get_ref_to_signal().unwrap())
+    for file in index.iter_files() {
+        let (filename, file) = file.unwrap();
+        println!("{filename}");
+        for (_, read) in file.into_iter() {
+            println!("{}, {}, {:?}, {:?}", 
+                read.read_id(), 
+                read.num_samples(), 
+                read.calibration_offset(), 
+                read.calibration_scale()
+            );
+        }
     }
+
+    println!("{:?}, {:?}", index.num_files(), index.num_loaded_files());
 }
