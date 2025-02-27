@@ -382,13 +382,31 @@ impl Pod5Index {
     pub fn num_files(&self) -> usize {
         self.file_paths.len()
     }
+
+    pub fn files(&self) -> Pod5FileIterator {
+        Pod5FileIterator {
+            index: self,
+            current_ixd: 0
+        }
+    }
 }
 
-impl<'a> IntoIterator for &'a Pod5Index {
-    type Item = &'a String;
-    type IntoIter = std::slice::Iter<'a, String>;
+/// An iterator that loads and yields Pod5File objects on demand
+pub struct Pod5FileIterator<'a> {
+    index: &'a Pod5Index,
+    current_ixd: usize
+}
 
-    fn into_iter(self) -> Self::IntoIter {
-        self.file_paths.iter()
-    }
+impl<'a> Iterator for Pod5FileIterator<'a> {
+    type Item = Result<Pod5File, Pod5IndexError>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.current_ixd >= self.index.file_paths().len() {
+            return None;
+        }
+
+        let file_path = &self.index.file_paths()[self.current_ixd];
+        self.current_ixd += 1;
+        Some(self.index.load_file(file_path))
+    }   
 }
