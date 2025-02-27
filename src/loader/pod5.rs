@@ -139,8 +139,6 @@ impl Pod5Read {
         trimmed_signal_len: Option<usize>,
         subread_signal_len: Option<usize>
     ) -> Result<(), Pod5ReadError> {
-        println!("{:?}, {:?}, {:?}", parent_signal_offset, trimmed_signal_len, subread_signal_len);
-
         let parent_signal_offset = match parent_signal_offset {
             Some(v) => v,
             None => 0            

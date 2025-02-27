@@ -24,7 +24,7 @@ pub fn align_query_to_signal(
     }
 
     if query_to_signal.len()-1 != query_length {
-        return Err(QueryToSignalError::DiscordantToQuery(
+        return Err(QueryToSignalError::DiscordantToSequence(
             query_to_signal.len(), query_length
         ));
     } else if move_table.len() != (signal_len/stride) {

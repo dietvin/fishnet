@@ -20,18 +20,11 @@ fn main() {
         if let Ok(file) = file {
             let mut file = file;
             for (_, read) in &mut file {
-                println!("{}", read.read_id());
-                println!("{}", read.signal().len());
-                println!("{}", read.num_samples());
-                println!("{:?}", read.calibration_offset());
-                println!("{:?}", read.calibration_scale());
-
+                println!("\n{}\n", read.read_id());
                 println!("Loading corresponding bam read:");
                 let bam_read = bam_file.get(read.read_id()).unwrap();
-                println!("{}", bam_read.is_mapped());
-                println!("{}\n", bam_read.stride());
 
-                println!("Aligning signal to query:");
+                println!("Aligning signal:");
                 let mut aligned_read = AlignedRead::new(
                     read, 
                     &bam_read, 
@@ -39,8 +32,10 @@ fn main() {
                 ).unwrap();
 
                 aligned_read.align_query_to_signal().unwrap();
+                aligned_read.align_reference_to_signal().unwrap();
 
-                println!("{:?}", aligned_read.query_to_signal());
+                // println!("{:?}", aligned_read.query_to_signal());
+                println!("Reference to signal:\n{:?}", aligned_read.reference_to_signal());
             }
         } else {
             println!("Failed to read File")

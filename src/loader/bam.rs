@@ -1,5 +1,7 @@
 use std::collections::HashMap;
-use rust_htslib::bam::{record::CigarString, Record, Reader, Read};
+use rust_htslib::bam;
+use rust_htslib::bam::ext::BamRecordExtensions;
+use rust_htslib::bam::{record::Cigar, Record, Reader, Read};
 use super::super::error::loader_errors::bam_errors::{BamReadError, BamFileError};
 use super::helpers;
 
@@ -27,7 +29,9 @@ pub struct BamRead {
     
     mapped: bool,
     // The following data is only available if a read is mapped
-    cigar: Option<CigarString>,
+    cigar: Option<Vec<Cigar>>,
+    reference_len: Option<usize>,
+    reverse_mapped: Option<bool>,
     parent_read_id: Option<String>, // stored in the pi tag
     parent_signal_offset: Option<usize>, // stored in the sp tag, start position in parent
     trimmed_signal_length: Option<usize>, // stored in the ts tag
@@ -75,14 +79,19 @@ impl BamRead {
 
         let mapped = !bam_record.is_unmapped();
         let mut cigar = None; 
-        
+        let mut reference_len = None;
+        let mut reverse_mapped = None;
         let mut pi_tag = None; 
         let mut sp_tag = None; 
         let mut ts_tag = None; 
         let mut ns_tag = None; 
 
         if mapped {
-            cigar = Some(bam_record.cigar().take());
+            cigar = Some(bam_record.cigar().take().0);
+            reference_len = Some(
+                (bam_record.reference_end() - bam_record.reference_start()) as usize
+            );
+            reverse_mapped = Some(bam_record.is_reverse());
             pi_tag = helpers::unpack_tag(
                 helpers::get_str_tag(&bam_record, "pi"),
                 None
@@ -111,6 +120,8 @@ impl BamRead {
             signal_scaling_dispersion: sd_tag,
             mapped,
             cigar,
+            reference_len,
+            reverse_mapped,
             parent_read_id: pi_tag,
             parent_signal_offset: sp_tag,
             trimmed_signal_length: ts_tag,
@@ -218,9 +229,27 @@ impl BamRead {
     ///
     /// # Returns
     ///
-    /// * `Option<&CigarString>` - The CIGAR string or None if unmapped
-    pub fn cigar(&self) -> Option<&CigarString> {
+    /// * `Option<&Vec<Cigar>>` - The CIGAR string or None if unmapped
+    pub fn cigar(&self) -> Option<&Vec<Cigar>> {
         self.cigar.as_ref()
+    }
+
+    /// Gets the reference sequence length
+    ///
+    /// # Returns
+    ///
+    /// * `Option<&usize>` - The length of the reference sequence or None if unmapped
+    pub fn reference_len(&self) -> Option<&usize> {
+        self.reference_len.as_ref()
+    }
+
+    /// Determines if the read is reverse mapped
+    ///
+    /// # Returns
+    ///
+    /// * `Option<&usize>` - True if reverse mapped, false otherwise or None if unmapped
+    pub fn is_reverse_mapped(&self) -> Option<&bool> {
+        self.reverse_mapped.as_ref()
     }
 
     /// Gets the parent read ID if available
@@ -264,7 +293,7 @@ impl BamRead {
     /// # Returns
     ///
     /// * `Result<&CigarString, BamReadError>` - The CIGAR string or an error if unmapped
-    pub fn get_cigar(&self) -> Result<&CigarString, BamReadError> {
+    pub fn get_cigar(&self) -> Result<&Vec<Cigar>, BamReadError> {
         self.cigar.as_ref().ok_or(BamReadError::NoSuchDataForUnmappedRead)
     }
 

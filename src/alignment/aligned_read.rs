@@ -1,6 +1,6 @@
 use super::super::loader::{bam::BamRead, pod5::Pod5Read};
 use super::super::error::alignment_errors::aligned_read_errors::AlignedReadError;
-use super::query_to_signal;
+use super::{query_to_signal, reference_to_signal};
 
 pub struct AlignedRead<'a> {
     pod5_read: &'a mut Pod5Read,
@@ -44,6 +44,36 @@ impl<'a> AlignedRead<'a> {
                 self.bam_read.query_length()
             )?
         );
+        Ok(())
+    }
+
+    pub fn align_reference_to_signal(&mut self) -> Result<(), AlignedReadError> {
+        if !self.bam_read.is_mapped() {
+            return Err(
+                AlignedReadError::Unmapped
+            );
+        } else if let Some(query_to_signal) = self.query_to_signal() {
+            // No else here because these can not be None if the is_mapped check passes 
+            if let (
+                Some(cigar), 
+                Some(rev_mapped), 
+                Some(ref_len)) = (
+                    self.bam_read.cigar(), 
+                    self.bam_read.is_reverse_mapped(), 
+                    self.bam_read.reference_len()
+                ) {
+                self.reference_to_signal = Some(
+                    reference_to_signal::align_reference_to_signal(
+                        cigar, 
+                        query_to_signal, 
+                        *rev_mapped, 
+                        *ref_len
+                    )?
+                );
+            }
+        } else {
+            return Err(AlignedReadError::RefBeforeQuery);
+        }
         Ok(())
     }
 

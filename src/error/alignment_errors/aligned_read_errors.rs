@@ -1,5 +1,6 @@
 use super::super::loader_errors::pod5_errors::Pod5ReadError;
 use super::query_to_signal_errors::QueryToSignalError;
+use super::reference_to_signal_errors::RefToSignalError;
 
 #[derive(Debug, thiserror::Error)]
 pub enum AlignedReadError {
@@ -8,5 +9,11 @@ pub enum AlignedReadError {
     #[error("Pod5Read error: {0}")]
     Pod5Error(#[from] Pod5ReadError),
     #[error("Query to signal alignment failed: {0}")]
-    QueryAlgnmentError(#[from] QueryToSignalError)
+    QueryAlignmentError(#[from] QueryToSignalError),
+    #[error("Reference to signal alignment failed: {0}")]
+    RefAlignmentError(#[from] RefToSignalError),
+    #[error("Read is unmapped")]
+    Unmapped,
+    #[error("No query to signal alignment found.")]
+    RefBeforeQuery
 }
