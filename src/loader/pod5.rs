@@ -1,7 +1,6 @@
-use std::{fs::File, collections::HashMap, path::Path};
+use std::{fs::File, collections::HashMap};
 use itertools::multizip;
 use pod5::{polars_arrow::array::Int16Array, reader};
-use std::sync::{Arc, Mutex};
 use super::{super::error::loader_errors::pod5_errors::{Pod5FileError, Pod5IndexError}, helpers};
 
 // ##################################################################################################
@@ -28,22 +27,14 @@ pub struct Pod5File {
     reads: HashMap<String, Pod5Read>
 }
 
-/// A lazily-loaded collection of Pod5File paths that loads files only when accessed
+/// A collection of Pod5File paths that loads files when explicitly requested
 /// 
-/// This struct manages multiple Pod5 file paths and only loads the actual Pod5File
-/// objects when they are requested, conserving memory for large collections.
+/// This struct manages multiple Pod5 file paths and loads Pod5File
+/// objects only when they are explicitly requested through the load_file method.
 #[derive(Debug)]
 pub struct Pod5Index {
     // Stores the Pod5File object with the path to the file
     file_paths: Vec<String>,
-    // Cache of loaded Pod5File objects
-    cache: Arc<Mutex<HashMap<String, Pod5File>>>
-}
-
-/// Iterator for lazily loading and iterating through Pod5 files
-pub struct LazyFileIterator<'a> {
-    index: &'a Pod5Index,
-    current_index: usize
 }
 
 
@@ -320,7 +311,7 @@ impl Pod5Index {
     /// * `recursive` - If true, search subdirectories recursively
     /// 
     /// # Returns
-    /// * `Result<Self, Pod5IndexError>` - A Pod5Collection instance on success, or an error if directory
+    /// * `Result<Self, Pod5IndexError>` - A Pod5Index instance on success, or an error if directory
     ///   reading fails
     /// 
     /// # Errors
@@ -330,7 +321,6 @@ impl Pod5Index {
 
         Ok(Pod5Index {
             file_paths,
-            cache: Arc::new(Mutex::new(HashMap::new()))
         })
     }
 
@@ -340,82 +330,41 @@ impl Pod5Index {
     /// * `paths` - Vector of paths to Pod5 files
     /// 
     /// # Returns
-    /// * `Result<Self, Pod5IndexError>` - A Pod5Collection instance on success, or an error if any file
+    /// * `Result<Self, Pod5IndexError>` - A Pod5Index instance on success, or an error if any file
     ///   path is invalid
     /// 
     /// # Errors
-    /// * `Pod5IndexError::IoInvalidFileList` - If a file in the list doesn't have the .pod5 extension   
+    /// * `Pod5IndexError::IoInvalidFileList` - If a file in the list doesn't have the .pod5 extension    
     pub fn from_files(paths: &Vec<String>) -> Result<Self, Pod5IndexError> {
         let file_paths = helpers::get_files(paths, "pod5")?;
 
         Ok(Pod5Index {
             file_paths,
-            cache: Arc::new(Mutex::new(HashMap::new()))
         })
     }
 
-    /// Loads and returns a Pod5File by its path, caching the result
+    /// Loads and returns a Pod5File by its path
     /// 
     /// # Arguments
     /// * `file_path` - Path to the Pod5 file
     /// 
     /// # Returns
-    /// * `Result<Arc<Pod5File>, Pod5CollError>` - Arc to the loaded Pod5File if successful
+    /// * `Result<Pod5File, Pod5IndexError>` - The loaded Pod5File if successful
     /// 
     /// # Errors
-    /// * `Pod5IndexError::FileLoadingError` - If the Pod5 file cannot be loaded
+    /// * `Pod5IndexError::LoadPod5Error` - If the Pod5 file cannot be loaded
     /// * `Pod5IndexError::FileNotFound` - If the file path is not in the collection
-    pub fn load_file(&self, file_path: &str) -> Result<Arc<Pod5File>, Pod5IndexError> {
+    pub fn load_file(&self, file_path: &str) -> Result<Pod5File, Pod5IndexError> {
         // Check if the file path is in the current collection
         if !self.file_paths.contains(&file_path.to_string()) {
             return Err(Pod5IndexError::FileNotFound(file_path.to_string()));
         }
 
-        // Check if the file is already cached
-        {
-            let cache = self.cache
-                .lock()
-                .map_err(|e| Pod5IndexError::MutexError(
-                    format!("Failed to lock cache: {}", e)
-                ))?;
-            if let Some(file) = cache.get(file_path) {
-                return Ok(Arc::new(file.clone()));
-            }
-        } // release mutex lock
-
-        // If not cached, load the file
+        // Load the file
         match Pod5File::new(file_path) {
-            Ok(pod5_file) => {
-                let file_arc = Arc::new(pod5_file.clone());
-                // Cache the loaded file
-                let mut cache = self.cache
-                    .lock()
-                    .map_err(|e| Pod5IndexError::MutexError(
-                        format!("Failed to lock cache: {}", e)
-                ))?;
-                cache.insert(file_path.to_string(), pod5_file);
-                Ok(file_arc)
-            },
-            Err(err) => {
-                Err(Pod5IndexError::FileLoadingError(err))
-            }
+            Ok(pod5_file) => Ok(pod5_file),
+            Err(err) => Err(Pod5IndexError::FileLoadingError(err))
          }
-    }
-
-    /// Gets a file if it's already loaded, otherwise returns None without loading
-    /// 
-    /// # Arguments
-    /// * `file_path` - Path to the Pod5 file
-    /// 
-    /// # Returns
-    /// * `Option<Arc<Pod5File>>` - Arc to the Pod5File if it's already loaded, None otherwise
-    pub fn get_if_loaded(&self, file_path: &str) -> Result<Option<Arc<Pod5File>>, Pod5IndexError> {
-        let cache = self.cache
-            .lock()
-            .map_err(|e| Pod5IndexError::MutexError(
-                format!("Failed to lock cache: {}", e)
-        ))?;
-        Ok(cache.get(file_path).map(|file| Arc::new(file.clone())))
     }
 
     /// Lists all file paths in the collection
@@ -433,131 +382,13 @@ impl Pod5Index {
     pub fn num_files(&self) -> usize {
         self.file_paths.len()
     }
-
-    /// Returns the number of currently loaded files
-    /// 
-    /// # Returns
-    /// * `usize` - Number of loaded files
-    pub fn num_loaded_files(&self) -> Result<usize, Pod5IndexError> {
-        let cache = self.cache
-            .lock()
-            .map_err(|e| Pod5IndexError::MutexError(
-                format!("Failed to lock cache: {}", e)
-        ))?;
-        Ok(cache.len())
-    }
-
-    /// Unloads a file from memory if it was loaded
-    /// 
-    /// # Arguments
-    /// * `file_path` - Path to the Pod5 file to unload
-    /// 
-    /// # Returns
-    /// * `bool` - True if the file was unloaded, false if it wasn't loaded
-    pub fn unload(&self, file_path: &str) -> Result<bool, Pod5IndexError> {
-        let mut cache = self.cache
-            .lock()
-            .map_err(|e| Pod5IndexError::MutexError(
-                format!("Failed to lock cache: {}", e)
-        ))?;
-        Ok(cache.remove(file_path).is_some())
-    }
-
-    /// Unloads all files from memory
-    pub fn unload_all(&self) -> Result<(), Pod5IndexError> {
-        let mut cache = self.cache
-            .lock()
-            .map_err(|e| Pod5IndexError::MutexError(
-                format!("Failed to lock cache: {}", e)
-        ))?;
-        cache.clear();
-        Ok(())
-    }
-
-    /// Preloads a specific file into memory
-    /// 
-    /// # Arguments
-    /// * `file_path` - Path to the Pod5 file to preload
-    /// 
-    /// # Returns
-    /// * `Result<(), Pod5CollError>` - Ok if the file was loaded, Err otherwise
-    pub fn preload(&self, file_path: &str) -> Result<(), Pod5IndexError> {
-        self.load_file(file_path).map(|_| ())
-    }
-
-    /// Finds a read by its ID across all Pod5 files, loading files as needed
-    /// 
-    /// # Arguments
-    /// * `read_id` - ID of the read to find
-    /// 
-    /// # Returns
-    /// * `Result<Option<(String, Pod5Read)>, Pod5CollError>` - The file path and read if found
-    pub fn find_read(&self, read_id: &str) -> Result<Option<(String, Pod5Read)>, Pod5IndexError> {
-        // First check already loaded files
-        {
-            let cache = self.cache
-                .lock()
-                .map_err(|e| Pod5IndexError::MutexError(
-                    format!("Failed to lock cache: {}", e)
-            ))?;
-            for (file_path, pod5_file) in cache.iter() {
-                if let Some(read) = pod5_file.get(read_id) {
-                    // Clone the data to return it
-                    return Ok(Some((file_path.clone(), read.clone())));
-                }
-            }
-        }
-        // If not found in loaded files, try to load other files
-        for file_path in &self.file_paths {
-            // Skip already checked files
-            if self.get_if_loaded(file_path)?.is_some() {
-                continue;
-            }
-
-            // Load the file
-            let file = self.load_file(file_path)?;
-
-            // Check if the read exists in this file
-            if let Some(read) = file.get(read_id) {
-                return Ok(Some((file_path.clone(), read.clone())));
-            }
-
-            // Unload the file if the read wasn't found to save memory
-            self.unload(file_path);
-        }
-
-        Ok(None)
-    }
-
-    /// Creates an iterator that lazily loads and yields (file_path, Pod5File) pairs
-    ///
-    /// # Returns
-    /// * `LazyFileIterator` - Iterator over files in the collection
-    pub fn iter_files(&self) -> LazyFileIterator {
-        LazyFileIterator {
-            index: self,
-            current_index: 0
-        }
-    }
-
 }
 
+impl<'a> IntoIterator for &'a Pod5Index {
+    type Item = &'a String;
+    type IntoIter = std::slice::Iter<'a, String>;
 
-
-impl<'a> Iterator for LazyFileIterator<'a> {
-    type Item = Result<(String, Arc<Pod5File>), Pod5IndexError>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.current_index < self.index.file_paths.len() {
-            let file_path = &self.index.file_paths()[self.current_index];
-            self.current_index += 1;
-
-            match self.index.load_file(file_path) {
-                Ok(file) => Some(Ok((file_path.clone(), file))),
-                Err(err) => Some(Err(err))
-            }
-        } else {
-            None
-        }
+    fn into_iter(self) -> Self::IntoIter {
+        self.file_paths.iter()
     }
 }
