@@ -3,7 +3,10 @@ use crate::error;
 use super::file_handling_errors::{FileHandlingError, DirHandlingError};
 
 #[derive(Debug, thiserror::Error)]
-pub enum Pod5ReadError {}
+pub enum Pod5ReadError {
+    #[error("Failed to trim signal: {0}")]
+    TrimError(String)
+}
 
 #[derive(Debug, thiserror::Error)]
 pub enum Pod5FileError {

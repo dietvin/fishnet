@@ -19,8 +19,9 @@ use super::helpers;
 pub struct BamRead {
     read_id: String,
     query: Vec<u8>,
+    query_length: usize,
     move_table: Vec<bool>,
-    stride: u16,
+    stride: usize,
     signal_scaling_mean: f32, // stored in the sm tag
     signal_scaling_dispersion: f32, // stored in the sd tag
     
@@ -66,8 +67,8 @@ impl BamRead {
     pub fn new(bam_record: Record) -> Result<Self, BamReadError> {
         let read_id = std::str::from_utf8(bam_record.qname())?.to_string();
         let query = bam_record.seq().as_bytes();
-
-        let (stride, move_table): (u16, Vec<bool>) = BamRead::get_stride_move_table(&bam_record)?;
+        let query_length = query.len();
+        let (stride, move_table): (usize, Vec<bool>) = BamRead::get_stride_move_table(&bam_record)?;
 
         let sm_tag = helpers::get_float_tag(&bam_record, "sm")?;
         let sd_tag = helpers::get_float_tag(&bam_record, "sd")?;
@@ -103,6 +104,7 @@ impl BamRead {
         Ok(BamRead {
             read_id,
             query,
+            query_length,
             move_table,
             stride,
             signal_scaling_mean: sm_tag,
@@ -127,10 +129,10 @@ impl BamRead {
     /// # Returns
     ///
     /// * `Result<(u16, Vec<bool>), BamReadError>` - The stride and move table, or an error
-    fn get_stride_move_table(bam_record: &Record) -> Result<(u16, Vec<bool>), BamReadError> {
+    fn get_stride_move_table(bam_record: &Record) -> Result<(usize, Vec<bool>), BamReadError> {
         let mv_table = helpers::get_iarray_tag(bam_record, "mv")?;
     
-        let stride = mv_table[0] as u16;
+        let stride = mv_table[0] as usize;
         let move_table = mv_table[1..].iter().map(|&el| el != 0).collect::<Vec<bool>>();
     
         Ok((
@@ -157,6 +159,16 @@ impl BamRead {
         &self.query
     }
 
+    /// Gets the query length
+    ///
+    /// # Returns
+    ///
+    /// * `usize` - The length of the query sequence
+    pub fn query_length(&self) -> usize {
+        self.query.len()
+    }
+
+
     /// Gets the move table
     ///
     /// # Returns
@@ -171,7 +183,7 @@ impl BamRead {
     /// # Returns
     ///
     /// * `u16` - The stride value
-    pub fn stride(&self) -> u16 {
+    pub fn stride(&self) -> usize {
         self.stride
     }
 

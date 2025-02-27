@@ -1,7 +1,7 @@
 use std::{fs::File, collections::HashMap};
 use itertools::multizip;
 use pod5::{polars_arrow::array::Int16Array, reader};
-use super::{super::error::loader_errors::pod5_errors::{Pod5FileError, Pod5IndexError}, helpers};
+use super::{super::error::loader_errors::pod5_errors::{Pod5FileError, Pod5IndexError, Pod5ReadError}, helpers};
 
 // ##################################################################################################
 // #                                            Structs                                             #
@@ -92,6 +92,88 @@ impl Pod5Read {
     /// Returns the calibration scale factor if available
     pub fn calibration_scale(&self) -> Option<&f32> {
         self.calibration_scale.as_ref()
+    }
+
+    /// Trim the signal based on the *sp*, *ts* and *ns* tags
+    /// found in the corresponding bam read. Once called the 
+    /// original signal is overwritten to minimize memory usage.
+    /// 
+    /// This function is called when initializing an AlignedRead.
+    /// At this point the AlignedRead takes ownership of the read.
+    /// 
+    /// # Arguments
+    /// * `reverse_signal` - bool indicating if the signal must be reversed
+    /// (in case of direct RNA sequencing reads)
+    /// * `parent_signal_offset` - value behind the *sp* tag if available
+    /// * `trimmed_signal_len` - value behind the *ts* tag if available
+    /// * `subread_signal_len` - value behind the *ns* tag if available
+    /// 
+    /// # Errors
+    /// * `Pod5ReadError::TrimError` - If the trimming fails
+    /// 
+    /// # Note: 
+    /// The *ts* and *ns* values are relative to the signal starting at the offset
+    /// given by *sp*. Accordingly the *sp* value must be added to account for it.
+    /// ```
+    /// --------------------------
+    /// |   |                    |
+    /// s   sp                   size
+    ///     ----------------------
+    ///     |    |          |    |
+    ///     s_o  ts         ns
+    /// ```
+    pub fn update_signal(
+        &mut self,
+        reverse_signal: bool,
+        parent_signal_offset: Option<usize>,
+        trimmed_signal_len: Option<usize>,
+        subread_signal_len: Option<usize>
+    ) -> Result<(), Pod5ReadError> {
+
+        let parent_signal_offset = match parent_signal_offset {
+            Some(v) => v,
+            None => 0            
+        };
+        let trimmed_signal_len = match trimmed_signal_len {
+            Some(v) => v,
+            None => 0
+        };
+
+        let start = parent_signal_offset + trimmed_signal_len;
+
+        let end = match subread_signal_len {
+            Some(v) => parent_signal_offset + v,
+            None => self.num_samples            
+        };
+
+        if end > self.num_samples {
+            return Err(Pod5ReadError::TrimError(
+                format!(
+                    "'subread_signal_len' ({}) out of bounds with signal length {}",
+                    end, self.num_samples
+                )
+            ));
+        } else if start >= end {
+            return Err(Pod5ReadError::TrimError(
+                format!(
+                    "Start index ({}) must be smaller than end index ({})",
+                    start, end
+                )
+            ));
+        }
+
+        let mut signal = self.signal.clone();
+        if reverse_signal {
+            signal = helpers::reverse_signal(&signal);
+            signal = signal[start..end].to_vec();
+            signal = helpers::reverse_signal(&signal);
+        } else {
+            signal = signal[start..end].to_vec();
+        }
+
+        self.num_samples = signal.len();
+        self.signal = signal;
+        Ok(())
     }
 }
 

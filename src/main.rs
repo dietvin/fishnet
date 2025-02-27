@@ -6,6 +6,7 @@ mod combined_data;
 
 
 use loader::{pod5, bam};
+use alignment::aligned_read::AlignedRead;
 
 fn main() {
     let path: &str = "example_data/can_reads.pod5";
@@ -17,7 +18,8 @@ fn main() {
 
     for file in index.files() {
         if let Ok(file) = file {
-            for (_, read) in &file {
+            let mut file = file;
+            for (_, read) in &mut file {
                 println!("{}", read.read_id());
                 println!("{}", read.signal().len());
                 println!("{}", read.num_samples());
@@ -29,8 +31,16 @@ fn main() {
                 println!("{}", bam_read.is_mapped());
                 println!("{}\n", bam_read.stride());
 
+                println!("Aligning signal to query:");
+                let mut aligned_read = AlignedRead::new(
+                    read, 
+                    &bam_read, 
+                    false
+                ).unwrap();
 
+                aligned_read.align_query_to_signal().unwrap();
 
+                println!("{:?}", aligned_read.query_to_signal());
             }
         } else {
             println!("Failed to read File")
