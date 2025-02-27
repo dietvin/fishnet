@@ -11,10 +11,10 @@ use super::{super::error::loader_errors::pod5_errors::{Pod5FileError, Pod5IndexE
 #[derive(Debug, Clone)]
 pub struct Pod5Read {
     read_id: String,
+    calibration_offset: f32,
+    calibration_scale: f32,
     signal: Vec<i16>,
-    num_samples: usize,
-    calibration_offset: Option<f32>,
-    calibration_scale: Option<f32>
+    num_samples: usize
 }
 
 /// A container for Pod5 file data that provides access to reads using a HashMap
@@ -43,30 +43,40 @@ pub struct Pod5Index {
 // ##################################################################################################
 
 impl Pod5Read {
-    /// Creates a new Pod5Read instance with basic read information
+    /// Creates a new Pod5Read instance with basic read information. Initializes the
+    /// signal as an empty Vector and the num_samples count as 0.
     /// 
     /// # Arguments
     /// * `read_id` - Unique identifier for the read
     /// * `signal` - Vector of signal intensity values
     /// * `num_samples` - Total number of samples in the read
-    fn init(read_id: String, signal: Vec<i16>, num_samples: usize) -> Self {
+    fn init(read_id: String, offset: f32, scale: f32) -> Self {
         Pod5Read{
             read_id: read_id.to_string(),
-            signal,
-            num_samples,
-            calibration_offset: None,
-            calibration_scale: None
+            calibration_offset: offset,
+            calibration_scale: scale,
+            signal: Vec::new(),
+            num_samples: 0
         }
     }
 
-    /// Updates the read with calibration data
-    /// 
+    /// Updates the signal and num_samples variables. 
+    /// Important note: 
     /// # Arguments
     /// * `offset` - The calibration offset value for signal normalization
     /// * `scale` - The calibration scale factor for signal normalization
-    fn add_read_df_data(&mut self, offset: f32, scale: f32) {
-        self.calibration_offset = Some(offset);
-        self.calibration_scale = Some(scale);
+    /// 
+    /// # Note
+    /// Some signals seem to be split into multiple chunks where each chunk is stored in a 
+    /// row of the signal dataframe in the pod5 file. The length of these subsets taken together results in 
+    /// the number of samples stored in the Reads dataframe. 
+    /// 
+    /// The method handles these chunks by simply appending the latest chunk (in order of the rows in the df)
+    /// to the signal already stored in the Pod5Read. This is assuming that the original order is retained in
+    /// the pod5 file. When all chunks are added the length is equal to the num_samples value. 
+    fn add_signal_df_data(&mut self, signal_chunk: &mut Vec<i16>, signal_cunk_len: usize) {
+        self.signal.append(signal_chunk);
+        self.num_samples += signal_cunk_len;
     }
 
     /// Returns the unique identifier for this read
@@ -85,13 +95,13 @@ impl Pod5Read {
     }
 
     /// Returns the calibration offset if available
-    pub fn calibration_offset(&self) -> Option<&f32> {
-        self.calibration_offset.as_ref()
+    pub fn calibration_offset(&self) -> &f32 {
+        &self.calibration_offset
     }
 
     /// Returns the calibration scale factor if available
-    pub fn calibration_scale(&self) -> Option<&f32> {
-        self.calibration_scale.as_ref()
+    pub fn calibration_scale(&self) -> &f32 {
+        &self.calibration_scale
     }
 
     /// Trim the signal based on the *sp*, *ts* and *ns* tags
@@ -129,6 +139,7 @@ impl Pod5Read {
         trimmed_signal_len: Option<usize>,
         subread_signal_len: Option<usize>
     ) -> Result<(), Pod5ReadError> {
+        println!("{:?}, {:?}, {:?}", parent_signal_offset, trimmed_signal_len, subread_signal_len);
 
         let parent_signal_offset = match parent_signal_offset {
             Some(v) => v,
@@ -208,60 +219,6 @@ impl Pod5File {
 
         let mut read_collection = HashMap::new();
 
-        // Extract the needed information from the signal_df dataframes
-        // (i.e. columns read_id, signal and samples)
-        for signal_df in pod5_reader.signal_dfs()?.flatten() {
-            let df = signal_df
-                .decompress_signal("signal_decompressed")?
-                .into_inner();
-            // Create an iterator for each column
-            let read_id_col_iter = df
-                .column("read_id")?
-                .binary()?
-                .iter();
-            let signal_col_iter = df
-                .column("signal_decompressed")?
-                .list()?
-                .iter();
-            let num_samples_col_iter = df
-                .column("samples")?
-                .u32()?
-                .iter();
-
-            // Collectively iterate through each row of the columns
-            // https://stackoverflow.com/questions/72440403/iterate-over-rows-polars-rust
-            for (read_id, signal, num_samples) in multizip((
-                read_id_col_iter, signal_col_iter, num_samples_col_iter
-            )) {
-                let read_id = helpers::read_id_from_binary(read_id)?;
-                
-                // Convert signal data to rust-native Vec<i16>
-                let signal = signal
-                    .ok_or(Pod5FileError::ColumnDataMissingError { 
-                        column: "signal".to_string(), 
-                        read_id: read_id.clone()
-                    })?
-                    .as_any()
-                    .downcast_ref::<Int16Array>()
-                    .ok_or(Pod5FileError::DowncastError(read_id.clone()))?
-                    .values()
-                    .to_vec();
-                
-                let num_samples = num_samples.ok_or(Pod5FileError::ColumnDataMissingError{
-                    column: "num_samples".to_string(), 
-                    read_id: read_id.clone()
-                })? as usize;
-
-                let read = Pod5Read::init(
-                    read_id.clone(), 
-                    signal, 
-                    num_samples
-                );
-
-                read_collection.insert(read_id, read);
-            }
-        }
-
         // Extract the needed information from the signal_df dataframes and 
         // add it to the existing Pod5Read objects.
         // (i.e. columns calibration_offset & calibration_scale)
@@ -298,11 +255,65 @@ impl Pod5File {
                     read_id: read_id.clone()
                 })?;
 
+                let read = Pod5Read::init(
+                    read_id.clone(), 
+                    offset, 
+                    scale
+                );
+                read_collection.insert(read_id, read);
+            }
+        }
+
+
+        // Extract the needed information from the signal_df dataframes
+        // (i.e. columns read_id, signal and samples)
+        for signal_df in pod5_reader.signal_dfs()?.flatten() {
+            let df = signal_df
+                .decompress_signal("signal_decompressed")?
+                .into_inner();
+            // Create an iterator for each column
+            let read_id_col_iter = df
+                .column("read_id")?
+                .binary()?
+                .iter();
+            let signal_col_iter = df
+                .column("signal_decompressed")?
+                .list()?
+                .iter();
+            let num_samples_col_iter = df
+                .column("samples")?
+                .u32()?
+                .iter();
+
+            // Collectively iterate through each row of the columns
+            // https://stackoverflow.com/questions/72440403/iterate-over-rows-polars-rust
+            for (read_id, signal, num_samples) in multizip((
+                read_id_col_iter, signal_col_iter, num_samples_col_iter
+            )) {
+                let read_id = helpers::read_id_from_binary(read_id)?;
+                
+                // Convert signal data to rust-native Vec<i16>
+                let mut signal = signal
+                    .ok_or(Pod5FileError::ColumnDataMissingError { 
+                        column: "signal".to_string(), 
+                        read_id: read_id.clone()
+                    })?
+                    .as_any()
+                    .downcast_ref::<Int16Array>()
+                    .ok_or(Pod5FileError::DowncastError(read_id.clone()))?
+                    .values()
+                    .to_vec();
+                
+                let num_samples = num_samples.ok_or(Pod5FileError::ColumnDataMissingError{
+                    column: "num_samples".to_string(), 
+                    read_id: read_id.clone()
+                })? as usize;
+
                 // Add the extracted information to the read at hand
                 read_collection
                     .get_mut(&read_id)
                     .ok_or(Pod5FileError::ReadNotFound(read_id))?
-                    .add_read_df_data(offset, scale);
+                    .add_signal_df_data(&mut signal, num_samples);
             }
         }
 
