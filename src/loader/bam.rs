@@ -225,24 +225,6 @@ impl BamRead {
         self.mapped
     }
 
-    /// Gets the CIGAR string if available
-    ///
-    /// # Returns
-    ///
-    /// * `Option<&Vec<Cigar>>` - The CIGAR string or None if unmapped
-    pub fn cigar(&self) -> Option<&Vec<Cigar>> {
-        self.cigar.as_ref()
-    }
-
-    /// Gets the reference sequence length
-    ///
-    /// # Returns
-    ///
-    /// * `Option<&usize>` - The length of the reference sequence or None if unmapped
-    pub fn reference_len(&self) -> Option<&usize> {
-        self.reference_len.as_ref()
-    }
-
     /// Determines if the read is reverse mapped
     ///
     /// # Returns
@@ -252,49 +234,23 @@ impl BamRead {
         self.reverse_mapped.as_ref()
     }
 
-    /// Gets the parent read ID if available
-    ///
-    /// # Returns
-    ///
-    /// * `Option<&str>` - The parent read ID or None if unmapped or no parent
-    pub fn parent_read_id(&self) -> Option<&str> {
-        self.parent_read_id.as_deref()
-    }
-
-    /// Gets the parent signal offset if available
-    ///
-    /// # Returns
-    ///
-    /// * `Option<usize>` - The parent signal offset or None if unmapped
-    pub fn parent_signal_offset(&self) -> Option<usize> {
-        self.parent_signal_offset
-    }
-
-    /// Gets the trimmed signal length if available
-    ///
-    /// # Returns
-    ///
-    /// * `Option<usize>` - The trimmed signal length or None if unmapped
-    pub fn trimmed_signal_length(&self) -> Option<usize> {
-        self.trimmed_signal_length
-    }
-
-    /// Gets the subread signal length if available
-    ///
-    /// # Returns
-    ///
-    /// * `Option<usize>` - The subread signal length or None if unmapped or unavailable
-    pub fn subread_signal_length(&self) -> Option<usize> {
-        self.subread_signal_length
-    }
-
     /// Gets the CIGAR string with error handling
     ///
     /// # Returns
     ///
-    /// * `Result<&CigarString, BamReadError>` - The CIGAR string or an error if unmapped
+    /// * `Result<&Vec<Cigar>, BamReadError>` - The CIGAR string or an error if unmapped
     pub fn get_cigar(&self) -> Result<&Vec<Cigar>, BamReadError> {
         self.cigar.as_ref().ok_or(BamReadError::NoSuchDataForUnmappedRead)
+    }
+
+    /// Gets the reference sequence length with error handling
+    ///
+    /// # Returns
+    ///
+    /// * `Result<&usize, BamReadError>` - The length of the reference sequence 
+    /// or an error if unmapped
+    pub fn reference_len(&self) -> Result<&usize, BamReadError> {
+        self.reference_len.as_ref().ok_or(BamReadError::NoSuchDataForUnmappedRead)
     }
 
     /// Gets the parent read ID with error handling
