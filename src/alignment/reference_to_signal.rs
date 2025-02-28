@@ -1,6 +1,5 @@
 use super::super::error::alignment_errors::reference_to_signal_errors::RefToSignalError;
 use rust_htslib::bam::record::Cigar;
-use std::io::{self, Write};
 use super::helpers::{is_match_ops, calculate_knots, interpolate};
 
 pub fn align_reference_to_signal(
