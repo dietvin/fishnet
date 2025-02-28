@@ -20,9 +20,9 @@ impl<'a> AlignedRead<'a> {
 
         pod5_read.update_signal(
             reverse_signal, 
-            bam_read.parent_signal_offset(), 
-            bam_read.trimmed_signal_length(), 
-            bam_read.subread_signal_length()
+            bam_read.get_parent_signal_offset()?, 
+            bam_read.get_trimmed_signal_length()?, 
+            bam_read.get_subread_signal_length()?
         )?;
 
         Ok(AlignedRead{
@@ -58,9 +58,9 @@ impl<'a> AlignedRead<'a> {
                 Some(cigar), 
                 Some(rev_mapped), 
                 Some(ref_len)) = (
-                    self.bam_read.cigar(), 
+                    self.bam_read.get_cigar()?, 
                     self.bam_read.is_reverse_mapped(), 
-                    self.bam_read.reference_len()
+                    self.bam_read.get_reference_len()?
                 ) {
                 self.reference_to_signal = Some(
                     reference_to_signal::align_reference_to_signal(

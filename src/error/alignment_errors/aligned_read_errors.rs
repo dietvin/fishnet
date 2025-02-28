@@ -1,4 +1,4 @@
-use super::super::loader_errors::pod5_errors::Pod5ReadError;
+use super::super::loader_errors::{pod5_errors::Pod5ReadError, bam_errors::BamReadError};
 use super::query_to_signal_errors::QueryToSignalError;
 use super::reference_to_signal_errors::RefToSignalError;
 
@@ -15,5 +15,7 @@ pub enum AlignedReadError {
     #[error("Read is unmapped")]
     Unmapped,
     #[error("No query to signal alignment found.")]
-    RefBeforeQuery
+    RefBeforeQuery,
+    #[error("Failed to get BAM data: {0}")]
+    RetrieveBamError(#[from] BamReadError)
 }

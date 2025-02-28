@@ -6,8 +6,8 @@ pub enum BamReadError {
     IdConversionError(#[from] std::str::Utf8Error),
     #[error("Could not extract tag '{0}': Expected {1}, got {2}")]
     TagUnexpectedTypeError(String, String, String),
-    #[error("Read not mapped - unable to retrieve data")]
-    NoSuchDataForUnmappedRead
+    #[error("Read not mapped - unable to retrieve {0}")]
+    NoSuchDataForUnmappedRead(String)
 }
 
 #[derive(Debug, thiserror::Error)]
