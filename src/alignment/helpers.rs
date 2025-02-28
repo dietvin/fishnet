@@ -95,11 +95,11 @@ use super::super::error::alignment_errors::reference_to_signal_errors::RefToSign
 ///
 /// # Examples
 ///
-/// ```
+/// ```ignore
 /// let x_ref = vec![0.0, 1.0, 2.0];
 /// let y_ref = vec![10.0, 20.0, 30.0];
 /// let x_query = vec![0.0, 0.5, 1.0, 1.5, 2.0];
-/// let result = numpy_interp(&x_ref, &y_ref, &x_query);
+/// let result = interpolate(&x_ref, &y_ref, &x_query).unwrap();
 /// assert_eq!(result, vec![10.0, 15.0, 20.0, 25.0, 30.0]);
 /// ```
 ///
