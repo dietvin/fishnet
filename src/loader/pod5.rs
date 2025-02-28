@@ -1,4 +1,4 @@
-use std::{fs::File, collections::HashMap};
+use std::{collections::HashMap, fs::File};
 use itertools::multizip;
 use pod5::{polars_arrow::array::Int16Array, reader};
 use super::{super::error::loader_errors::pod5_errors::{Pod5FileError, Pod5IndexError, Pod5ReadError}, helpers};
@@ -337,6 +337,11 @@ impl Pod5File {
     pub fn num_reads(&self) -> usize {
         self.reads.len()
     }
+
+    /// Returns the path of the underlying pod5 file
+    pub fn path(&self) -> &String {
+        &self.path
+    }
 }
 
 
@@ -474,10 +479,61 @@ impl Pod5Index {
         self.file_paths.len()
     }
 
+
+    /// Returns an iterator that yields all files.
+    ///
+    /// This method provides a convenient way to process all files stored in the Pod5Index.
+    ///
+    /// # Returns
+    /// * `Pod5FileIterator` - An iterator that yields a Pod5File
+    ///
+    /// # Example
+    /// ```
+    /// let index = Pod5Index::from_dir("data/", true)?;
+    /// for result in index.files() {
+    ///     match result {
+    ///         Ok(file) => {
+    ///             println!("Path: {}, Num reads: {}", 
+    ///                     file.path(), file.num_reads());
+    ///         },
+    ///         Err(err) => eprintln!("Error: {}", err),
+    ///     }
+    /// }
+    /// ```
     pub fn files(&self) -> Pod5FileIterator {
         Pod5FileIterator {
             index: self,
             current_ixd: 0
+        }
+    }
+
+    /// Returns an iterator that yields all reads from all Pod5 files in the Pod5Index
+    ///
+    /// This method provides a convenient way to process all reads across multiple
+    /// Pod5 files without manually loading each file.
+    ///
+    /// # Returns
+    /// * `Pod5ReadsIterator` - An iterator that yields (file_path, read_id, Pod5Read) triples
+    ///
+    /// # Example
+    /// ```
+    /// let index = Pod5Index::from_dir("data/", true)?;
+    /// for result in index.reads() {
+    ///     match result {
+    ///         Ok((file_path, read_id, read)) => {
+    ///             println!("File: {}, Read ID: {}, Samples: {}", 
+    ///                     file_path, read_id, read.num_samples());
+    ///         },
+    ///         Err(err) => eprintln!("Error: {}", err),
+    ///     }
+    /// }
+    /// ```
+    pub fn reads(&self) -> Pod5ReadIterator {
+        Pod5ReadIterator {
+            file_paths: self.file_paths.clone(),
+            current_file_idx: 0,
+            current_reads: Vec::new(),
+            current_read_idx: 0
         }
     }
 }
@@ -500,4 +556,57 @@ impl<'a> Iterator for Pod5FileIterator<'a> {
         self.current_ixd += 1;
         Some(self.index.load_file(file_path))
     }   
+}
+
+/// An iterator that yields reads from all Pod5 files in the index
+pub struct Pod5ReadIterator {
+    file_paths: Vec<String>,
+    current_file_idx: usize,
+    current_reads: Vec<(String, Pod5Read)>,
+    current_read_idx: usize
+}
+
+impl Iterator for Pod5ReadIterator {
+    type Item = Result<(String, String, Pod5Read), Pod5IndexError>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.current_read_idx < self.current_reads.len() {
+            // Check if we have reads from the current file to yield
+            let (read_id, read) = self.current_reads[self.current_read_idx].clone();
+            let file_path = self.file_paths[self.current_file_idx - 1].clone();
+            self.current_read_idx += 1;
+            return Some(Ok((file_path, read_id, read)));
+        } else if self.current_file_idx >= self.file_paths.len() { 
+            // No more reads in the current file, try to load the next file
+            return None;
+        }
+
+        let file_path = &self.file_paths[self.current_file_idx];
+        self.current_file_idx += 1;
+
+        // Load the next file
+        match Pod5File::new(file_path) {
+            Ok(file) => {
+                // Extract all reads from the file
+                self.current_reads.clear();
+                self.current_read_idx = 0;
+
+                // Convert the HashMap into a Vec of (read_id, Pod5Read) pairs
+                for (read_id, read) in file.reads {
+                    self.current_reads.push((read_id, read));
+                }
+                
+                // If the file has reads, return the first one
+                if !self.current_reads.is_empty() {
+                    let (read_id, read) = self.current_reads[0].clone();
+                    self.current_read_idx = 1;
+                    return Some(Ok((file_path.clone(), read_id, read)));
+                } else {
+                    // Try the next file if this one has no reads
+                    return self.next();
+                }
+            },
+            Err(err) => Some(Err(Pod5IndexError::FileLoadingError(err)))
+        }
+    }
 }
