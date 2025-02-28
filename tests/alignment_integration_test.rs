@@ -72,7 +72,7 @@ fn test_ref_to_signal() {
 
 
 fn vec_from_file(path: &str) -> Vec<usize> {
-    let mut file = File::open(path).expect("File not found");
+    let file = File::open(path).expect("File not found");
     let reader = BufReader::new(file);
 
     let vec = reader
