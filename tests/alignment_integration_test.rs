@@ -34,8 +34,40 @@ fn test_query_to_signal() {
             Err(err) => eprintln!("Failed to extract read: {err}")
         }
     }
-    
+}
 
+
+#[test]
+fn test_ref_to_signal() {
+    let pod5_index = Pod5Index::from_dir("example_data", false).unwrap();
+    let mut bam_file = BamFileLazy::new("example_data/can_mappings.bam").unwrap();
+
+    for read in pod5_index.reads() {
+        match read {
+            Ok((_, read_id, pod5_read)) => {
+                let mut pod5_read = pod5_read;
+                let mut bam_read = bam_file.get(&read_id).unwrap();
+
+                let mut aligned_read = AlignedRead::new(
+                    &mut pod5_read, 
+                    &mut bam_read, 
+                    false
+                ).unwrap();
+
+                aligned_read.align_query_to_signal().unwrap();
+                aligned_read.align_reference_to_signal().unwrap();
+                let ref_to_signal = aligned_read.reference_to_signal().unwrap();
+
+                let expected_mapping_path = format!(
+                    "tests/expected_alignments/{}_ref_to_signal.txt",
+                    read_id
+                );
+                let expected_mapping = vec_from_file(&expected_mapping_path);
+                assert_eq!(*ref_to_signal, expected_mapping);
+            },
+            Err(err) => eprintln!("Failed to extract read: {err}")
+        }
+    }
 }
 
 
