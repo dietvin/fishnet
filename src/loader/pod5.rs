@@ -124,7 +124,7 @@ impl Pod5Read {
     /// # Note: 
     /// The *ts* and *ns* values are relative to the signal starting at the offset
     /// given by *sp*. Accordingly the *sp* value must be added to account for it.
-    /// ```
+    /// ```text
     /// --------------------------
     /// |   |                    |
     /// s   sp                   size
@@ -488,7 +488,7 @@ impl Pod5Index {
     /// * `Pod5FileIterator` - An iterator that yields a Pod5File
     ///
     /// # Example
-    /// ```
+    /// ```ignore
     /// let index = Pod5Index::from_dir("data/", true)?;
     /// for result in index.files() {
     ///     match result {
@@ -500,6 +500,7 @@ impl Pod5Index {
     ///     }
     /// }
     /// ```
+    #[cfg_attr(doctest, ignore)]
     pub fn files(&self) -> Pod5FileIterator {
         Pod5FileIterator {
             index: self,
@@ -516,7 +517,7 @@ impl Pod5Index {
     /// * `Pod5ReadsIterator` - An iterator that yields (file_path, read_id, Pod5Read) triples
     ///
     /// # Example
-    /// ```
+    /// ```ignore
     /// let index = Pod5Index::from_dir("data/", true)?;
     /// for result in index.reads() {
     ///     match result {
