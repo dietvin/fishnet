@@ -237,55 +237,84 @@ impl BamRead {
     ///
     /// # Returns
     ///
-    /// * `Result<&Vec<Cigar>, BamReadError>` - The CIGAR string or an error if unmapped
-    pub fn get_cigar(&self) -> Result<&Vec<Cigar>, BamReadError> {
-        self.cigar.as_ref().ok_or(BamReadError::NoSuchDataForUnmappedRead)
+    /// * `Result<Option<&Vec<Cigar>>, BamReadError>` - The cigar elements, 
+    /// None if the tag is not set, or an error if unmapped
+    pub fn get_cigar(&self) -> Result<Option<&Vec<Cigar>>, BamReadError> {
+        if self.mapped {
+            Ok(self.cigar.as_ref())
+        } else {
+            Err(BamReadError::NoSuchDataForUnmappedRead("cigar".to_string()))
+        }
     }
 
     /// Gets the reference sequence length with error handling
     ///
     /// # Returns
     ///
-    /// * `Result<&usize, BamReadError>` - The length of the reference sequence 
-    /// or an error if unmapped
-    pub fn reference_len(&self) -> Result<&usize, BamReadError> {
-        self.reference_len.as_ref().ok_or(BamReadError::NoSuchDataForUnmappedRead)
+    /// * `Result<Option<&usize>, BamReadError>` - The length of the reference sequence, 
+    /// None if the tag is not set, or an error if unmapped
+    pub fn get_reference_len(&self) -> Result<Option<&usize>, BamReadError> {
+        if self.mapped {
+            Ok(self.reference_len.as_ref())
+        } else {
+            Err(BamReadError::NoSuchDataForUnmappedRead("reference_len".to_string()))
+        }
     }
 
     /// Gets the parent read ID with error handling
     ///
     /// # Returns
     ///
-    /// * `Result<&str, BamReadError>` - The parent read ID or an error if unmapped/unavailable
-    pub fn get_parent_read_id(&self) -> Result<&str, BamReadError> {
-        self.parent_read_id.as_deref().ok_or(BamReadError::NoSuchDataForUnmappedRead)
+    /// * `Result<&str, BamReadError>` - The parent read id, 
+    /// None if the tag is not set, or an error if unmapped
+    pub fn get_parent_read_id(&self) -> Result<Option<&str>, BamReadError> {
+        if self.mapped {
+            Ok(self.parent_read_id.as_deref())
+        } else {
+            Err(BamReadError::NoSuchDataForUnmappedRead("parent_read_id".to_string()))
+        }
     }
 
     /// Gets the parent signal offset with error handling
     ///
     /// # Returns
     ///
-    /// * `Result<usize, BamReadError>` - The parent signal offset or an error if unmapped
-    pub fn get_parent_signal_offset(&self) -> Result<usize, BamReadError> {
-        self.parent_signal_offset.ok_or(BamReadError::NoSuchDataForUnmappedRead)
+    /// * `Result<Option<&usize>, BamReadError>` - The parent signal offset, 
+    /// None if the tag is not set, or an error if unmapped
+    pub fn get_parent_signal_offset(&self) -> Result<Option<usize>, BamReadError> {
+        if self.mapped {
+            Ok(self.parent_signal_offset)
+        } else {
+            Err(BamReadError::NoSuchDataForUnmappedRead("parent_signal_offset".to_string()))
+        }
     }
 
     /// Gets the trimmed signal length with error handling
     ///
     /// # Returns
     ///
-    /// * `Result<usize, BamReadError>` - The trimmed signal length or an error if unmapped
-    pub fn get_trimmed_signal_length(&self) -> Result<usize, BamReadError> {
-        self.trimmed_signal_length.ok_or(BamReadError::NoSuchDataForUnmappedRead)
+    /// * `Result<Option<&usize>, BamReadError>` - The trimmed signal length, 
+    /// None if the tag is not set, or an error if unmapped
+    pub fn get_trimmed_signal_length(&self) -> Result<Option<usize>, BamReadError> {
+        if self.mapped {
+            Ok(self.trimmed_signal_length)
+        } else {
+            Err(BamReadError::NoSuchDataForUnmappedRead("trimmed_signal_length".to_string()))
+        }
     }
 
     /// Gets the subread signal length with error handling
     ///
     /// # Returns
     ///
-    /// * `Result<usize, BamReadError>` - The subread signal length or an error if unmapped/unavailable
-    pub fn get_subread_signal_length(&self) -> Result<usize, BamReadError> {
-        self.subread_signal_length.ok_or(BamReadError::NoSuchDataForUnmappedRead)
+    /// * `Result<Option<&usize>, BamReadError>` - The subread signal length, 
+    /// None if the tag is not set, or an error if unmapped
+    pub fn get_subread_signal_length(&self) -> Result<Option<usize>, BamReadError> {
+        if self.mapped {
+            Ok(self.trimmed_signal_length)
+        } else {
+            Err(BamReadError::NoSuchDataForUnmappedRead("subread_signal_length".to_string()))
+        }
     }
 }
 
