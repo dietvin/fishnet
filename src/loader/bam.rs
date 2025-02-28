@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use rust_htslib::bam;
 use rust_htslib::bam::ext::BamRecordExtensions;
 use rust_htslib::bam::{record::Cigar, Record, Reader, Read};
 use super::super::error::loader_errors::bam_errors::{BamReadError, BamFileError};
