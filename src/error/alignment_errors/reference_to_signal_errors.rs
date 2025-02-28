@@ -4,5 +4,7 @@ pub enum RefToSignalError {
     NoMatchOps,
     #[error("Length of alignment ({0} - 1) discordant with reference length ({1})")]
     DiscordantToSequence(usize, usize),
+    #[error("Interpolation failed: {0}")]
+    LinInterpError(String)
 
 }
