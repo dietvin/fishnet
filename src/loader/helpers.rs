@@ -280,7 +280,7 @@ pub fn get_files(file_paths: &Vec<String>, file_type: &str) -> Result<Vec<String
             return Err(FileHandlingError::FileNotFound(path.clone()));
         }
 
-        if file_path.extension() != Some(OsStr::new((file_type))) {
+        if file_path.extension() != Some(OsStr::new(file_type)) {
             return Err(FileHandlingError::InvalidFileType(
                 path.clone(), 
                 file_type.to_string()
