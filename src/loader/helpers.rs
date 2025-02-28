@@ -151,10 +151,18 @@ fn handle_unexpected_type<V>(value: Aux<'_>, tag: &str, exp_type: &str) -> Resul
 //                                             Helper functions for Pod5Read
 // ########################################################################################################################
 
-/// Reverses a given signal vector
+/// Reverses a vector of signal measurements.
+/// 
+/// This function takes a vector of signal measurements and returns a new vector
+/// with the elements in reverse order.
 /// 
 /// # Arguments
-/// * `signal` - Vector of the current measurements
+/// 
+/// * `signal` - Vector of current measurements to be reversed
+/// 
+/// # Returns
+/// 
+/// A new vector containing the same elements as `signal` but in reverse order
 pub fn reverse_signal(signal: &Vec<i16>) -> Vec<i16> {
     signal.iter().rev().map(|el| *el).collect::<Vec<i16>>()
 }
@@ -173,6 +181,8 @@ pub fn reverse_signal(signal: &Vec<i16>) -> Vec<i16> {
 //                                             Helper functions for Pod5File
 // ########################################################################################################################
 
+use uuid::Uuid;
+
 /// Converts a binary read ID from a Pod5 file into a UTF-8 string
 /// 
 /// In Pod5 files, read IDs are stored as binary values. This function safely
@@ -188,8 +198,6 @@ pub fn reverse_signal(signal: &Vec<i16>) -> Vec<i16> {
 /// # Errors
 /// * `Pod5FileError::ColumnDataMissingError` - If the binary_id is None
 /// * `Pod5FileError::Utf8Error` - If the binary data cannot be converted to a valid UTF-8 string
-use uuid::Uuid;
-
 pub fn read_id_from_binary(binary_id: Option<&[u8]>) -> Result<String, Pod5FileError> {
     let binary_id = binary_id.ok_or(Pod5FileError::ColumnDataMissingError { 
         column: "read_id".to_string(), 
@@ -211,15 +219,31 @@ pub fn read_id_from_binary(binary_id: Option<&[u8]>) -> Result<String, Pod5FileE
 
 
 // ########################################################################################################################
-//                                             Helper functions for file handling
+//                                             Helper functions for Pod5Index
 // ########################################################################################################################
 use std::{path::{PathBuf, Path}, ffi::OsStr, fs};
 use walkdir::WalkDir;
 use super::super::error::loader_errors::file_handling_errors::{DirHandlingError, FileHandlingError};
 
+/// Finds files with a specific extension in a directory.
+/// 
+/// This function searches for files with the specified extension in the given directory.
+/// It can optionally search recursively through subdirectories.
+/// 
+/// # Arguments
+/// 
+/// * `path` - Path to the directory to search in
+/// * `file_type` - File extension to search for (without the dot)
+/// * `recursive` - Whether to search recursively through subdirectories
+/// 
+/// # Returns
+/// 
+/// * `Ok(Vec<String>)` - A vector of file paths if successful
+/// * `Err(DirHandlingError)` - If the directory doesn't exist or no matching files are found
 pub fn find_files_in_dir(path: &str, file_type: &str, recursive: bool) -> Result<Vec<String>,DirHandlingError> {
     let path_obj = Path::new(path);
 
+    // Checks if the path is a directory and if it exists
     if !path_obj.exists() || !path_obj.is_dir() {
         return Err(
             DirHandlingError::DirectoryNotFound(path.to_string())
@@ -228,6 +252,7 @@ pub fn find_files_in_dir(path: &str, file_type: &str, recursive: bool) -> Result
 
     let mut file_paths = Vec::new();
 
+    // Walk the directory and all sub-directories and extract valid file names
     if recursive {
         for entry in WalkDir::new(path)
             .into_iter()
@@ -245,6 +270,7 @@ pub fn find_files_in_dir(path: &str, file_type: &str, recursive: bool) -> Result
             }
         }
     } else {
+        // Only search in the given directory
         for entry in fs::read_dir(path)? {
             let entry = entry?;
             let file_path = entry.path();
@@ -259,6 +285,7 @@ pub fn find_files_in_dir(path: &str, file_type: &str, recursive: bool) -> Result
         }
     }
 
+    // Check if valid files were found
     if file_paths.len() > 0 {
         Ok(file_paths)
     } else {
@@ -266,10 +293,34 @@ pub fn find_files_in_dir(path: &str, file_type: &str, recursive: bool) -> Result
     }
 }
 
+/// Checks if a given file path exists and if the file extension is as expected
+/// 
+/// # Arguments
+/// 
+/// * `file_path` - Path of the file
+/// * `extension` - Expected file extension
+/// 
+/// # Returns 
+/// 
+/// True if the file exists and the extension is as expected, false otherwise  
 fn valid_type_path(file_path: &PathBuf, extension: &str) -> bool {
     file_path.is_file() && file_path.extension() == Some(OsStr::new(extension))
 }
 
+/// Validates and filters a list of file paths based on existence and file type.
+/// 
+/// This function checks each file path in the provided vector to ensure it exists
+/// and has the expected file extension.
+/// 
+/// # Arguments
+/// 
+/// * `file_paths` - Vector of file paths to validate
+/// * `file_type` - Expected file extension (without the dot)
+/// 
+/// # Returns
+/// 
+/// * `Ok(Vec<String>)` - A vector of valid file paths
+/// * `Err(FileHandlingError)` - If any file doesn't exist or has an incorrect extension
 pub fn get_files(file_paths: &Vec<String>, file_type: &str) -> Result<Vec<String>,FileHandlingError> {
     let mut valid_paths = Vec::new();
 
