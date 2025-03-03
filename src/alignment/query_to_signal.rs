@@ -1,30 +1,44 @@
 use super::super::error::alignment_errors::query_to_signal_errors::QueryToSignalError;
 
-/// Align the query (base-called) sequence to the signal.
+/// Aligns the query (base-called) sequence to raw signal measurements.
 /// 
-/// This function aligns the query sequence to the signal using the move table generated 
-/// during base-calling. The move table indicates whether a the sequence moved to the next 
-/// base during sequencing.
+/// This function creates a mapping between positions in the base-called sequence and 
+/// positions in the raw signal using the move table generated during base-calling.
+/// The move table indicates when the sequencer detected a new base as it processed
+/// the signal.
 /// 
 /// # Arguments
 /// 
-/// * `move_table` - A slice of boolean values indicating if a step forward is taking place
-///                  at a given signal index.
-/// * `stride` - The step size to use when mapping positions between query and signal.
-/// * `signal_len` - The number of measurement in the signal
-/// * `reverse_signal` - Whether to reverse the mapping (True for direct RNA data that runs 
-///                      3'->5' through the pore)
-/// * `query_length` - The length of the base-called sequence
+/// * `move_table` - A slice of boolean values where `true` indicates the sequencer detected
+///                  a new base at this signal position.
+/// * `stride` - The sampling rate factor - number of signal measurements taken per move table position.
+/// * `signal_len` - The total number of measurements in the raw signal.
+/// * `reverse_signal` - Whether to reverse the mapping direction (set to `true` for direct RNA 
+///                      data that runs 3'->5' through the pore).
+/// * `query_length` - The length of the base-called sequence in nucleotides.
 /// 
 /// # Returns
 ///
-/// * `Ok(Vec<usize>)` - A vector mapping query positions to signal positions.
+/// * `Ok(Vec<usize>)` - A vector where each index represents a query position and the value
+///                      represents the corresponding signal position.
 /// * `Err(QueryToSignalError)` - An error if the mapping is inconsistent with query or signal dimensions.
 ///
 /// # Errors
 ///
-/// * `QueryToSignalError::DiscordantToSequence` - If the number of steps in the mapping doesn't match the query length.
-/// * `QueryToSignalError::DiscordantToSignal` - If the move table length is inconsistent with signal length and stride.
+/// * `QueryToSignalError::DiscordantToSequence` - If the number of steps in the mapping doesn't match the expected query length.
+/// * `QueryToSignalError::DiscordantToSignal` - If the move table length is inconsistent with the signal length and stride.
+///
+/// # Example
+///
+/// ```
+/// let move_table = vec![false, true, false, true, false, false, true];
+/// let stride = 5;
+/// let signal_len = 35;
+/// let reverse_signal = false;
+/// let query_length = 3;
+///
+/// let query_to_signal = align_query_to_signal(&move_table, stride, signal_len, reverse_signal, query_length);
+/// ```
 pub fn align_query_to_signal(
     move_table: &[bool],
     stride: usize, 

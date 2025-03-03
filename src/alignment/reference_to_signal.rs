@@ -2,6 +2,37 @@ use super::super::error::alignment_errors::reference_to_signal_errors::RefToSign
 use rust_htslib::bam::record::Cigar;
 use super::helpers::{is_match_ops, calculate_knots, interpolate};
 
+/// Aligns a reference sequence to raw signal measurements.
+///
+/// This function creates a mapping between positions in the reference sequence and
+/// positions in the raw signal. It uses the CIGAR string from the alignment
+/// and a pre-computed query-to-signal mapping to perform this transitive alignment.
+///
+/// # Algorithm
+///
+/// 1. Process the CIGAR string to create a mapping between reference and query positions
+/// 2. Use the query-to-signal mapping to translate query positions to signal positions
+/// 3. Perform linear interpolation to create a complete reference-to-signal mapping
+///
+/// # Arguments
+///
+/// * `cigar` - The CIGAR string from the alignment between reference and query sequences
+/// * `query_to_signal` - The pre-computed mapping from query positions to signal positions
+/// * `reverse_mapped` - Whether the alignment was performed in reverse orientation (set 
+///                      to `true` for direct RNA data that runs 3'->5' through the pore)
+/// * `reference_len` - The length of the reference sequence
+///
+/// # Returns
+///
+/// * `Ok(Vec<usize>)` - A vector where each index represents a reference position and the value
+///                      represents the corresponding signal position
+/// * `Err(RefToSignalError)` - An error if the mapping cannot be created
+///
+/// # Errors
+///
+/// * `RefToSignalError::NoMatchOps` - If the CIGAR string contains no match operations
+/// * `RefToSignalError::DiscordantToSequence` - If the number of points in the mapping doesn't match the reference length
+/// * `RefToSignalError::LinInterpError` - If linear interpolation fails
 pub fn align_reference_to_signal(
     cigar: &Vec<Cigar>,
     query_to_signal: &Vec<usize>,

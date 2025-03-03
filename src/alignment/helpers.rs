@@ -3,7 +3,16 @@
 // ########################################################################################################################
 use rust_htslib::bam::record::Cigar;
 
-/// Determine if the given cigar element is one of Match (M), Equal (=) or Diff (X)
+/// Determines if the given CIGAR element represents a sequence match operation.
+///
+/// # Arguments
+/// 
+/// * `cigar` - A CIGAR operation to check
+///
+/// # Returns
+///
+/// * `true` if the operation is Match (M), Equal (=), or Diff (X)
+/// * `false` otherwise
 pub fn is_match_ops(cigar: &Cigar) -> bool {
     if let Cigar::Match(_) | Cigar::Equal(_) | Cigar::Diff(_) = cigar {
         true
@@ -12,10 +21,26 @@ pub fn is_match_ops(cigar: &Cigar) -> bool {
     }
 }
 
-/// Calculate query and reference knots from a given cigar vector. 
+/// Calculates alignment coordinate "knots" from a CIGAR string.
+/// 
+/// Knots are positions in both the query and reference sequences where
+/// match operations begin and end. These knots are used as anchor points
+/// for subsequent interpolation to create a complete coordinate mapping.
 /// 
 /// # Arguments
-/// * `cigar` - Vector containing the cigar elements of the alignment
+/// 
+/// * `cigar` - Vector containing the CIGAR elements of the alignment
+///
+/// # Returns
+///
+/// * `(Vec<u32>, Vec<u32>)` - A tuple containing:
+///   * Vector of query sequence positions (knots)
+///   * Vector of reference sequence positions (knots)
+///
+/// # Note
+///
+/// The returned knots will always include the start (0) and end positions
+/// of both sequences.
 pub fn calculate_knots(cigar: &Vec<Cigar>) -> (Vec<u32>, Vec<u32>) {
     let mut current_site_q = 0u32;
     let mut current_site_r = 0u32;
@@ -47,8 +72,16 @@ pub fn calculate_knots(cigar: &Vec<Cigar>) -> (Vec<u32>, Vec<u32>) {
 
 
 
-/// Determine if the given cigar element consumes the reference
-/// (i.e. one of Match (M), Deletion (D), RefSkip (N), Equal (=) or Mismatch (X))
+/// Determines if the given CIGAR element consumes the reference sequence.
+///
+/// # Arguments
+/// 
+/// * `cigar` - A CIGAR operation to check
+///
+/// # Returns
+///
+/// * `true` if the operation consumes the reference (Match, Deletion, RefSkip, Equal, Diff)
+/// * `false` otherwise
 pub fn consumes_reference(cigar: &Cigar) -> bool {
     if let Cigar::Match(_) 
         | Cigar::Del(_) 
@@ -61,8 +94,16 @@ pub fn consumes_reference(cigar: &Cigar) -> bool {
     }
 }
 
-/// Determine if the given cigar element consumes the query
-/// (i.e. one of Match (M), Insertion (I), SoftClip (S), Equal (=) or Mismatch (X))
+/// Determines if the given CIGAR element consumes the query sequence.
+///
+/// # Arguments
+/// 
+/// * `cigar` - A CIGAR operation to check
+///
+/// # Returns
+///
+/// * `true` if the operation consumes the query (Match, Insertion, SoftClip, Equal, Diff)
+/// * `false` otherwise
 pub fn consumes_query(cigar: &Cigar) -> bool {
     if let Cigar::Match(_) 
         | Cigar::Ins(_) 
@@ -77,6 +118,7 @@ pub fn consumes_query(cigar: &Cigar) -> bool {
 
 
 use super::super::error::alignment_errors::reference_to_signal_errors::RefToSignalError;
+
 /// Performs linear interpolation similar to NumPy's `interp` function.
 ///
 /// This function interpolates to find the value of new points based on discrete data points.
@@ -91,11 +133,16 @@ use super::super::error::alignment_errors::reference_to_signal_errors::RefToSign
 ///
 /// # Returns
 ///
-/// A vector containing the interpolated values corresponding to x_query
+/// * `Ok(Vec<f64>)` - A vector containing the interpolated values corresponding to x_query
+/// * `Err(RefToSignalError)` - An error if interpolation fails
+///
+/// # Errors
+///
+/// * `RefToSignalError::LinInterpError` - If the input arrays have inconsistent sizes or are empty
 ///
 /// # Examples
 ///
-/// ```ignore
+/// ```
 /// let x_ref = vec![0.0, 1.0, 2.0];
 /// let y_ref = vec![10.0, 20.0, 30.0];
 /// let x_query = vec![0.0, 0.5, 1.0, 1.5, 2.0];
@@ -108,9 +155,7 @@ use super::super::error::alignment_errors::reference_to_signal_errors::RefToSign
 /// * For x_query values below the minimum of x_ref, the first y value is returned.
 /// * For x_query values above the maximum of x_ref, the last y value is returned.
 /// * When x_ref contains duplicate values, only the last occurrence is used for interpolation.
-/// * I opted for this function instead of the `interp_slice` from the interp crate because the
-/// slightly different implementation there (compared to Numpy's interp) resulted in a NaN value
-/// in the beginning of the result (due to two duplicate 0 in the beginning of the ref_knots).
+/// * This implementation handles edge cases that can cause NaN values in other interpolation libraries.
 pub fn interpolate(x_ref: &[f64], y_ref: &[f64], x_query: &[f64]) -> Result<Vec<f64>, RefToSignalError> {
     if x_ref.len() != y_ref.len() {
         return Err(RefToSignalError::LinInterpError(format!(
