@@ -74,7 +74,11 @@ impl KmerTable {
             }
         }
 
+        if kmers_unsorted.len() == 0 {
+            return Err(KmerTableError::EmptyFile);
+        }
         let k = kmers_unsorted[0].len();
+
         let exp_len = (4u32.pow(k as u32)) as usize;
         if kmers_unsorted.len() < exp_len {
             return Err(KmerTableError::MissingEntries(kmers_unsorted.len(), exp_len));

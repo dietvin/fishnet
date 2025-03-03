@@ -1,4 +1,4 @@
 mod dp_algorithm;
 mod refine_signal_mapping;
 mod signal_map_refiner;
-mod kmer_table;
+pub mod kmer_table;
