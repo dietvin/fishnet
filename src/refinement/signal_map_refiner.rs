@@ -1,8 +1,13 @@
-pub struct SigMapRefiner {
-}
+// use super::kmer_table::KmerTable;
+// use super::super::alignment::aligned_read::AlignedRead;
 
-impl SigMapRefiner {
-    pub fn new() {
+// pub struct SigMapRefiner<'a> {
+//     kmer_table: KmerTable,
+//     aligned_read: &'a AlignedRead
+// }
+
+// impl SigMapRefiner {
+//     pub fn new() {
         
-    }
-}
+//     }
+// }

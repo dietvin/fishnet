@@ -1,3 +1,5 @@
+use core::error;
+
 #[derive(Debug, thiserror::Error)]
 pub enum KmerTableError {
     // Errors for the new function
@@ -25,6 +27,13 @@ pub enum KmerTableError {
     /// The parameter is the number of columns found in the line
     #[error("Line Parsing error: (found {0} columns, expected 2)")]
     LineParsingError(usize),
+
+    /// Occurs when there is an error handling the binary representiation
+    /// of a k-mer.
+    /// 
+    /// The parameter is the underlying BinaryKmerError
+    #[error("Binary k-mer error: {0}")]
+    BinaryKmerError(#[from] BinaryKmerError),
 
     /// Occurs when the same k-mer appears multiple times in the input file
     /// 
@@ -63,5 +72,43 @@ pub enum KmerTableError {
     /// 
     /// The parameter is the k-mer string that was not found
     #[error("Kmer not found: {0}")]
-    IndexError(String)
+    IndexError(String),
+
+
+    #[error("Invalid index {0} for kmer {1}")]
+    InvalidCharIndex(usize, String),
+    #[error("Invalid base: {0} (must be one of 'A', 'C', 'G', 'T')")]
+    InvalidBaseChar(char),
+    #[error("Kruskal Wallis test failed")]
+    KruskalTestError,
+    #[error("Could not determine the index of the maximum value")]
+    ArgMaxError
+
+}
+
+
+#[derive(Debug, thiserror::Error)]
+pub enum BinaryKmerError {
+    /// Occurs when k exceeds 32 (This is the max.
+    /// number of nucleotides that can be encoded
+    /// in a u64)
+    /// 
+    /// The parameter is the given k
+    #[error("Invalid k: {0} (max. length is 32)")]
+    InvalidKmerLen(usize),
+
+    /// Occurs when a nucleotide is other than
+    /// A, C, G, or T/U
+    /// 
+    /// The parameter is the nucleotide at hand
+    #[error("Invalid nucleotide: {0}")]
+    InvalidBaseChar(char),
+
+    /// Occurs when a position is out of bounds 
+    /// when accessing a nucleotide.
+    /// 
+    /// The first parameter is the given position,
+    /// the second paramter is k
+    #[error("Position out of bounds: {0} (k={1})")]
+    PositionIndexError(usize, usize)
 }
