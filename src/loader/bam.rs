@@ -311,7 +311,7 @@ impl BamRead {
     /// None if the tag is not set, or an error if unmapped
     pub fn get_subread_signal_length(&self) -> Result<Option<usize>, BamReadError> {
         if self.mapped {
-            Ok(self.trimmed_signal_length)
+            Ok(self.subread_signal_length)
         } else {
             Err(BamReadError::NoSuchDataForUnmappedRead("subread_signal_length".to_string()))
         }
