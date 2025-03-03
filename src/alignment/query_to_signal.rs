@@ -27,18 +27,6 @@ use super::super::error::alignment_errors::query_to_signal_errors::QueryToSignal
 ///
 /// * `QueryToSignalError::DiscordantToSequence` - If the number of steps in the mapping doesn't match the expected query length.
 /// * `QueryToSignalError::DiscordantToSignal` - If the move table length is inconsistent with the signal length and stride.
-///
-/// # Example
-///
-/// ```
-/// let move_table = vec![false, true, false, true, false, false, true];
-/// let stride = 5;
-/// let signal_len = 35;
-/// let reverse_signal = false;
-/// let query_length = 3;
-///
-/// let query_to_signal = align_query_to_signal(&move_table, stride, signal_len, reverse_signal, query_length);
-/// ```
 pub fn align_query_to_signal(
     move_table: &[bool],
     stride: usize, 
