@@ -303,7 +303,7 @@ fn determine_dominant_base(kmers_sorted: &Vec<BinaryKmer>, k: usize) -> Result<u
                 'C' => kmer_indices_c.push(kmer_idx),
                 'G' => kmer_indices_g.push(kmer_idx),
                 'T' => kmer_indices_t.push(kmer_idx),
-                _ => unreachable!(), // This should never happen (masking with 0b11)
+                _ => unreachable!(), // Only the four bases can occur in the implementation
             }
         }
 
