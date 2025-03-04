@@ -74,13 +74,6 @@ pub enum KmerTableError {
     #[error("Kmer not found: {0}")]
     IndexError(String),
 
-
-    #[error("Invalid index {0} for kmer {1}")]
-    InvalidCharIndex(usize, String),
-    #[error("Invalid base: {0} (must be one of 'A', 'C', 'G', 'T')")]
-    InvalidBaseChar(char),
-    #[error("Kruskal Wallis test failed")]
-    KruskalTestError,
     #[error("Could not determine the index of the maximum value")]
     ArgMaxError
 
