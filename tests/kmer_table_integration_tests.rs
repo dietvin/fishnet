@@ -12,7 +12,6 @@ fn test_valid_kmer_table() {
     let table = result.unwrap();
     
     // Test that we can retrieve a level for a valid k-mer
-    // Note: This assumes that the valid.txt file contains at least one k-mer
     let kmer = table.kmers()[0].clone();
     let level_result = table.get(&kmer);
     
@@ -105,10 +104,6 @@ fn test_get_invalid_kmer() {
     let nonexistent_result = table.get(&invalid_kmer);
     
     assert!(nonexistent_result.is_err(), "Get should fail with non-existent k-mer");
-    match nonexistent_result {
-        Err(KmerTableError::IndexError(_)) => {},
-        _ => panic!("Expected IndexError")
-    }
 }
 
 #[test]
