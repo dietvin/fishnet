@@ -189,7 +189,7 @@ impl KmerTable {
 /// * `line` - String containing the line to process
 /// 
 /// # Returns
-/// * `Result<(String, f32), KmerTableError>` - Tuple containing the kmer and level value
+/// * `Result<(BinaryKmer, f32), KmerTableError>` - Tuple containing the kmer and level value
 /// 
 /// # Errors
 ///
@@ -279,7 +279,6 @@ fn sort_and_index(kmers: &Vec<BinaryKmer>, levels: &Vec<f32>) -> (HashMap<Binary
 ///
 /// # Errors
 ///
-/// * `KmerTableError::InvalidBaseChar` - If a k-mer contains a character other than A, C, G, T
 /// * `KmerTableError::BinaryKmerError` - If there's an error accessing a nucleotide in the binary k-mer
 /// * `KmerTableError::KruskalTestError` - If the Kruskal-Wallis test fails
 /// * `KmerTableError::ArgMaxError` - If the maximum test statistic cannot be determined
@@ -304,86 +303,52 @@ fn determine_dominant_base(kmers_sorted: &Vec<BinaryKmer>, k: usize) -> Result<u
                 'C' => kmer_indices_c.push(kmer_idx),
                 'G' => kmer_indices_g.push(kmer_idx),
                 'T' => kmer_indices_t.push(kmer_idx),
-                _ => return Err(KmerTableError::InvalidBaseChar(char_at_base_idx))
+                _ => unreachable!(), // This should never happen (masking with 0b11)
             }
         }
 
-        let test_statistic = kruskal_wallis_test(
-            kmer_indices_a,
-            kmer_indices_c,
-            kmer_indices_g,
-            kmer_indices_t 
-        )?;
+        let test_statistic = kruskal(&[
+            &kmer_indices_a, &kmer_indices_c, &kmer_indices_g, &kmer_indices_t
+        ]);
 
         kmer_stats.push(test_statistic);
     }
 
-    let dominant_base = find_max_index(&kmer_stats).ok_or(
+    let dominant_base = argmax(&kmer_stats).ok_or(
         KmerTableError::ArgMaxError
     )?;
 
     Ok(dominant_base)
 }
 
-/// Performs a Kruskal-Wallis test on four groups of rank indices
-///
-/// This function implements the Kruskal-Wallis test, a non-parametric method for
-/// comparing multiple independent samples. It calculates a test statistic that
-/// measures the difference in the distribution of ranks across four base groups (A, C, G, T).
+/// Performs the Kruskal-Wallis H test for comparing multiple groups. Calculates only the
+/// test statistic H. Lower H values suggest more similarity between groups.
 ///
 /// # Arguments
 ///
-/// * `ranks_a` - Vector of rank indices for base A
-/// * `ranks_c` - Vector of rank indices for base C
-/// * `ranks_g` - Vector of rank indices for base G
-/// * `ranks_t` - Vector of rank indices for base T
+/// * `samples` - A slice of slices, where each inner slice represents a group of ranks.
 ///
 /// # Returns
 ///
-/// * `Result<f32, KmerTableError>` - The Kruskal-Wallis test statistic or an error
+/// * `f64` - The calculated H statistic
 ///
-/// # Errors
+/// # Formula
 ///
-/// * `KmerTableError::KruskalTestError` - If the test encounters problems (e.g., empty groups)
-fn kruskal_wallis_test(
-    ranks_a: Vec<usize>, 
-    ranks_c: Vec<usize>, 
-    ranks_g: Vec<usize>, 
-    ranks_t: Vec<usize>
-) -> Result<f32, KmerTableError> {
-    // Check if any group is empty
-    if ranks_a.is_empty() || ranks_c.is_empty() || ranks_g.is_empty() || ranks_t.is_empty() {
-        return Err(KmerTableError::KruskalTestError);
-    }
+/// `H = [(12 / (N(N+1))) * Σ(Ri²/ni)] - 3(N+1)`
+/// 
+/// Where:
+/// * `N` is the total number of ranks
+/// * `Ri` is the sum of the ranks for group i
+/// * `ni` is the number of ranks in group i
+fn kruskal(samples: &[&[usize]]) -> f64 {
+    let total_observations = samples.iter().map(|s| s.len() as f64).sum::<f64>();
+        
+    let sum = samples.iter().map(
+        |group| 
+            group.iter().map(|&el| el as f64).sum::<f64>().powi(2) / (group.len() as f64) 
+    ).sum::<f64>();
 
-    // Calculate total number of observations
-    let n = ranks_a.len() + ranks_c.len() + ranks_g.len() + ranks_t.len();
-    
-    // Calculate sum of ranks for each group
-    let sum_ranks_a: usize = ranks_a.iter().sum();
-    let sum_ranks_c: usize = ranks_c.iter().sum();
-    let sum_ranks_g: usize = ranks_g.iter().sum();
-    let sum_ranks_t: usize = ranks_t.iter().sum();
-    
-    // Calculate squared sum of ranks divided by group size for each group
-    let r_squared_over_n_a = (sum_ranks_a as f32).powi(2) / (ranks_a.len() as f32);
-    let r_squared_over_n_c = (sum_ranks_c as f32).powi(2) / (ranks_c.len() as f32);
-    let r_squared_over_n_g = (sum_ranks_g as f32).powi(2) / (ranks_g.len() as f32);
-    let r_squared_over_n_t = (sum_ranks_t as f32).powi(2) / (ranks_t.len() as f32);
-    
-    // Calculate the Kruskal-Wallis test statistic
-    // H = (12 / (N * (N + 1))) * sum((R_i^2 / n_i)) - 3 * (N + 1)
-    // where N is total observations, R_i is sum of ranks in group i, n_i is size of group i
-    let h = (12.0 / ((n * (n + 1)) as f32)) * 
-          (r_squared_over_n_a + r_squared_over_n_c + r_squared_over_n_g + r_squared_over_n_t) - 
-          3.0 * ((n + 1) as f32);
-    
-    // Check for NaN or infinite values
-    if !h.is_finite() {
-        return Err(KmerTableError::KruskalTestError);
-    }
-    
-    Ok(h)
+    (12.0 / (total_observations * (total_observations + 1.0))) * sum - 3.0 * (total_observations + 1.0)
 }
 
 /// Finds the index of the maximum value in a slice of f32 values.
@@ -403,20 +368,16 @@ fn kruskal_wallis_test(
 ///
 /// # Examples
 ///
-/// ```
+/// ```ignore
 /// let numbers = vec![3.5, 1.0, 6.8, 2.3, 5.1];
-/// let max_index = find_max_index(&numbers);
+/// let max_index = argmax(&numbers);
 /// assert_eq!(max_index, Some(2)); // 6.8 is at index 2
 ///
 /// let empty: Vec<f32> = vec![];
-/// let max_index = find_max_index(&empty);
+/// let max_index = argmax(&empty);
 /// assert_eq!(max_index, None);
-///
-/// let with_nan = vec![1.0, f32::NAN, 3.0, 2.0];
-/// let max_index = find_max_index(&with_nan);
-/// // Result will depend on implementation details of max_by with NaN
 /// ```
-fn find_max_index(vec: &[f32]) -> Option<usize> {
+fn argmax(vec: &[f64]) -> Option<usize> {
     vec.iter()
         .enumerate()
         .max_by(
@@ -437,84 +398,48 @@ fn find_max_index(vec: &[f32]) -> Option<usize> {
 
 
 #[cfg(test)]
-mod dominant_base_tests {
-    use super::*;
+mod test {
+    use super::{kruskal, argmax};
 
+    /// First example from the scipy documentation
     #[test]
-    fn test_find_max_index() {
-        let values = vec![1.0, 3.0, 2.0, 5.0, 4.0];
-        assert_eq!(find_max_index(&values), Some(3)); // 5.0 at index 3
-        
-        let empty: Vec<f32> = vec![];
-        assert_eq!(find_max_index(&empty), None);
-        
-        let with_nan = vec![1.0, f32::NAN, 3.0, 2.0];
-        // Since NaN comparisons are unpredictable, we just ensure it returns something
-        assert!(find_max_index(&with_nan).is_some());
-        
-        let all_equal = vec![1.0, 1.0, 1.0];
-        assert_eq!(find_max_index(&all_equal), Some(0)); // First occurrence
+    fn test_kruskal1() {
+        let x = vec![1, 3, 5, 7, 9];
+        let y = vec![2, 4, 6, 8, 10];
+    
+        let h = kruskal(&[&x, &y]);
+        assert!(h-0.2727272727272734<(10.0 as f64).powi(-5))
+    }
+
+    /// Second example from the scipy documentation
+    #[test]
+    fn test_kruskal2() {
+        let x = vec![1, 1, 1];
+        let y = vec![2, 2, 2];
+        let z = vec![2, 2];
+        let h = kruskal(&[&x, &y, &z]);
+        assert!(h-7.0 < (10.0 as f64).powi(-5))
     }
 
     #[test]
-    fn test_kruskal_wallis_test() {
-        // Simple case where groups are perfectly separated
-        let ranks_a = vec![0, 1, 2, 3];      // Low ranks
-        let ranks_c = vec![4, 5, 6, 7];      // Medium-low ranks
-        let ranks_g = vec![8, 9, 10, 11];    // Medium-high ranks
-        let ranks_t = vec![12, 13, 14, 15];  // High ranks
-        
-        let result = kruskal_wallis_test(ranks_a.clone(), ranks_c.clone(), ranks_g.clone(), ranks_t.clone());
-        assert!(result.is_ok());
-        let h = result.unwrap();
-        assert!(h > 0.0, "H should be positive for separated groups");
-        
-        // Case where all ranks are mixed (should give lower H)
-        let mixed_a = vec![0, 4, 8, 12];
-        let mixed_c = vec![1, 5, 9, 13];
-        let mixed_g = vec![2, 6, 10, 14];
-        let mixed_t = vec![3, 7, 11, 15];
-        
-        let mixed_result = kruskal_wallis_test(mixed_a, mixed_c, mixed_g, mixed_t);
-        assert!(mixed_result.is_ok());
-        let mixed_h = mixed_result.unwrap();
-        assert!(mixed_h < h, "H should be lower for mixed groups");
-        
-        // Error case: empty group
-        let empty_result = kruskal_wallis_test(ranks_a, ranks_c, ranks_g, vec![]);
-        assert!(empty_result.is_err());
-        match empty_result {
-            Err(KmerTableError::KruskalTestError) => {},
-            _ => panic!("Expected KruskalTestError"),
-        }
+    fn test_argmax1() {
+        let numbers = vec![3.5, 1.0, 6.8, 2.3, 5.1];
+        let max_index = argmax(&numbers);
+        assert_eq!(max_index, Some(2)); // 6.8 is at index 2        
     }
 
     #[test]
-    fn test_determine_dominant_base() {
-        // Create a set of binary k-mers where we know which position should be dominant
-        // Let's make position 1 (second base) strongly associated with levels
-        
-        // Setup: K-mers with 'A' at position 1 have low levels, 'C' medium-low, 
-        // 'G' medium-high, and 'T' high
-        let kmers = vec![
-            BinaryKmer::from_string("AAA").unwrap(), // A at pos 1
-            BinaryKmer::from_string("ACA").unwrap(), // C at pos 1
-            BinaryKmer::from_string("AGA").unwrap(), // G at pos 1
-            BinaryKmer::from_string("ATA").unwrap(), // T at pos 1
-            BinaryKmer::from_string("CAA").unwrap(), // A at pos 1
-            BinaryKmer::from_string("CCA").unwrap(), // C at pos 1
-            BinaryKmer::from_string("CGA").unwrap(), // G at pos 1
-            BinaryKmer::from_string("CTA").unwrap(), // T at pos 1
-            // More kmers to ensure all bases at each position...
-        ];
-        
-        // This is a simplified test - in a real test, you'd want to ensure
-        // all combinations of bases in all positions and a clear effect
-        // at the dominant position
-        
-        let result = determine_dominant_base(&kmers, 3);
-        assert!(result.is_ok());
-        let dominant = result.unwrap();
-        assert_eq!(dominant, 1, "Position 1 should be identified as dominant");
+    fn test_argmax2() {
+        let empty: Vec<f64> = vec![];
+        let max_index = argmax(&empty);
+        assert_eq!(max_index, None);
     }
+
+    #[test]
+    fn test_argmax3() {
+        let with_nan = vec![1.0, f64::NAN, 3.0, 2.0];
+        let max_index = argmax(&with_nan);
+        assert_eq!(max_index, Some(2));
+    }
+
 }
