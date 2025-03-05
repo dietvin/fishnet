@@ -1,4 +1,4 @@
-use super::super::error::refinement_errors::kmer_table_errors::BinaryKmerError;
+use super::super::super::error::refinement_errors::kmer_table_errors::BinaryKmerError;
 
 /// Represents a k-mer using a compact binary encoding
 ///
