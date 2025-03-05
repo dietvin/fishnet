@@ -9,6 +9,7 @@ use super::super::error::refinement_errors::kmer_table_errors::KmerTableError;
 ///
 /// This structure reads k-mers and their associated levels from a tab-delimited file,
 /// sorts them by level, and provides methods to query the level for a given k-mer.
+#[derive(Debug)]
 pub struct KmerTable{
     /// Mapping from k-mer strings to their indices in the vectors
     index: HashMap<BinaryKmer, usize>,
