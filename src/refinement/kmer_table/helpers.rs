@@ -24,7 +24,7 @@ use std::collections::HashMap;
 /// * `KmerTableError::EvenKmer` - If k is even (odd k-mers are expected)
 /// * `KmerTableError::FloatConversionError` - If the level can not be converted to a float
 /// * `KmerTableError::BinaryKmerError` - If there's an error creating the binary representation of the k-mer
-pub fn process_line(line: String) -> Result<(BinaryKmer, f64), KmerTableError> {
+pub fn process_line(line: String) -> Result<(BinaryKmer, f32), KmerTableError> {
     let line_parts = line.split("\t").collect::<Vec<&str>>();
     
     // Check the number of columns (should be 2)
@@ -40,7 +40,7 @@ pub fn process_line(line: String) -> Result<(BinaryKmer, f64), KmerTableError> {
         return Err(KmerTableError::EvenKmer(kmer_len));
     } 
 
-    let level = line_parts[1].parse::<f64>()?;
+    let level = line_parts[1].parse::<f32>()?;
 
     Ok((kmer, level))
 }
@@ -61,7 +61,7 @@ pub fn process_line(line: String) -> Result<(BinaryKmer, f64), KmerTableError> {
 ///   * A HashMap mapping k-mer strings to their indices in the sorted arrays
 ///   * A vector of k-mer strings sorted by level
 ///   * A vector of level values in sorted order
-pub fn sort_and_index(kmers: &Vec<BinaryKmer>, levels: &Vec<f64>) -> (HashMap<BinaryKmer, usize>, Vec<BinaryKmer>, Vec<f64>) {
+pub fn sort_and_index(kmers: &Vec<BinaryKmer>, levels: &Vec<f32>) -> (HashMap<BinaryKmer, usize>, Vec<BinaryKmer>, Vec<f32>) {
     let mut indices = (0..levels.len()).collect::<Vec<usize>>();
     indices.sort_by(
         |&i, &j| levels[i]
@@ -215,11 +215,11 @@ fn argmax(vec: &[f64]) -> Option<usize> {
 }
 
 pub trait Median {
-    fn median(&self) -> Option<f64>;
+    fn median(&self) -> Option<f32>;
 }
 
-impl Median for [f64] {
-    fn median(&self) -> Option<f64> {
+impl Median for [f32] {
+    fn median(&self) -> Option<f32> {
         let len = self.len();
         if len == 0 {
             return None;
@@ -312,7 +312,7 @@ mod test {
 
     #[test]
     fn test_median3() {
-        let vec: Vec<f64> = vec![];
+        let vec: Vec<f32> = vec![];
         let med = vec.median();
 
         assert_eq!(med, None);
@@ -320,7 +320,7 @@ mod test {
 
     #[test]
     fn test_median4() {
-        let vec: Vec<f64> = vec![0.0,1.0,1.0,2.0,3.0];
+        let vec: Vec<f32> = vec![0.0,1.0,1.0,2.0,3.0];
         let med = vec.median();
 
         assert_eq!(med, Some(1.0));

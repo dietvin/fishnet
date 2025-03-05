@@ -149,7 +149,7 @@ fn test_levels_as_expected() {
     for kmer in table.kmers() {
         let level = table.get(&kmer).unwrap();
         let level_exp = expected_levels.get(&kmer).unwrap();
-        assert!((level - level_exp).abs() < 10.0_f64.powi(-5))
+        assert!((level - level_exp).abs() < 10.0_f32.powi(-5))
     }
 }
 
@@ -175,23 +175,23 @@ fn test_levels_fix_gauge_as_expected() {
     for kmer in table.kmers() {
         let level = table.get(&kmer).unwrap();
         let level_exp = expected_levels.get(&kmer).unwrap();
-        assert!((level - level_exp).abs() < 10.0_f64.powi(-5))
+        assert!((level - level_exp).abs() < 10.0_f32.powi(-5))
     }
 }
 
-fn hashmap_from_file(path: &str) -> HashMap<String, f64> {
+fn hashmap_from_file(path: &str) -> HashMap<String, f32> {
     let file = File::open(path).expect("File not found");
     let reader = BufReader::new(file);
 
     let map = reader
         .lines()
         .map(|line| process_line(line.unwrap()))
-        .collect::<HashMap<String, f64>>();
+        .collect::<HashMap<String, f32>>();
     map
 }
-fn process_line(line: String) -> (String, f64) {
+fn process_line(line: String) -> (String, f32) {
     let line = line.split("\t").collect::<Vec<&str>>();
     let kmer = line[0].to_string();
-    let level = line[1].parse::<f64>().unwrap();
+    let level = line[1].parse::<f32>().unwrap();
     (kmer, level)
 }

@@ -16,7 +16,7 @@ pub struct KmerTable{
     /// Vector of k-mer strings sorted by level
     kmers: Vec<BinaryKmer>,
     /// Vector of level values corresponding to the k-mers
-    levels: Vec<f64>,
+    levels: Vec<f32>,
     /// The length of k-mers stored in this table
     k: usize,
     /// Index of the position in k-mers that has the most influence on levels
@@ -132,7 +132,7 @@ impl KmerTable {
         )?;
 
         let mut mad = self.levels.iter().map(|el| (el - median).abs())
-            .collect::<Vec<f64>>()
+            .collect::<Vec<f32>>()
             .median()
             .ok_or(
                 KmerTableError::FixGaugeError("Could not determine the MAD".to_string())
@@ -146,7 +146,7 @@ impl KmerTable {
 
         self.levels = self.levels.iter()
             .map(|el| (el - median) / mad)
-            .collect::<Vec<f64>>();
+            .collect::<Vec<f32>>();
         
         Ok(())
     }
@@ -166,7 +166,7 @@ impl KmerTable {
     /// * `KmerTableError::InvalidKmerLen` - If the provided k-mer has an incorrect length
     /// * `KmerTableError::IndexError` - If the provided k-mer is not found in the table
     /// * `KmerTableError::BinaryKmerError` - If there's an error creating the binary representation of the k-mer    
-    pub fn get(&self, kmer: &str) -> Result<&f64, KmerTableError> {
+    pub fn get(&self, kmer: &str) -> Result<&f32, KmerTableError> {
         if kmer.len() != self.k {
             Err(KmerTableError::InvalidKmerLen(kmer.len(), self.k))
         } else {
@@ -197,7 +197,7 @@ impl KmerTable {
     /// # Returns
     ///
     /// * `&Vec<f32>` - Reference to the vector of levels in sorted order
-    pub fn levels(&self) -> &Vec<f64> {
+    pub fn levels(&self) -> &Vec<f32> {
         &self.levels
     }
 
@@ -217,5 +217,9 @@ impl KmerTable {
     /// * `usize` - The index of the dominant base position
     pub fn dominant_base(&self) -> usize {
         self.dominant_base
+    }
+
+    pub fn extract_levels(&self, seq: &[u8]) -> Result<Vec<f32>, KmerTableError> {
+        todo!()
     }
 }
