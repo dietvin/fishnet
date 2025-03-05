@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::{collections::HashMap, fs::File, io::{BufRead, BufReader}, path::Path};
 use fishnet::error::refinement_errors::kmer_table_errors::KmerTableError;
 use fishnet::refinement::kmer_table::KmerTable;
 
@@ -127,4 +127,70 @@ fn test_kmer_table_sorted_by_level() {
         assert!(level_result.is_ok(), "Failed to get level for valid k-mer");
         assert_eq!(level_result.unwrap(), &levels[i]);
     }
+}
+
+#[test]
+fn test_levels_as_expected() {
+    let path = Path::new("tests/kmer_tables/valid.txt");
+    let result = KmerTable::new(path.to_str().unwrap());
+    
+    assert!(result.is_ok(), "Failed to create KmerTable from valid file");
+    
+    let table = result.unwrap();
+    let levels = table.levels();
+    
+    let expected_levels = hashmap_from_file("tests/kmer_tables/levels.txt");
+
+    assert_eq!(levels.len(), expected_levels.len());
+
+    // Check if the levels are the same as given by the Remora implementation
+    for kmer in table.kmers() {
+        let level = table.get(&kmer).unwrap();
+        let level_exp = expected_levels.get(&kmer).unwrap();
+        assert!((level - level_exp).abs() < 10.0_f64.powi(-5))
+    }
+}
+
+#[test]
+fn test_levels_fix_gauge_as_expected() {
+    let path = Path::new("tests/kmer_tables/valid.txt");
+    let result = KmerTable::new(path.to_str().unwrap());
+    
+    assert!(result.is_ok(), "Failed to create KmerTable from valid file");
+    
+    let mut table = result.unwrap();
+
+    let result_fix_gauge = table.fix_gauge();
+    assert!(result_fix_gauge.is_ok(), "Failed to normalize the levels");
+
+    let levels = table.levels();
+    
+    let expected_levels = hashmap_from_file("tests/kmer_tables/levels_fix_gauge.txt");
+
+    assert_eq!(levels.len(), expected_levels.len());
+
+    // Check if the levels are the same as given by the Remora implementation
+    for kmer in table.kmers() {
+        let level = table.get(&kmer).unwrap();
+        let level_exp = expected_levels.get(&kmer).unwrap();
+        println!("{}: {}, {}", kmer, level, level_exp);
+        assert!((level - level_exp).abs() < 10.0_f64.powi(-5))
+    }
+}
+
+fn hashmap_from_file(path: &str) -> HashMap<String, f64> {
+    let file = File::open(path).expect("File not found");
+    let reader = BufReader::new(file);
+
+    let map = reader
+        .lines()
+        .map(|line| process_line(line.unwrap()))
+        .collect::<HashMap<String, f64>>();
+    map
+}
+fn process_line(line: String) -> (String, f64) {
+    let line = line.split("\t").collect::<Vec<&str>>();
+    let kmer = line[0].to_string();
+    let level = line[1].parse::<f64>().unwrap();
+    (kmer, level)
 }

@@ -1,5 +1,3 @@
-use core::error;
-
 #[derive(Debug, thiserror::Error)]
 pub enum KmerTableError {
     // Errors for the new function
@@ -75,8 +73,10 @@ pub enum KmerTableError {
     IndexError(String),
 
     #[error("Could not determine the index of the maximum value")]
-    ArgMaxError
+    ArgMaxError,
 
+    #[error("Standardization error: {0}")]
+    FixGaugeError(String)
 }
 
 

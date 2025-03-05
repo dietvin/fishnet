@@ -3,9 +3,8 @@ mod binary_kmer;
 
 use std::{collections::{HashMap, HashSet}, fs::File, io::{BufRead, BufReader}};
 use self::binary_kmer::BinaryKmer;
-use self::helpers::{process_line, sort_and_index, determine_dominant_base};
+use self::helpers::{process_line, sort_and_index, determine_dominant_base, Median};
 use super::super::error::refinement_errors::kmer_table_errors::KmerTableError;
-
 /// A data structure for storing and querying k-mers with their associated levels
 ///
 /// This structure reads k-mers and their associated levels from a tab-delimited file,
@@ -16,7 +15,7 @@ pub struct KmerTable{
     /// Vector of k-mer strings sorted by level
     kmers: Vec<BinaryKmer>,
     /// Vector of level values corresponding to the k-mers
-    levels: Vec<f32>,
+    levels: Vec<f64>,
     /// The length of k-mers stored in this table
     k: usize,
     /// Index of the position in k-mers that has the most influence on levels
@@ -112,6 +111,45 @@ impl KmerTable {
         })
     }
 
+    /// Normalizes the level values using median and median absolute deviation (MAD)
+    ///
+    /// This function adjusts the levels by subtracting the median and dividing by the MAD.
+    /// It is useful for standardizing the data and making it more robust against outliers.
+    ///
+    /// # Returns
+    ///
+    /// * `Result<(), KmerTableError>` - Returns `Ok(())` if normalization succeeds, or an error if it fails.
+    ///
+    /// # Errors
+    ///
+    /// * `KmerTableError::FixGaugeError` - If the median cannot be determined.
+    /// * `KmerTableError::FixGaugeError` - If the MAD cannot be determined.
+    /// * `KmerTableError::FixGaugeError` - If the MAD is zero, which would result in division by zero.
+    pub fn fix_gauge(&mut self) -> Result<(), KmerTableError> {
+        let median = self.levels.median().ok_or(
+            KmerTableError::FixGaugeError("Could not determine the median".to_string())
+        )?;
+
+        let mut mad = self.levels.iter().map(|el| (el - median).abs())
+            .collect::<Vec<f64>>()
+            .median()
+            .ok_or(
+                KmerTableError::FixGaugeError("Could not determine the MAD".to_string())
+            )?;
+
+        mad *= 1.4826; // Factor scales MAD to SD
+
+        if mad == 0.0 {
+            return Err(KmerTableError::FixGaugeError("Zero division".to_string()));
+        }
+
+        self.levels = self.levels.iter()
+            .map(|el| (el - median) / mad)
+            .collect::<Vec<f64>>();
+        
+        Ok(())
+    }
+
     /// Retrieves the level for a given k-mer
     ///
     /// # Arguments
@@ -127,7 +165,7 @@ impl KmerTable {
     /// * `KmerTableError::InvalidKmerLen` - If the provided k-mer has an incorrect length
     /// * `KmerTableError::IndexError` - If the provided k-mer is not found in the table
     /// * `KmerTableError::BinaryKmerError` - If there's an error creating the binary representation of the k-mer    
-    pub fn get(&self, kmer: &str) -> Result<&f32, KmerTableError> {
+    pub fn get(&self, kmer: &str) -> Result<&f64, KmerTableError> {
         if kmer.len() != self.k {
             Err(KmerTableError::InvalidKmerLen(kmer.len(), self.k))
         } else {
@@ -158,7 +196,7 @@ impl KmerTable {
     /// # Returns
     ///
     /// * `&Vec<f32>` - Reference to the vector of levels in sorted order
-    pub fn levels(&self) -> &Vec<f32> {
+    pub fn levels(&self) -> &Vec<f64> {
         &self.levels
     }
 

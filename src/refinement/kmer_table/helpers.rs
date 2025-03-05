@@ -1,3 +1,5 @@
+use itertools::max;
+
 use super::BinaryKmer;
 use super::super::super::error::refinement_errors::kmer_table_errors::KmerTableError;
 use std::collections::HashMap;
@@ -22,7 +24,7 @@ use std::collections::HashMap;
 /// * `KmerTableError::EvenKmer` - If k is even (odd k-mers are expected)
 /// * `KmerTableError::FloatConversionError` - If the level can not be converted to a float
 /// * `KmerTableError::BinaryKmerError` - If there's an error creating the binary representation of the k-mer
-pub fn process_line(line: String) -> Result<(BinaryKmer, f32), KmerTableError> {
+pub fn process_line(line: String) -> Result<(BinaryKmer, f64), KmerTableError> {
     let line_parts = line.split("\t").collect::<Vec<&str>>();
     
     // Check the number of columns (should be 2)
@@ -38,7 +40,7 @@ pub fn process_line(line: String) -> Result<(BinaryKmer, f32), KmerTableError> {
         return Err(KmerTableError::EvenKmer(kmer_len));
     } 
 
-    let level = line_parts[1].parse::<f32>()?;
+    let level = line_parts[1].parse::<f64>()?;
 
     Ok((kmer, level))
 }
@@ -59,7 +61,7 @@ pub fn process_line(line: String) -> Result<(BinaryKmer, f32), KmerTableError> {
 ///   * A HashMap mapping k-mer strings to their indices in the sorted arrays
 ///   * A vector of k-mer strings sorted by level
 ///   * A vector of level values in sorted order
-pub fn sort_and_index(kmers: &Vec<BinaryKmer>, levels: &Vec<f32>) -> (HashMap<BinaryKmer, usize>, Vec<BinaryKmer>, Vec<f32>) {
+pub fn sort_and_index(kmers: &Vec<BinaryKmer>, levels: &Vec<f64>) -> (HashMap<BinaryKmer, usize>, Vec<BinaryKmer>, Vec<f64>) {
     let mut indices = (0..levels.len()).collect::<Vec<usize>>();
     indices.sort_by(
         |&i, &j| levels[i]
@@ -212,6 +214,32 @@ fn argmax(vec: &[f64]) -> Option<usize> {
         .map(|(index, _)| index)
 }
 
+pub trait Median {
+    fn median(&self) -> Option<f64>;
+}
+
+impl Median for [f64] {
+    fn median(&self) -> Option<f64> {
+        let len = self.len();
+        if len == 0 {
+            return None;
+        }
+        
+        let mut sorted = self.to_vec();
+        sorted.sort_by(
+            |a, b| a
+                .partial_cmp(b)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        );
+        
+        Some(if len % 2 == 1 {
+            sorted[len / 2]
+        } else {
+            (sorted[len / 2 - 1] + sorted[len / 2]) / 2.0
+        })
+    }
+}
+
 
 
 
@@ -223,7 +251,7 @@ fn argmax(vec: &[f64]) -> Option<usize> {
 
 #[cfg(test)]
 mod test {
-    use super::{kruskal, argmax};
+    use super::{argmax, kruskal, Median};
 
     /// First example from the scipy documentation
     #[test]
@@ -265,5 +293,38 @@ mod test {
         let max_index = argmax(&with_nan);
         assert_eq!(max_index, Some(2));
     }
+
+    #[test]
+    fn test_median1() {
+        let vec = vec![1.0,2.0,3.0];
+        let med = vec.median();
+
+        assert_eq!(med, Some(2.0));
+    }
+
+    #[test]
+    fn test_median2() {
+        let vec = vec![1.0,2.0,3.0,4.0];
+        let med = vec.median();
+
+        assert_eq!(med, Some(2.5));
+    }
+
+    #[test]
+    fn test_median3() {
+        let vec: Vec<f64> = vec![];
+        let med = vec.median();
+
+        assert_eq!(med, None);
+    }
+
+    #[test]
+    fn test_median4() {
+        let vec: Vec<f64> = vec![0.0,1.0,1.0,2.0,3.0];
+        let med = vec.median();
+
+        assert_eq!(med, Some(1.0));
+    }
+
 
 }
