@@ -20,6 +20,8 @@ fn test_valid_kmer_table() {
     
     // Test that kmers and levels vectors have the same length
     assert_eq!(table.kmers().len(), table.levels().len(), "Kmers and levels vectors should have the same length");
+
+    assert_eq!(table.dominant_base(), 6);
 }
 
 #[test]
