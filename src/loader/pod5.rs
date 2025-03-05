@@ -94,12 +94,12 @@ impl Pod5Read {
         &self.num_samples
     }
 
-    /// Returns the calibration offset if available
+    /// Returns the calibration offset for this read
     pub fn calibration_offset(&self) -> &f32 {
         &self.calibration_offset
     }
 
-    /// Returns the calibration scale factor if available
+    /// Returns the calibration scale factor for this read
     pub fn calibration_scale(&self) -> &f32 {
         &self.calibration_scale
     }
