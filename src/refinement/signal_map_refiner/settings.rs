@@ -3,6 +3,7 @@
 /// This struct defines configurable parameters used in the refinement
 /// of signal-to-sequence mappings. These include:
 /// 
+/// * `which_map_to_refine` - Which of the two alignments gets refined.
 /// * `refinement_algo` - The algorithm used for refining the mapping.
 /// * `n_refinement_iters` - Number of refinement iterations to perform.
 /// * `half_bandwidth` - Half of the bandwidth size used in the refinement algorithm.
@@ -15,6 +16,8 @@
 /// using `RefineSettings::custom`.
 #[derive(Debug, Clone)]
 pub struct RefineSettings {
+    /// Determines which alignment gets refines.
+    which_map_to_refine: WhichToRefine,
     /// Algorithm used for mapping refinement.
     refinement_algo: RefineAlgo,
     /// Number of refinement iterations.
@@ -37,6 +40,7 @@ impl RefineSettings {
     /// * `RefineSettings` - The default settings.
     pub fn default() -> Self {
         RefineSettings {
+            which_map_to_refine: WhichToRefine::Query,
             rough_rescale_algo: RoughRescaleAlgo::NoRoughRescaling,
             rescale_algo: RescaleAlgo::TheilSen { 
                 max_points: 1000 
@@ -58,6 +62,8 @@ impl RefineSettings {
     /// 
     /// # Arguments
     /// 
+    /// * `which_map_to_refine` - Whether to refine the query-to-signal,
+    ///                           ref-to-signal or both
     /// * `refinement_algo` - Refinement algorithm
     /// * `n_refinement_iters` - Number of refinement iterations
     /// * `half_bandwidth` - Half of the bandwidth size
@@ -69,6 +75,7 @@ impl RefineSettings {
     /// 
     /// * `RefineSettings` - Custom settings
     pub fn custom(
+        which_map_to_refine: WhichToRefine,
         refinement_algo: RefineAlgo,
         n_refinement_iters: usize,
         half_bandwidth: usize,
@@ -77,6 +84,7 @@ impl RefineSettings {
         normalize_levels: bool
     ) -> Self {
         RefineSettings {
+            which_map_to_refine,
             rough_rescale_algo,
             rescale_algo,
             refinement_algo,
@@ -86,6 +94,9 @@ impl RefineSettings {
         }
     }
 
+    pub fn which_map_to_refine(&self) -> &WhichToRefine {
+        &self.which_map_to_refine
+    }
 
     pub fn refinement_algo(&self) -> &RefineAlgo {
         &self.refinement_algo
@@ -106,14 +117,26 @@ impl RefineSettings {
     pub fn rough_rescale_algo(&self) -> &RoughRescaleAlgo {
         &self.rough_rescale_algo
     }
-    
+
     pub fn normalize_levels(&self) -> &bool {
         &self.normalize_levels
     }
 }
 
+
+/// Enumeration of which alignment to refine.
+#[derive(Debug, Clone, PartialEq)]
+pub enum WhichToRefine {
+    /// Refine the query-to-signal and reference-to-signal alignment
+    Both,
+    /// Refine only the query-to-signal alignment
+    Query,
+    /// Refine only the reference-to-signal alignment
+    Reference
+}
+
 /// Enumeration of available refinement algorithms.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum RefineAlgo {
     /// Viterbi algorithm (short dwell times are not penalized).
     Viterbi,
@@ -130,24 +153,44 @@ pub enum RefineAlgo {
 }
 
 /// Enumeration of algorithms for rough rescaling of signals.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum RoughRescaleAlgo {
     /// No rough rescaling applied.
     NoRoughRescaling,
     /// Least-squares regression-based rescaling.
-    LeastSquares,
+    /// 
+    /// * `quantiles` - The quantiles based on which the scaling factors get calculated.
+    /// * `clip_bases` - The number of bases that get clipped from the start and end of
+    ///                  the levels.
+    /// * `use_base_center` - Whether to use only a single data point from the signal for
+    ///                       each base. If false, all measurements are used for the 
+    ///                       computation.
+    LeastSquares {
+        quantiles: Vec<f32>,
+        clip_bases: usize,
+        use_base_center: bool
+    },
     /// Theil-Sen estimator-based rescaling.
     /// 
     /// * `max_points` - Limits the number of data points used in the estimation.
     ///                  If the number of available data points exceeds this limit, 
     ///                  a random subset is sampled.
+    /// * `quantiles` - The quantiles based on which the scaling factors get calculated.
+    /// * `clip_bases` - The number of bases that get clipped from the start and end of
+    ///                  the levels.
+    /// * `use_base_center` - Whether to use only a single data point from the signal for
+    ///                       each base. If false, all measurements are used for the 
+    ///                       computation.
     TheilSen {
+        quantiles: Vec<f32>,
+        clip_bases: usize,
+        use_base_center: bool,
         max_points: usize
     }
 }
 
 /// Enumeration of algorithms for precise signal rescaling.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum RescaleAlgo {
     /// Least-squares regression-based rescaling.
     LeastSquares,
