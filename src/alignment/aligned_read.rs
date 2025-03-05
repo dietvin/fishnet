@@ -159,6 +159,31 @@ impl<'a> AlignedRead<'a> {
         &self.pod5_read
     }
 
+    /// Returns the unique identifier from the underlying Pod5Read
+    pub fn read_id(&self) -> &str {
+        self.pod5_read.read_id()
+    }
+
+    /// Returns the signal intensity values from the underlying Pod5Read
+    pub fn signal(&self) -> &Vec<i16> {
+        self.pod5_read.signal()
+    }
+
+    /// Returns the number of samples from the underlying Pod5Read
+    pub fn num_samples(&self) -> &usize {
+        self.pod5_read.num_samples()
+    }
+
+    /// Returns the calibration offset from the underlying Pod5Read
+    pub fn calibration_offset(&self) -> &f32 {
+        self.pod5_read.calibration_offset()
+    }
+
+    /// Returns the calibration scale factor from the underlying Pod5Read
+    pub fn calibration_scale(&self) -> &f32 {
+        self.pod5_read.calibration_scale()
+    }
+
     /// Gets a reference to the BAM read.
     ///
     /// # Returns
@@ -166,5 +191,41 @@ impl<'a> AlignedRead<'a> {
     /// * `&BamRead` - The BAM read containing alignment information
     pub fn bam_read(&self) -> &BamRead {
         &self.bam_read
+    }
+
+    /// Returns the query sequence as bytes from the underlying BamRead
+    pub fn query(&self) -> &[u8] {
+        self.bam_read.query()
+    }
+
+    /// Returns the query length from the underlying BamRead
+    pub fn query_length(&self) -> usize {
+        self.bam_read.query().len()
+    }
+
+
+    /// Returns the move table from the underlying BamRead
+    pub fn move_table(&self) -> &[bool] {
+        self.bam_read.move_table()
+    }
+
+    /// Returns the stride value from the underlying BamRead
+    pub fn stride(&self) -> usize {
+        self.bam_read.stride()
+    }
+
+    /// Returns the signal scaling mean (sm tag) from the underlying BamRead
+    pub fn signal_scaling_mean(&self) -> f32 {
+        self.bam_read.signal_scaling_mean()
+    }
+
+    /// Returns the signal scaling dispersion (sd tag) from the underlying BamRead
+    pub fn signal_scaling_dispersion(&self) -> f32 {
+        self.bam_read.signal_scaling_dispersion()
+    }
+
+    /// Returns whether the the underlying BamRead is mapped 
+    pub fn is_mapped(&self) -> bool {
+        self.bam_read.is_mapped()
     }
 }
