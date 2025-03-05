@@ -173,7 +173,6 @@ fn test_levels_fix_gauge_as_expected() {
     for kmer in table.kmers() {
         let level = table.get(&kmer).unwrap();
         let level_exp = expected_levels.get(&kmer).unwrap();
-        println!("{}: {}, {}", kmer, level, level_exp);
         assert!((level - level_exp).abs() < 10.0_f64.powi(-5))
     }
 }
