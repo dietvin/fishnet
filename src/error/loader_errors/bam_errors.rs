@@ -1,3 +1,5 @@
+use std::num::ParseIntError;
+
 #[derive(Debug, thiserror::Error)]
 pub enum BamReadError {
     #[error("HTSLib error: {0}")]
@@ -22,4 +24,16 @@ pub enum BamFileError {
     ValueError(String),
     #[error("Could not initialize BamRead")]
     BamReadError(#[from] BamReadError)
+}
+
+#[derive(Debug, thiserror::Error, PartialEq)]
+pub enum RefSeqReconstructError {
+    #[error("Empty MD string slice")]
+    EmptyMdSlice,
+    #[error("Could not convert uft8 to string: {0}")]
+    Utf8ConversionError(#[from] std::str::Utf8Error),
+    #[error("Could not convert string to usize: {0}")]
+    UsizeConversionError(#[from] std::num::ParseIntError),
+    #[error("Unexpected uft8-value in MD string: {0}")]
+    UnexpectedChar(u8)
 }
