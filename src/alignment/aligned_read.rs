@@ -228,4 +228,13 @@ impl<'a> AlignedRead<'a> {
     pub fn is_mapped(&self) -> bool {
         self.bam_read.is_mapped()
     }
+
+    pub fn reference(&self) -> Option<&[u8]> {
+        todo!()
+    }
+
+    pub fn reference_len(&self) -> Option<&usize> {
+        todo!()
+    }
+
 }

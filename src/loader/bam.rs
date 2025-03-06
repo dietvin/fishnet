@@ -3,6 +3,7 @@ use rust_htslib::bam::ext::BamRecordExtensions;
 use rust_htslib::bam::{record::Cigar, Record, Reader, Read};
 use super::super::error::loader_errors::bam_errors::{BamReadError, BamFileError};
 use super::helpers;
+use super::ref_seq_reconstruction::RefSeqReconstructor;
 
 // ##################################################################################################
 // #                                            Structs                                             #
@@ -29,6 +30,7 @@ pub struct BamRead {
     mapped: bool,
     // The following data is only available if a read is mapped
     cigar: Option<Vec<Cigar>>,
+    reference_seq: Option<Vec<u8>>,
     reference_len: Option<usize>,
     reverse_mapped: Option<bool>,
     parent_read_id: Option<String>, // stored in the pi tag
@@ -70,7 +72,9 @@ impl BamRead {
     pub fn new(bam_record: Record) -> Result<Self, BamReadError> {
         let read_id = std::str::from_utf8(bam_record.qname())?.to_string();
         let query = bam_record.seq().as_bytes();
+        
         let query_length = query.len();
+        println!("{:?}, {}, {}", query, query.len(), query_length);
         let (stride, move_table): (usize, Vec<bool>) = BamRead::get_stride_move_table(&bam_record)?;
 
         let sm_tag = helpers::get_float_tag(&bam_record, "sm")?;
@@ -78,6 +82,7 @@ impl BamRead {
 
         let mapped = !bam_record.is_unmapped();
         let mut cigar = None; 
+        let mut reference_seq = None;
         let mut reference_len = None;
         let mut reverse_mapped = None;
         let mut pi_tag = None; 
@@ -86,7 +91,13 @@ impl BamRead {
         let mut ns_tag = None; 
 
         if mapped {
-            cigar = Some(bam_record.cigar().take().0);
+            let cigar_raw = bam_record.cigar().take().0;
+            let md_string = helpers::get_str_tag(&bam_record, "MD")?;
+            println!("{:?}", md_string);
+            let refseq_reconstructor = RefSeqReconstructor::new(&query, md_string.as_bytes(), &cigar_raw);
+            reference_seq = Some(refseq_reconstructor.get_reference_sequence());
+
+            cigar = Some(cigar_raw);
             reference_len = Some(
                 (bam_record.reference_end() - bam_record.reference_start()) as usize
             );
@@ -119,6 +130,7 @@ impl BamRead {
             signal_scaling_dispersion: sd_tag,
             mapped,
             cigar,
+            reference_seq,
             reference_len,
             reverse_mapped,
             parent_read_id: pi_tag,

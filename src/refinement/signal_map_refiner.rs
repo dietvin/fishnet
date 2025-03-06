@@ -93,7 +93,9 @@ impl<'a> SigMapRefiner<'a> {
             .query_to_signal()
             .ok_or(SigMapRefineError::RefToSigNotFound)?;
 
-        let seq = self.aligned_read.reference();
+        let seq = self.aligned_read.reference().ok_or(
+            SigMapRefineError::RefToSigNotFound // change to fitting error!
+        )?;
         let levels = self.kmer_table.extract_levels(seq)?;
 
         self.perform_rough_rescaling(
