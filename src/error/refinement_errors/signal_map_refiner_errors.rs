@@ -1,5 +1,5 @@
 use super::kmer_table_errors::KmerTableError;
-
+use super::super::alignment_errors::aligned_read_errors::AlignedReadError;
 #[derive(Debug, thiserror::Error)]
 pub enum SigMapRefineError {
     #[error("Failed to initialize the kmer table: {0}")]
@@ -10,7 +10,8 @@ pub enum SigMapRefineError {
     QueryToSigNotFound,
     #[error("Reference-to-signal alignment not present")]
     RefToSigNotFound,
-
+    #[error("AlignedRead error: {0}")]
+    AlignedReadError(#[from] AlignedReadError)
 }
 
 #[derive(Debug, thiserror::Error)]
