@@ -63,6 +63,44 @@ impl BinaryKmer {
         Ok(BinaryKmer{ encoded, k })
     }
 
+    /// Converts a byte slice (ASCII) k-mer to its binary representation
+    ///
+    /// Works with both uppercase and lowercase letters, and treats U as T internally.
+    ///
+    /// # Arguments
+    ///
+    /// * `kmer` - A byte slice containing only A, C, G, T/U characters (case-insensitive)
+    ///
+    /// # Returns
+    ///
+    /// * `Result<BinaryKmer, BinaryKmerError>` - Binary encoding or an error
+    ///
+    /// # Errors
+    ///
+    /// * `BinaryKmerError::InvalidKmerLen` - If the k-mer is too long to fit in the binary representation
+    /// * `BinaryKmerError::InvalidBaseChar` - If the k-mer contains invalid characters (not A, C, G, T, or U)
+    pub fn from_ascii(kmer: &[u8]) -> Result<Self, BinaryKmerError> {
+        let k = kmer.len();
+        if k > Self::MAX_K {
+            return Err(BinaryKmerError::InvalidKmerLen(k));
+        }
+
+        let mut encoded = 0u64;
+        for &byte in kmer {
+            let base_code = match byte {
+                b'A' | b'a' => 0u64,
+                b'C' | b'c' => 1u64,
+                b'G' | b'g' => 2u64,
+                b'T' | b't' | b'U' | b'u' => 3u64,    
+                _ => return Err(BinaryKmerError::InvalidBaseChar(byte as char))        
+            };
+            // Shift and incorporate the new nucleotide
+            encoded = (encoded << 2) | base_code;
+        }
+
+        Ok(BinaryKmer{ encoded, k })
+    }
+
     /// Converts the binary k-mer back to a string representation
     /// 
     /// # Returns
@@ -247,5 +285,22 @@ mod binary_kmer_tests {
         let kmer4 = BinaryKmer::from_string("A").unwrap();  // encoded: 0, k: 1
         let kmer5 = BinaryKmer::from_string("AA").unwrap(); // encoded: 0, k: 2
         assert_ne!(kmer4, kmer5);
+    }
+
+    #[test]
+    fn test_binary_kmer_from_ascii() {
+        // Test with ASCII bytes
+        let kmer_bytes = b"ACGT";
+        let kmer = BinaryKmer::from_ascii(kmer_bytes).unwrap();
+        assert_eq!(kmer.to_string(), "ACGT");
+        
+        // Test lowercase
+        let lowercase_bytes = b"acgt";
+        let kmer_lower = BinaryKmer::from_ascii(lowercase_bytes).unwrap();
+        assert_eq!(kmer_lower.to_string(), "ACGT");
+        
+        // Test with invalid character
+        let invalid_bytes = b"ACGN";
+        assert!(BinaryKmer::from_ascii(invalid_bytes).is_err());
     }
 }
