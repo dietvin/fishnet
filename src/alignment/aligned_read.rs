@@ -110,7 +110,7 @@ impl<'a> AlignedRead<'a> {
             if let (
                 Some(cigar), 
                 Some(rev_mapped), 
-                Some(ref_len)) = (
+                ref_len) = (
                     self.bam_read.get_cigar()?, 
                     self.bam_read.is_reverse_mapped(), 
                     self.bam_read.get_reference_len()?
