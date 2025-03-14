@@ -10,6 +10,7 @@ use self::rescale::{rough_rescale_lstsq, rough_rescale_theil_sen, rescale_lstsq,
 use super::super::alignment::aligned_read::AlignedRead;
 use super::super::error::refinement_errors::signal_map_refiner_errors::SigMapRefineError;
 
+/// Structure that handles the refinement process
 #[derive(Debug)]
 pub struct SigMapRefiner<'a> {
     kmer_table: KmerTable,
@@ -24,16 +25,20 @@ pub struct SigMapRefiner<'a> {
 }
 
 impl<'a> SigMapRefiner<'a> {
+    /// Initializes a new refinement instance from the path to a kmer level table,
+    /// an aligned read object and settings for the refinement
     pub fn new(
         kmer_table_path: &str,
         aligned_read: &'a AlignedRead<'a>,
         settings: RefineSettings
     ) -> Result<Self, SigMapRefineError> {
+        // Set up the kmer table from the provided file path
         let mut kmer_table = KmerTable::new(kmer_table_path)?;
         if *settings.normalize_levels() {
             kmer_table.fix_gauge()?;
         }
 
+        // Calculate the scaling scale and shift from the 
         let (scale_dacs_to_norm, shift_dacs_to_norm) = calculate_scaling_shift(
             *aligned_read.calibration_scale(),
             *aligned_read.calibration_offset(),
@@ -52,7 +57,10 @@ impl<'a> SigMapRefiner<'a> {
         })
     }
 
+    /// Starts the refinement after initialization
     pub fn start(&mut self) -> Result<(), SigMapRefineError> {
+        // Determine which alignments should be refined 
+        // (query-to-signal AND/OR ref-to-signal)
         match self.settings.which_map_to_refine() {
             WhichToRefine::Query => {
                 self.start_query_to_signal_refinement()?
@@ -69,6 +77,7 @@ impl<'a> SigMapRefiner<'a> {
         Ok(())
     }
     
+    /// Performs the refinement of the query to signal alignment
     fn start_query_to_signal_refinement(&mut self) -> Result<(), SigMapRefineError> {
         let signal = self.aligned_read.signal();
         let seq_to_signal_map = self.aligned_read
@@ -78,6 +87,8 @@ impl<'a> SigMapRefiner<'a> {
         let seq = self.aligned_read.query();
         let levels = self.kmer_table.extract_levels(seq)?;
 
+        // If no rough rescaling is wanted, the function returns right away
+        // without doing anything
         self.perform_rough_rescaling(
             signal,
             seq_to_signal_map,
@@ -87,15 +98,14 @@ impl<'a> SigMapRefiner<'a> {
         
     }
 
+    /// Performs the refinement of the reference to signal alignment
     fn start_ref_to_signal_refinement(&mut self) -> Result<(), SigMapRefineError> {
         let signal = self.aligned_read.signal();
         let seq_to_signal_map = self.aligned_read
             .query_to_signal()
             .ok_or(SigMapRefineError::RefToSigNotFound)?;
 
-        let seq = self.aligned_read.reference().ok_or(
-            SigMapRefineError::RefToSigNotFound // change to fitting error!
-        )?;
+        let seq = self.aligned_read.reference()?;
         let levels = self.kmer_table.extract_levels(seq)?;
 
         self.perform_rough_rescaling(
@@ -107,6 +117,9 @@ impl<'a> SigMapRefiner<'a> {
 
     }    
 
+    /// Estimates scaling factor and shift values to better scale the signal 
+    /// to the expected levels. Rough rescaling means that only a handful of percentiles
+    /// are used to calculate the two values 
     fn perform_rough_rescaling(
         &mut self, 
         signal: &Vec<i16>,
@@ -155,7 +168,7 @@ impl<'a> SigMapRefiner<'a> {
 }
 
 /// Calculate the scaling factor and shift to transform the raw signal measurements
-/// into normalized measurements.
+/// into normalized measurements. Called during initialization
 fn calculate_scaling_shift(
     calibration_scale: f32,
     calibration_offset: f32,
