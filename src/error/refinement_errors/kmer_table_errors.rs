@@ -76,7 +76,10 @@ pub enum KmerTableError {
     ArgMaxError,
 
     #[error("Standardization error: {0}")]
-    FixGaugeError(String)
+    FixGaugeError(String),
+
+    #[error("Provided sequence is too short: {0} (must be at least k={1})")]
+    InvalidSeqLen(usize, usize)
 }
 
 

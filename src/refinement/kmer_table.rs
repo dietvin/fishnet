@@ -151,8 +151,36 @@ impl KmerTable {
         Ok(())
     }
 
+    /// Retrieves the level for a given BinaryKmer object
+    ///
+    /// # Arguments
+    ///
+    /// * `kmer` - The BinaryKmer to look up
+    ///
+    /// # Returns
+    ///
+    /// * `Result<&f32, KmerTableError>` - The level value associated with the k-mer, or an error
+    ///
+    /// # Errors
+    ///
+    /// * `KmerTableError::InvalidKmerLen` - If the provided k-mer has an incorrect length
+    /// * `KmerTableError::IndexError` - If the provided k-mer is not found in the table
+    pub fn get_from_binarykmer(&self, kmer: &BinaryKmer) -> Result<&f32, KmerTableError> {
+        if kmer.k() != self.k {
+            Err(KmerTableError::InvalidKmerLen(kmer.k(), self.k))
+        } else {
+            let idx = self.index.get(kmer).ok_or(
+                KmerTableError::IndexError(kmer.to_string())
+            )?;
+            let level = &self.levels[*idx];
+            Ok(level)
+        }
+    }
+
     /// Retrieves the level for a given k-mer
     ///
+    /// Transform the string into a BinaryKmer and calls `get_from_binarykmer` 
+    /// 
     /// # Arguments
     ///
     /// * `kmer` - The k-mer string to look up
@@ -167,16 +195,8 @@ impl KmerTable {
     /// * `KmerTableError::IndexError` - If the provided k-mer is not found in the table
     /// * `KmerTableError::BinaryKmerError` - If there's an error creating the binary representation of the k-mer    
     pub fn get(&self, kmer: &str) -> Result<&f32, KmerTableError> {
-        if kmer.len() != self.k {
-            Err(KmerTableError::InvalidKmerLen(kmer.len(), self.k))
-        } else {
-            let kmer_binary = BinaryKmer::from_string(kmer)?;
-            let idx = self.index.get(&kmer_binary).ok_or(
-                KmerTableError::IndexError(kmer.to_string())
-            )?;
-            let level = &self.levels[*idx];
-            Ok(level)
-        }
+        let binary_kmer = BinaryKmer::from_string(kmer)?;
+        self.get_from_binarykmer(&binary_kmer)
     }
 
     /// Returns the string representation of the stored k-mers
@@ -219,7 +239,57 @@ impl KmerTable {
         self.dominant_base
     }
 
+    /// Extracts the expected levels for a given sequence
+    ///
+    /// This function computes the level values for each position in the input sequence 
+    /// by sliding a k-mer window across the sequence and looking up the corresponding levels
+    /// in the table. The levels are aligned such that the dominant base of each k-mer
+    /// corresponds to its position in the output vector.
+    ///
+    /// # Arguments
+    ///
+    /// * `seq` - A byte slice representing the DNA sequence
+    ///
+    /// # Returns
+    ///
+    /// * `Result<Vec<f32>, KmerTableError>` - A vector of level values for each position 
+    ///   in the sequence, or an error
+    ///
+    /// # Errors
+    ///
+    /// * `KmerTableError::BinaryKmerError` - If there's an error creating the binary 
+    ///   representation of a k-mer from the sequence
+    /// * `KmerTableError::IndexError` - If a k-mer from the sequence is not found in the table
+    ///
+    /// # Notes
+    ///
+    /// * Positions before the dominant base position will have a level value of 0
+    /// * The function assumes the input sequence is at least as long as k    
     pub fn extract_levels(&self, seq: &[u8]) -> Result<Vec<f32>, KmerTableError> {
-        todo!()
+        if seq.len() < self.k {
+            return Err(KmerTableError::InvalidSeqLen(seq.len(), self.k));
+        }
+        let mut level_vec = vec![0f32; seq.len()];
+
+        // Initital setup with k=5 & dominant_base=2:
+        //  A A A A A A 
+        //  0 1 2 3 4 5
+        //  |   |     | 
+        //  s   m     e(not incl)
+        let mut current_kmer_target_idx = self.dominant_base;
+        let mut current_kmer_end = self.k;
+        while current_kmer_end < seq.len() {
+            let current_kmer_ascii = &seq[(current_kmer_end - self.k)..current_kmer_end];
+            let kmer = BinaryKmer::from_ascii(current_kmer_ascii)?;
+
+            let level = self.get_from_binarykmer(&kmer)?;
+            
+            level_vec[current_kmer_target_idx] = level.clone();
+
+            current_kmer_target_idx += 1;
+            current_kmer_end += 1;
+        }
+
+        Ok(level_vec)        
     }
 }
