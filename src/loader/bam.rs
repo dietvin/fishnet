@@ -3,7 +3,7 @@ use rust_htslib::bam::ext::BamRecordExtensions;
 use rust_htslib::bam::{record::Cigar, Record, Reader, Read};
 use super::super::error::loader_errors::bam_errors::{BamReadError, BamFileError};
 use super::helpers;
-use super::ref_seq_reconstruction::RefSeqReconstructor;
+use super::ref_seq_reconstruction::build_reference_sequence;
 
 // ##################################################################################################
 // #                                            Structs                                             #
@@ -93,9 +93,9 @@ impl BamRead {
         if mapped {
             let cigar_raw = bam_record.cigar().take().0;
             let md_string = helpers::get_str_tag(&bam_record, "MD")?;
-            println!("{:?}", md_string);
-            let refseq_reconstructor = RefSeqReconstructor::new(&query, md_string.as_bytes(), &cigar_raw);
-            reference_seq = Some(refseq_reconstructor.get_reference_sequence());
+            reference_seq = Some(
+                build_reference_sequence(&query, &cigar_raw, &md_string.as_bytes())?
+            );
 
             cigar = Some(cigar_raw);
             reference_len = Some(

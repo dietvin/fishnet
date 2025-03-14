@@ -9,7 +9,9 @@ pub enum BamReadError {
     #[error("Could not extract tag '{0}': Expected {1}, got {2}")]
     TagUnexpectedTypeError(String, String, String),
     #[error("Read not mapped - unable to retrieve {0}")]
-    NoSuchDataForUnmappedRead(String)
+    NoSuchDataForUnmappedRead(String),
+    #[error("Failed to reconstruct the reference sequence: {0}")]
+    RefSeqError(#[from] RefSeqReconstructError)
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -23,17 +25,15 @@ pub enum BamFileError {
     #[error("Could not access record: {0}")]
     ValueError(String),
     #[error("Could not initialize BamRead")]
-    BamReadError(#[from] BamReadError)
+    BamReadError(#[from] BamReadError),
 }
 
 #[derive(Debug, thiserror::Error, PartialEq)]
 pub enum RefSeqReconstructError {
-    #[error("Empty MD string slice")]
-    EmptyMdSlice,
-    #[error("Could not convert uft8 to string: {0}")]
-    Utf8ConversionError(#[from] std::str::Utf8Error),
-    #[error("Could not convert string to usize: {0}")]
-    UsizeConversionError(#[from] std::num::ParseIntError),
-    #[error("Unexpected uft8-value in MD string: {0}")]
-    UnexpectedChar(u8)
+    #[error("Query sequence index out of bounds: {0} (len={1})")]
+    QueryOutOfBounds(usize, usize),
+    #[error("Reference sequence index out of bounds: {0} (len={1})")]
+    ReferenceOutOfBounds(usize, usize),
+    #[error("Invalid char: {0}")]
+    InvalidChar(u8),
 }
