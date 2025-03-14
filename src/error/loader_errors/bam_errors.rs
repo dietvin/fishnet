@@ -1,5 +1,3 @@
-use std::num::ParseIntError;
-
 #[derive(Debug, thiserror::Error)]
 pub enum BamReadError {
     #[error("HTSLib error: {0}")]
@@ -35,5 +33,5 @@ pub enum RefSeqReconstructError {
     #[error("Reference sequence index out of bounds: {0} (len={1})")]
     ReferenceOutOfBounds(usize, usize),
     #[error("Invalid char: {0}")]
-    InvalidChar(u8),
+    InvalidChar(u8)
 }
