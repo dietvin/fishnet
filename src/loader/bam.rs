@@ -259,6 +259,21 @@ impl BamRead {
         }
     }
 
+    /// Gets the reference sequence with error handling
+    ///
+    /// # Returns
+    ///
+    /// * `Result<Option<&Vec<Cigar>>, BamReadError>` - The reference sequence, 
+    /// None if the tag is not set, or an error if unmapped (None should not happen
+    /// as )
+    pub fn get_reference(&self) -> Result<Option<&Vec<u8>>, BamReadError> {
+        if self.mapped {
+            Ok(self.reference_seq.as_ref())
+        } else {
+            Err(BamReadError::NoSuchDataForUnmappedRead("reference_seq".to_string()))
+        }
+    }
+
     /// Gets the reference sequence length with error handling
     ///
     /// # Returns

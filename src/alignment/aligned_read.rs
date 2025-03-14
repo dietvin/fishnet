@@ -229,12 +229,19 @@ impl<'a> AlignedRead<'a> {
         self.bam_read.is_mapped()
     }
 
-    pub fn reference(&self) -> Option<&[u8]> {
-        todo!()
+    /// Returns whether the the underlying BamRead 
+    pub fn reference(&self) -> Result<Option<&Vec<u8>>, AlignedReadError> {
+        match self.bam_read.get_reference() {
+            Ok(v) => Ok(v),
+            Err(e) => Err(AlignedReadError::RetrieveBamError(e))
+        }
     }
 
-    pub fn reference_len(&self) -> Option<&usize> {
-        todo!()
+    pub fn reference_len(&self) -> Result<Option<&usize>, AlignedReadError> {
+        match self.bam_read.get_reference_len() {
+            Ok(v) => Ok(v),
+            Err(e) => Err(AlignedReadError::RetrieveBamError(e))
+        }
     }
 
 }
