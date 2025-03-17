@@ -169,6 +169,14 @@ impl<'a> AlignedRead<'a> {
         self.pod5_read.signal()
     }
 
+    /// Returns the signal intensity values from the underlying Pod5Read as f32
+    pub fn signal_f32(&self) -> Vec<f32> {
+        self.pod5_read.signal()
+            .iter()
+            .map(|el| *el as f32)
+            .collect::<Vec<f32>>()
+    }
+
     /// Returns the number of samples from the underlying Pod5Read
     pub fn num_samples(&self) -> &usize {
         self.pod5_read.num_samples()
