@@ -5,7 +5,7 @@ pub fn rough_rescale_lstsq(
     shift: f32,
     seq_to_signal_map: &Vec<usize>,
     levels: &Vec<f32>,
-    signal: &Vec<i16>,
+    signal: &Vec<f32>,
     quantiles: &Vec<f32>,
     clip_bases: usize,
     use_base_center: bool
@@ -18,7 +18,7 @@ pub fn rough_rescale_theil_sen(
     shift: f32,
     seq_to_signal_map: &Vec<usize>,
     levels: &Vec<f32>,
-    signal: &Vec<i16>,
+    signal: &Vec<f32>,
     quantiles: &Vec<f32>,
     clip_bases: usize,
     use_base_center: bool,
