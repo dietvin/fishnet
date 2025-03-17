@@ -1,12 +1,14 @@
 mod bands;
 mod rescale;
+mod refinement;
 pub mod settings;
 
 use crate::alignment::aligned_read;
 
+use itertools::max;
 use settings::{RefineSettings, RefineAlgo, RoughRescaleAlgo, RescaleAlgo, WhichToRefine};
 use super::kmer_table::KmerTable;
-use self::rescale::{rough_rescale_lstsq, rough_rescale_theil_sen, rescale_lstsq, rescale_theil_sen};
+use self::{rescale::{rough_rescale_lstsq, rough_rescale_theil_sen, rescale_lstsq, rescale_theil_sen}, refinement::refinement};
 use super::super::alignment::aligned_read::AlignedRead;
 use super::super::error::refinement_errors::signal_map_refiner_errors::SigMapRefineError;
 
@@ -84,16 +86,22 @@ impl<'a> SigMapRefiner<'a> {
             .query_to_signal()
             .ok_or(SigMapRefineError::QueryToSigNotFound)?;
         
-        let seq = self.aligned_read.query();
-        let levels = self.kmer_table.extract_levels(seq)?;
+        let sequence = self.aligned_read.query();
+        let levels = self.kmer_table.extract_levels(sequence)?;
 
-        // If no rough rescaling is wanted, the function returns right away
-        // without doing anything
-        self.perform_rough_rescaling(
-            signal,
-            seq_to_signal_map,
-            &levels
+        let mut refined_query_to_sig: Vec<usize>;
+
+        (refined_query_to_sig, self.scale_dacs_to_norm, self.shift_dacs_to_norm) = sequence_to_signal_refinement(
+            self.scale_dacs_to_norm, 
+            self.shift_dacs_to_norm, 
+            seq_to_signal_map, 
+            sequence, 
+            signal, 
+            &self.kmer_table,
+            &self.settings
         )?;
+
+
         Ok(())
         
     }
@@ -108,63 +116,10 @@ impl<'a> SigMapRefiner<'a> {
         let seq = self.aligned_read.reference()?;
         let levels = self.kmer_table.extract_levels(seq)?;
 
-        self.perform_rough_rescaling(
-            signal,
-            seq_to_signal_map,
-            &levels
-        )?;
-        Ok(())
 
+
+        Ok(())
     }    
-
-    /// Estimates scaling factor and shift values to better scale the signal 
-    /// to the expected levels. Rough rescaling means that only a handful of percentiles
-    /// are used to calculate the two values 
-    fn perform_rough_rescaling(
-        &mut self, 
-        signal: &Vec<i16>,
-        seq_to_signal_map: &Vec<usize>,
-        levels: &Vec<f32>
-    ) -> Result<(), SigMapRefineError> {
-        match self.settings.rough_rescale_algo() {
-            RoughRescaleAlgo::TheilSen { 
-                quantiles, 
-                clip_bases, 
-                use_base_center, 
-                max_points } => {
-                    (self.scale_dacs_to_norm, self.shift_dacs_to_norm) = rough_rescale_theil_sen(
-                        self.scale_dacs_to_norm,
-                        self.shift_dacs_to_norm,
-                        seq_to_signal_map,
-                        levels,
-                        signal,
-                        quantiles,
-                        *clip_bases,
-                        *use_base_center,
-                        *max_points
-                    )?;        
-                },
-
-            RoughRescaleAlgo::LeastSquares { 
-                quantiles, 
-                clip_bases, 
-                use_base_center } => {
-                    (self.scale_dacs_to_norm, self.shift_dacs_to_norm) = rough_rescale_lstsq(
-                        self.scale_dacs_to_norm,
-                        self.shift_dacs_to_norm,
-                        seq_to_signal_map,
-                        levels,
-                        signal,
-                        quantiles,
-                        *clip_bases,
-                        *use_base_center
-                    )?;        
-                },
-                
-            RoughRescaleAlgo::NoRoughRescaling => {}
-        }
-        Ok(())
-    }
 }
 
 /// Calculate the scaling factor and shift to transform the raw signal measurements
@@ -185,10 +140,88 @@ fn calculate_scaling_shift(
     (scale_measurements_to_norm, shift_measurements_to_norm)
 }
 
-// fn refine_signal_mapping(
-//     shift: f32, 
-//     scale: f32, 
-//     seq_to_sig_map: Vec<usize>,
-//     sequence: Vec<>,
-//     signal: Vec<f16>
-// ) {}
+fn sequence_to_signal_refinement(
+    scale_measurements_to_norm: f32,
+    shift_measurements_to_norm: f32,
+    seqence_to_signal_map: &Vec<usize>,
+    sequence: &Vec<u8>,
+    signal: &Vec<f32>,
+    level_table: &KmerTable,
+    settings: &RefineSettings
+) -> Result<(Vec<usize>, f32, f32), SigMapRefineError> {
+
+    let expected_levels = level_table.extract_levels(&sequence)?;
+
+    // Determine the rough scale and shift estimation function
+    let (mut scale, mut shift) = match settings.rough_rescale_algo() {
+        RoughRescaleAlgo::LeastSquares { 
+            quantiles, 
+            clip_bases, 
+            use_base_center 
+        } => {
+            rough_rescale_lstsq(
+                scale_measurements_to_norm,
+                shift_measurements_to_norm,
+                seqence_to_signal_map,
+                &expected_levels,
+                signal,
+                quantiles,
+                *clip_bases,
+                *use_base_center
+            )?
+        }   
+        RoughRescaleAlgo::TheilSen { 
+            quantiles, 
+            clip_bases,
+            use_base_center, 
+            max_points 
+        } => {
+            rough_rescale_theil_sen(
+                scale_measurements_to_norm,
+                shift_measurements_to_norm,
+                seqence_to_signal_map,
+                &expected_levels,
+                signal,
+                quantiles,
+                *clip_bases,
+                *use_base_center,
+                *max_points
+            )?
+        }   
+        RoughRescaleAlgo::NoRoughRescaling => (scale_measurements_to_norm, shift_measurements_to_norm) 
+    };
+
+    let mut sequence_to_signal_map_refined = seqence_to_signal_map.clone();
+
+    let n_iterations = *settings.n_refinement_iters();
+    // If the user sets n_refinement_iters to 0, one round of mapping refinement 
+    // is performed without rescaling afterwards
+    let perform_rescaling = n_iterations > 0;
+    for _ in 0..*settings.n_refinement_iters() {
+        // Normalize the signal with the scaling and shift parameters
+        let signal_norm = signal
+            .iter()
+            .map(|el| (el - shift) / scale)
+            .collect::<Vec<f32>>();
+
+        sequence_to_signal_map_refined = refinement(
+            sequence_to_signal_map_refined,
+            &signal_norm,
+            &expected_levels,
+            settings
+        )?;
+
+        if perform_rescaling {
+            (scale, shift) = match settings.rescale_algo() {
+                RescaleAlgo::LeastSquares => {
+                    rescale_lstsq()?
+                }
+                RescaleAlgo::TheilSen { max_points } => {
+                    rescale_theil_sen()?
+                }
+            }
+        }
+    }
+
+    Ok((sequence_to_signal_map_refined, scale, shift))
+}
