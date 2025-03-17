@@ -24,6 +24,9 @@ pub struct RefineSettings {
     n_refinement_iters: usize,
     /// Half of the bandwidth size used in the refinement algorithm.
     half_bandwidth: usize,
+    /// The minimum number of measurements between one base and the next
+    /// to enforce during the band adjustment
+    adjust_band_min_size: usize,
     /// Algorithm used for signal rescaling.
     rescale_algo: RescaleAlgo,
     /// Algorithm used for an initial rough signal rescaling.
@@ -52,7 +55,8 @@ impl RefineSettings {
             },
             normalize_levels: false,
             n_refinement_iters: 1,
-            half_bandwidth: 5
+            half_bandwidth: 5,
+            adjust_band_min_size: 2
         }
     }
 
@@ -67,6 +71,8 @@ impl RefineSettings {
     /// * `refinement_algo` - Refinement algorithm
     /// * `n_refinement_iters` - Number of refinement iterations
     /// * `half_bandwidth` - Half of the bandwidth size
+    /// * `adjust_band_min_step` - Minimum step between one base and the next
+    ///                            to enforce in band adjustment
     /// * `rescale_algo` - Signal rescaling algorithm
     /// * `rough_rescale_algo` - Rough signal rescaling algorithm
     /// * `normalize_levels` - Whether to normalize levels
@@ -79,6 +85,7 @@ impl RefineSettings {
         refinement_algo: RefineAlgo,
         n_refinement_iters: usize,
         half_bandwidth: usize,
+        adjust_band_min_size: usize,
         rescale_algo: RescaleAlgo,
         rough_rescale_algo: RoughRescaleAlgo,
         normalize_levels: bool
@@ -90,7 +97,8 @@ impl RefineSettings {
             refinement_algo,
             normalize_levels,
             n_refinement_iters,
-            half_bandwidth
+            half_bandwidth,
+            adjust_band_min_size
         }
     }
 
@@ -109,7 +117,11 @@ impl RefineSettings {
     pub fn half_bandwidth(&self) -> &usize {
         &self.half_bandwidth
     }
-    
+
+    pub fn adjust_band_min_size(&self) -> &usize {
+        &self.adjust_band_min_size
+    }
+
     pub fn rescale_algo(&self) -> &RescaleAlgo {
         &self.rescale_algo
     }
