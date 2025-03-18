@@ -202,7 +202,7 @@ impl<'a> AlignedRead<'a> {
     }
 
     /// Returns the query sequence as bytes from the underlying BamRead
-    pub fn query(&self) -> &[u8] {
+    pub fn query(&self) -> &Vec<u8> {
         self.bam_read.query()
     }
 

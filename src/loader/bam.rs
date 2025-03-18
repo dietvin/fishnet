@@ -177,7 +177,7 @@ impl BamRead {
     /// # Returns
     ///
     /// * `&[u8]` - The query sequence as bytes
-    pub fn query(&self) -> &[u8] {
+    pub fn query(&self) -> &Vec<u8> {
         &self.query
     }
 
