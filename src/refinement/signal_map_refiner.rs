@@ -81,7 +81,7 @@ impl<'a> SigMapRefiner<'a> {
     
     /// Performs the refinement of the query to signal alignment
     fn start_query_to_signal_refinement(&mut self) -> Result<(), SigMapRefineError> {
-        let signal = self.aligned_read.signal();
+        let signal = self.aligned_read.signal_f32();
         let seq_to_signal_map = self.aligned_read
             .query_to_signal()
             .ok_or(SigMapRefineError::QueryToSigNotFound)?;
@@ -96,27 +96,35 @@ impl<'a> SigMapRefiner<'a> {
             self.shift_dacs_to_norm, 
             seq_to_signal_map, 
             sequence, 
-            signal, 
-            &self.kmer_table,
+            &signal, 
+            &levels,
             &self.settings
         )?;
 
-
         Ok(())
-        
     }
 
     /// Performs the refinement of the reference to signal alignment
     fn start_ref_to_signal_refinement(&mut self) -> Result<(), SigMapRefineError> {
-        let signal = self.aligned_read.signal();
+        let signal = self.aligned_read.signal_f32();
         let seq_to_signal_map = self.aligned_read
             .query_to_signal()
             .ok_or(SigMapRefineError::RefToSigNotFound)?;
 
-        let seq = self.aligned_read.reference()?;
-        let levels = self.kmer_table.extract_levels(seq)?;
+        let sequence = self.aligned_read.reference()?;
+        let levels = self.kmer_table.extract_levels(&sequence)?;
 
+        let mut refined_query_to_sig: Vec<usize>;
 
+        (refined_query_to_sig, self.scale_dacs_to_norm, self.shift_dacs_to_norm) = sequence_to_signal_refinement(
+            self.scale_dacs_to_norm, 
+            self.shift_dacs_to_norm, 
+            seq_to_signal_map, 
+            sequence, 
+            &signal, 
+            &levels,
+            &self.settings
+        )?;
 
         Ok(())
     }    
@@ -140,18 +148,22 @@ fn calculate_scaling_shift(
     (scale_measurements_to_norm, shift_measurements_to_norm)
 }
 
+/// Central function to start the refinement process
+/// 
+/// Depending on the settings it perform rough rescaling, 
+/// and the the refinement and subsequent rescaling 
+/// for n iterations (set in the settings)
+/// 
+/// if n=0, only one round of refinement is performed without subsequent rescaling
 fn sequence_to_signal_refinement(
     scale_measurements_to_norm: f32,
     shift_measurements_to_norm: f32,
     seqence_to_signal_map: &Vec<usize>,
     sequence: &Vec<u8>,
     signal: &Vec<f32>,
-    level_table: &KmerTable,
+    expected_levels: &Vec<f32>,
     settings: &RefineSettings
 ) -> Result<(Vec<usize>, f32, f32), SigMapRefineError> {
-
-    let expected_levels = level_table.extract_levels(&sequence)?;
-
     // Determine the rough scale and shift estimation function
     let (mut scale, mut shift) = match settings.rough_rescale_algo() {
         RoughRescaleAlgo::LeastSquares { 
