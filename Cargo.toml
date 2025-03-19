@@ -9,6 +9,7 @@ interp = "2.0.2"
 itertools = "0.14.0"
 pod5 = { git = "https://github.com/bsaintjo/pod5-rs", version = "0.1.0" }
 polars = { version = "0.46.0", features = ["lazy", "rows"] }
+rand = "0.9.0"
 rust-htslib = "0.46.0"
 thiserror = "2.0.11"
 uuid = "1.12.1"
