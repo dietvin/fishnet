@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+approx = "0.5.1"
 bitvec = "1.0.1"
 interp = "2.0.2"
 itertools = "0.14.0"
