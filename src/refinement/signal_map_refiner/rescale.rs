@@ -79,7 +79,7 @@ pub fn rough_rescale_lstsq(
 ///
 /// # Returns
 /// A tuple of the optimized (shift, scale) values or an error
-fn rough_rescale_theil_sen(
+pub fn rough_rescale_theil_sen(
     scale: f32, 
     shift: f32,
     seq_to_signal_map: &Vec<usize>,
