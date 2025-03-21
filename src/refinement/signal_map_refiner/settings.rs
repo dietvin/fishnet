@@ -184,9 +184,6 @@ pub enum RoughRescaleAlgo {
     },
     /// Theil-Sen estimator-based rescaling.
     /// 
-    /// * `max_points` - Limits the number of data points used in the estimation.
-    ///                  If the number of available data points exceeds this limit, 
-    ///                  a random subset is sampled.
     /// * `quantiles` - The quantiles based on which the scaling factors get calculated.
     /// * `clip_bases` - The number of bases that get clipped from the start and end of
     ///                  the levels.
@@ -197,7 +194,6 @@ pub enum RoughRescaleAlgo {
         quantiles: Vec<f32>,
         clip_bases: usize,
         use_base_center: bool,
-        max_points: usize
     }
 }
 
@@ -209,7 +205,8 @@ pub enum RescaleAlgo {
     /// Theil-Sen estimator-based rescaling.
     /// 
     /// * `max_points` - Limits the number of data points used in the estimation.
-    ///   A subset is randomly selected if the data set exceeds this threshold.
+    ///                  A subset is randomly selected if the data set exceeds 
+    ///                  this threshold. Gets ignored if equal to 0.
     TheilSen {
         max_points: usize
     }
