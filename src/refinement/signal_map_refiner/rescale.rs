@@ -88,7 +88,6 @@ fn rough_rescale_theil_sen(
     quantiles: &Vec<f32>,
     clip_bases: usize,
     use_base_center: bool,
-    max_points: usize
 ) -> Result<(f32, f32), RoughRescaleError> {
     let (norm_signal_quantiles, level_quantiles) = prep_rough_rescale(
         scale, 
@@ -104,7 +103,10 @@ fn rough_rescale_theil_sen(
     let (shift_est, scale_est) = theil_sen(
         &norm_signal_quantiles, 
         &level_quantiles, 
-        max_points
+        // 0 to prevent subsetting (not wanted in rough 
+        // rescaling since here only a handfull of 
+        // values (quantiles) are used)
+        0 
     )?;
 
     // Return original values if scale_est is zero
@@ -303,7 +305,7 @@ fn theil_sen(
     }
     let n = x.len();
 
-    let num_slopes = if n > max_points {
+    let num_slopes = if max_points > 0 && n > max_points {
         max_points * (max_points - 1) / 2
     } else {
         n * (n - 1) / 2
@@ -311,7 +313,7 @@ fn theil_sen(
 
     let mut slopes = Vec::with_capacity(num_slopes);
 
-    if n > max_points {
+    if max_points > 0 && n > max_points {
         let subsampled_indices = random_subset(n, max_points);
         for i in 0..max_points {
             
@@ -378,7 +380,7 @@ fn random_subset(vec_len: usize, downsampled_len: usize) -> Vec<usize> {
     (0..vec_len).choose_multiple(&mut rng(), downsampled_len)
 }
 
-/// Calculates the median of a sorted vector of floats.
+/// Calculates the median of a **sorted** vector of floats.
 ///
 /// # Arguments
 /// * `vec` - A sorted vector of f32 values
