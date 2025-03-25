@@ -1,5 +1,5 @@
 {
-  "timestamp": "2025-03-21T11:38:05.351783",
+  "timestamp": "2025-03-25T15:00:02.474349",
   "function_name": "rough_rescale",
   "params": {
     "shift": 986.846786773871,
@@ -63575,7 +63575,7 @@
       0.9500000000000001
     ],
     "clip_bases": 10,
-    "use_base_center": false,
+    "use_base_center": true,
     "levels": [
       0.0,
       0.0,
@@ -69139,7 +69139,7 @@
     "rough_rescale_method": "least_squares"
   },
   "result": [
-    979.5780157527468,
-    229.9049309347352
+    969.350148629714,
+    229.41597069902204
   ]
 }
