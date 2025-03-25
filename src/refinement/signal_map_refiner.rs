@@ -3,236 +3,235 @@ pub mod rescale;
 pub mod refinement;
 pub mod settings;
 
-// use crate::alignment::aligned_read;
+use crate::alignment::aligned_read;
 
-// use itertools::max;
-// use settings::{RefineSettings, RefineAlgo, RoughRescaleAlgo, RescaleAlgo, WhichToRefine};
-// use super::kmer_table::KmerTable;
-// use self::{rescale::{rough_rescale_lstsq, rough_rescale_theil_sen, rescale_lstsq, rescale_theil_sen}, refinement::refinement};
-// use super::super::alignment::aligned_read::AlignedRead;
-// use super::super::error::refinement_errors::signal_map_refiner_errors::SigMapRefineError;
+use itertools::max;
+use settings::{RefineSettings, RefineAlgo, RoughRescaleAlgo, RescaleAlgo, WhichToRefine};
+use super::kmer_table::KmerTable;
+use self::{rescale::{rough_rescale_lstsq, rough_rescale_theil_sen, rescale_lstsq, rescale_theil_sen}, refinement::refinement};
+use super::super::alignment::aligned_read::AlignedRead;
+use super::super::error::refinement_errors::signal_map_refiner_errors::SigMapRefineError;
 
-// /// Structure that handles the refinement process
-// #[derive(Debug)]
-// pub struct SigMapRefiner<'a> {
-//     kmer_table: KmerTable,
-//     aligned_read: &'a AlignedRead<'a>,
-//     settings: RefineSettings,
+/// Structure that handles the refinement process
+#[derive(Debug)]
+pub struct SigMapRefiner<'a> {
+    kmer_table: KmerTable,
+    aligned_read: &'a AlignedRead<'a>,
+    settings: RefineSettings,
 
-//     scale_dacs_to_norm: f32,
-//     shift_dacs_to_norm: f32,
+    scale_dacs_to_norm: f32,
+    shift_dacs_to_norm: f32,
 
-//     refined_query_to_sig: Option<Vec<usize>>,
-//     refined_ref_to_sig: Option<Vec<usize>>
-// }
+    refined_query_to_sig: Option<Vec<usize>>,
+    refined_ref_to_sig: Option<Vec<usize>>
+}
 
-// impl<'a> SigMapRefiner<'a> {
-//     /// Initializes a new refinement instance from the path to a kmer level table,
-//     /// an aligned read object and settings for the refinement
-//     pub fn new(
-//         kmer_table_path: &str,
-//         aligned_read: &'a AlignedRead<'a>,
-//         settings: RefineSettings
-//     ) -> Result<Self, SigMapRefineError> {
-//         // Set up the kmer table from the provided file path
-//         let mut kmer_table = KmerTable::new(kmer_table_path)?;
-//         if *settings.normalize_levels() {
-//             kmer_table.fix_gauge()?;
-//         }
+impl<'a> SigMapRefiner<'a> {
+    /// Initializes a new refinement instance from the path to a kmer level table,
+    /// an aligned read object and settings for the refinement
+    pub fn new(
+        kmer_table_path: &str,
+        aligned_read: &'a AlignedRead<'a>,
+        settings: RefineSettings
+    ) -> Result<Self, SigMapRefineError> {
+        // Set up the kmer table from the provided file path
+        let mut kmer_table = KmerTable::new(kmer_table_path)?;
+        if *settings.normalize_levels() {
+            kmer_table.fix_gauge()?;
+        }
 
-//         // Calculate the scaling scale and shift from the 
-//         let (scale_dacs_to_norm, shift_dacs_to_norm) = calculate_scaling_shift(
-//             *aligned_read.calibration_scale(),
-//             *aligned_read.calibration_offset(),
-//             aligned_read.signal_scaling_mean(),
-//             aligned_read.signal_scaling_dispersion()
-//         );
+        // Calculate the scaling scale and shift from the 
+        let (scale_dacs_to_norm, shift_dacs_to_norm) = calculate_scaling_shift(
+            *aligned_read.calibration_scale(),
+            *aligned_read.calibration_offset(),
+            aligned_read.signal_scaling_mean(),
+            aligned_read.signal_scaling_dispersion()
+        );
 
-//         Ok(SigMapRefiner {
-//             kmer_table,
-//             aligned_read,
-//             settings,
-//             scale_dacs_to_norm,
-//             shift_dacs_to_norm,
-//             refined_query_to_sig: None,
-//             refined_ref_to_sig: None
-//         })
-//     }
+        Ok(SigMapRefiner {
+            kmer_table,
+            aligned_read,
+            settings,
+            scale_dacs_to_norm,
+            shift_dacs_to_norm,
+            refined_query_to_sig: None,
+            refined_ref_to_sig: None
+        })
+    }
 
-//     /// Starts the refinement after initialization
-//     pub fn start(&mut self) -> Result<(), SigMapRefineError> {
-//         // Determine which alignments should be refined 
-//         // (query-to-signal AND/OR ref-to-signal)
-//         match self.settings.which_map_to_refine() {
-//             WhichToRefine::Query => {
-//                 self.start_query_to_signal_refinement()?
-//             }
-//             WhichToRefine::Reference => {
-//                 self.start_ref_to_signal_refinement()?
-//             }
-//             WhichToRefine::Both => {
-//                 self.start_query_to_signal_refinement()?;
-//                 self.start_ref_to_signal_refinement()?;
-//             }
-//         }
+    /// Starts the refinement after initialization
+    pub fn start(&mut self) -> Result<(), SigMapRefineError> {
+        // Determine which alignments should be refined 
+        // (query-to-signal AND/OR ref-to-signal)
+        match self.settings.which_map_to_refine() {
+            WhichToRefine::Query => {
+                self.start_query_to_signal_refinement()?
+            }
+            WhichToRefine::Reference => {
+                self.start_ref_to_signal_refinement()?
+            }
+            WhichToRefine::Both => {
+                self.start_query_to_signal_refinement()?;
+                self.start_ref_to_signal_refinement()?;
+            }
+        }
 
-//         Ok(())
-//     }
+        Ok(())
+    }
     
-//     /// Performs the refinement of the query to signal alignment
-//     fn start_query_to_signal_refinement(&mut self) -> Result<(), SigMapRefineError> {
-//         let signal = self.aligned_read.signal_f32();
-//         let seq_to_signal_map = self.aligned_read
-//             .query_to_signal()
-//             .ok_or(SigMapRefineError::QueryToSigNotFound)?;
+    /// Performs the refinement of the query to signal alignment
+    fn start_query_to_signal_refinement(&mut self) -> Result<(), SigMapRefineError> {
+        let signal = self.aligned_read.signal_f32();
+        let seq_to_signal_map = self.aligned_read
+            .query_to_signal()
+            .ok_or(SigMapRefineError::QueryToSigNotFound)?;
         
-//         let sequence = self.aligned_read.query();
-//         let levels = self.kmer_table.extract_levels(sequence)?;
+        let sequence = self.aligned_read.query();
+        let levels = self.kmer_table.extract_levels(sequence)?;
 
-//         let mut refined_query_to_sig: Vec<usize>;
+        let mut refined_query_to_sig: Vec<usize>;
 
-//         (refined_query_to_sig, self.scale_dacs_to_norm, self.shift_dacs_to_norm) = sequence_to_signal_refinement(
-//             self.scale_dacs_to_norm, 
-//             self.shift_dacs_to_norm, 
-//             seq_to_signal_map, 
-//             sequence, 
-//             &signal, 
-//             &levels,
-//             &self.settings
-//         )?;
+        (refined_query_to_sig, self.scale_dacs_to_norm, self.shift_dacs_to_norm) = sequence_to_signal_refinement(
+            self.scale_dacs_to_norm, 
+            self.shift_dacs_to_norm, 
+            seq_to_signal_map, 
+            sequence, 
+            &signal, 
+            &levels,
+            &self.settings
+        )?;
 
-//         Ok(())
-//     }
+        Ok(())
+    }
 
-//     /// Performs the refinement of the reference to signal alignment
-//     fn start_ref_to_signal_refinement(&mut self) -> Result<(), SigMapRefineError> {
-//         let signal = self.aligned_read.signal_f32();
-//         let seq_to_signal_map = self.aligned_read
-//             .query_to_signal()
-//             .ok_or(SigMapRefineError::RefToSigNotFound)?;
+    /// Performs the refinement of the reference to signal alignment
+    fn start_ref_to_signal_refinement(&mut self) -> Result<(), SigMapRefineError> {
+        let signal = self.aligned_read.signal_f32();
+        let seq_to_signal_map = self.aligned_read
+            .query_to_signal()
+            .ok_or(SigMapRefineError::RefToSigNotFound)?;
 
-//         let sequence = self.aligned_read.reference()?;
-//         let levels = self.kmer_table.extract_levels(&sequence)?;
+        let sequence = self.aligned_read.reference()?;
+        let levels = self.kmer_table.extract_levels(&sequence)?;
 
-//         let mut refined_query_to_sig: Vec<usize>;
+        let mut refined_query_to_sig: Vec<usize>;
 
-//         (refined_query_to_sig, self.scale_dacs_to_norm, self.shift_dacs_to_norm) = sequence_to_signal_refinement(
-//             self.scale_dacs_to_norm, 
-//             self.shift_dacs_to_norm, 
-//             seq_to_signal_map, 
-//             sequence, 
-//             &signal, 
-//             &levels,
-//             &self.settings
-//         )?;
+        (refined_query_to_sig, self.scale_dacs_to_norm, self.shift_dacs_to_norm) = sequence_to_signal_refinement(
+            self.scale_dacs_to_norm, 
+            self.shift_dacs_to_norm, 
+            seq_to_signal_map, 
+            sequence, 
+            &signal, 
+            &levels,
+            &self.settings
+        )?;
 
-//         Ok(())
-//     }    
-// }
+        Ok(())
+    }    
+}
 
-// /// Calculate the scaling factor and shift to transform the raw signal measurements
-// /// into normalized measurements. Called during initialization
-// fn calculate_scaling_shift(
-//     calibration_scale: f32,
-//     calibration_offset: f32,
-//     scale_pa_to_norm: f32,
-//     shift_pa_to_norm: f32
-// ) -> (f32, f32) {
-//     // Calculate the scale to transform raw measurements to normalized measurements
-//     let scale_measurements_to_pa = 1.0 / calibration_scale;
-//     let scale_measurements_to_norm = scale_measurements_to_pa * scale_pa_to_norm;
+/// Calculate the scaling factor and shift to transform the raw signal measurements
+/// into normalized measurements. Called during initialization
+fn calculate_scaling_shift(
+    calibration_scale: f32,
+    calibration_offset: f32,
+    scale_pa_to_norm: f32,
+    shift_pa_to_norm: f32
+) -> (f32, f32) {
+    // Calculate the scale to transform raw measurements to normalized measurements
+    let scale_measurements_to_pa = 1.0 / calibration_scale;
+    let scale_measurements_to_norm = scale_measurements_to_pa * scale_pa_to_norm;
 
-//     // Calculate the shift to transform raw measurements to normalized measurements
-//     let shift_measurements_to_norm = scale_measurements_to_pa * shift_pa_to_norm - calibration_offset;
+    // Calculate the shift to transform raw measurements to normalized measurements
+    let shift_measurements_to_norm = scale_measurements_to_pa * shift_pa_to_norm - calibration_offset;
 
-//     (scale_measurements_to_norm, shift_measurements_to_norm)
-// }
+    (scale_measurements_to_norm, shift_measurements_to_norm)
+}
 
-// /// Central function to start the refinement process
-// /// 
-// /// Depending on the settings it perform rough rescaling, 
-// /// and the the refinement and subsequent rescaling 
-// /// for n iterations (set in the settings)
-// /// 
-// /// if n=0, only one round of refinement is performed without subsequent rescaling
-// fn sequence_to_signal_refinement(
-//     scale_measurements_to_norm: f32,
-//     shift_measurements_to_norm: f32,
-//     seqence_to_signal_map: &Vec<usize>,
-//     sequence: &Vec<u8>,
-//     signal: &Vec<f32>,
-//     expected_levels: &Vec<f32>,
-//     settings: &RefineSettings
-// ) -> Result<(Vec<usize>, f32, f32), SigMapRefineError> {
-//     // Determine the rough scale and shift estimation function
-//     let (mut scale, mut shift) = match settings.rough_rescale_algo() {
-//         RoughRescaleAlgo::LeastSquares { 
-//             quantiles, 
-//             clip_bases, 
-//             use_base_center 
-//         } => {
-//             rough_rescale_lstsq(
-//                 scale_measurements_to_norm,
-//                 shift_measurements_to_norm,
-//                 seqence_to_signal_map,
-//                 &expected_levels,
-//                 signal,
-//                 quantiles,
-//                 *clip_bases,
-//                 *use_base_center
-//             )?
-//         }   
-//         RoughRescaleAlgo::TheilSen { 
-//             quantiles, 
-//             clip_bases,
-//             use_base_center, 
-//         } => {
-//             rough_rescale_theil_sen(
-//                 scale_measurements_to_norm,
-//                 shift_measurements_to_norm,
-//                 seqence_to_signal_map,
-//                 &expected_levels,
-//                 signal,
-//                 quantiles,
-//                 *clip_bases,
-//                 *use_base_center,
-//                 *max_points
-//             )?
-//         }   
-//         RoughRescaleAlgo::NoRoughRescaling => (scale_measurements_to_norm, shift_measurements_to_norm) 
-//     };
+/// Central function to start the refinement process
+/// 
+/// Depending on the settings it perform rough rescaling, 
+/// and the the refinement and subsequent rescaling 
+/// for n iterations (set in the settings)
+/// 
+/// if n=0, only one round of refinement is performed without subsequent rescaling
+fn sequence_to_signal_refinement(
+    scale_measurements_to_norm: f32,
+    shift_measurements_to_norm: f32,
+    seqence_to_signal_map: &Vec<usize>,
+    sequence: &Vec<u8>,
+    signal: &Vec<f32>,
+    expected_levels: &Vec<f32>,
+    settings: &RefineSettings
+) -> Result<(Vec<usize>, f32, f32), SigMapRefineError> {
+    // Determine the rough scale and shift estimation function
+    let (mut scale, mut shift) = match settings.rough_rescale_algo() {
+        RoughRescaleAlgo::LeastSquares { 
+            quantiles, 
+            clip_bases, 
+            use_base_center 
+        } => {
+            rough_rescale_lstsq(
+                scale_measurements_to_norm,
+                shift_measurements_to_norm,
+                seqence_to_signal_map,
+                &expected_levels,
+                signal,
+                quantiles,
+                *clip_bases,
+                *use_base_center
+            )?
+        }   
+        RoughRescaleAlgo::TheilSen { 
+            quantiles, 
+            clip_bases,
+            use_base_center, 
+        } => {
+            rough_rescale_theil_sen(
+                scale_measurements_to_norm,
+                shift_measurements_to_norm,
+                seqence_to_signal_map,
+                &expected_levels,
+                signal,
+                quantiles,
+                *clip_bases,
+                *use_base_center,
+            )?
+        }   
+        RoughRescaleAlgo::NoRoughRescaling => (scale_measurements_to_norm, shift_measurements_to_norm) 
+    };
 
-//     let mut sequence_to_signal_map_refined = seqence_to_signal_map.clone();
+    let mut sequence_to_signal_map_refined = seqence_to_signal_map.clone();
 
-//     let n_iterations = *settings.n_refinement_iters();
-//     // If the user sets n_refinement_iters to 0, one round of mapping refinement 
-//     // is performed without rescaling afterwards
-//     let perform_rescaling = n_iterations > 0;
-//     for _ in 0..*settings.n_refinement_iters() {
-//         // Normalize the signal with the scaling and shift parameters
-//         let signal_norm = signal
-//             .iter()
-//             .map(|el| (el - shift) / scale)
-//             .collect::<Vec<f32>>();
+    let n_iterations = *settings.n_refinement_iters();
+    // If the user sets n_refinement_iters to 0, one round of mapping refinement 
+    // is performed without rescaling afterwards
+    let perform_rescaling = n_iterations > 0;
+    for _ in 0..n_iterations {
+        // Normalize the signal with the scaling and shift parameters
+        let signal_norm = signal
+            .iter()
+            .map(|el| (el - shift) / scale)
+            .collect::<Vec<f32>>();
 
-//         sequence_to_signal_map_refined = refinement(
-//             sequence_to_signal_map_refined,
-//             &signal_norm,
-//             &expected_levels,
-//             settings
-//         )?;
+        sequence_to_signal_map_refined = refinement(
+            sequence_to_signal_map_refined,
+            &signal_norm,
+            &expected_levels,
+            settings
+        )?;
 
-//         if perform_rescaling {
-//             (scale, shift) = match settings.rescale_algo() {
-//                 RescaleAlgo::LeastSquares => {
-//                     rescale_lstsq()?
-//                 }
-//                 RescaleAlgo::TheilSen { max_points } => {
-//                     rescale_theil_sen()?
-//                 }
-//             }
-//         }
-//     }
+        if perform_rescaling {
+            (scale, shift) = match settings.rescale_algo() {
+                RescaleAlgo::LeastSquares => {
+                    rescale_lstsq()?
+                }
+                RescaleAlgo::TheilSen { max_points } => {
+                    rescale_theil_sen()?
+                }
+            }
+        }
+    }
 
-//     Ok((sequence_to_signal_map_refined, scale, shift))
-// }
+    Ok((sequence_to_signal_map_refined, scale, shift))
+}
