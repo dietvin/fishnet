@@ -151,7 +151,7 @@ fn prep_rough_rescale(
     let (clip_start, clip_end) = if clip_bases > 0 && levels.len() > clip_bases * 2 {
         (clip_bases, levels.len() - clip_bases)
     } else {
-        (0, levels.len())
+        (0, signal.len())
     };
 
     let norm_signal = if use_base_center {
