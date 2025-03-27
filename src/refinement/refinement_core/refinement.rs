@@ -1,5 +1,5 @@
 use crate::error::refinement_errors::refine_errors::RefineError;
-use super::settings::RefineSettings;
+use super::super::signal_map_refiner::settings::RefineSettings;
 
 pub fn refinement(
     signal_to_sequence_map: Vec<usize>,

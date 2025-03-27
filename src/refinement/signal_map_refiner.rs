@@ -1,6 +1,4 @@
-pub mod bands;
 pub mod rescale;
-pub mod refinement;
 pub mod settings;
 
 use crate::alignment::aligned_read;
@@ -8,7 +6,8 @@ use crate::alignment::aligned_read;
 use itertools::max;
 use settings::{RefineSettings, RefineAlgo, RoughRescaleAlgo, RescaleAlgo, WhichToRefine};
 use super::kmer_table::KmerTable;
-use self::{rescale::{rough_rescale_lstsq, rough_rescale_theil_sen, rescale_lstsq, rescale_theil_sen}, refinement::refinement};
+use self::rescale::{rough_rescale_lstsq, rough_rescale_theil_sen, rescale_lstsq, rescale_theil_sen};
+use super::refinement_core::refinement::refinement;
 use super::super::alignment::aligned_read::AlignedRead;
 use super::super::error::refinement_errors::signal_map_refiner_errors::SigMapRefineError;
 
@@ -41,7 +40,7 @@ impl<'a> SigMapRefiner<'a> {
         }
 
         // Calculate the scaling scale and shift from the 
-        let (scale_dacs_to_norm, shift_dacs_to_norm) = calculate_scaling_shift(
+        let (scale_dacs_to_norm, shift_dacs_to_norm) = calculate_initial_scaling_shift(
             *aligned_read.calibration_scale(),
             *aligned_read.calibration_offset(),
             aligned_read.signal_scaling_mean(),
@@ -132,7 +131,7 @@ impl<'a> SigMapRefiner<'a> {
 
 /// Calculate the scaling factor and shift to transform the raw signal measurements
 /// into normalized measurements. Called during initialization
-fn calculate_scaling_shift(
+fn calculate_initial_scaling_shift(
     calibration_scale: f32,
     calibration_offset: f32,
     scale_pa_to_norm: f32,
