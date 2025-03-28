@@ -132,8 +132,8 @@ impl Band {
         
         for (signal_idx, (e, s)) in self.end.iter()
             .zip(self.start.iter())
-            .skip(1)
-            .enumerate() {
+            .enumerate() 
+            .skip(1) {
             // fill the start values
             if prev_e != *e {
                 // Index doesn't need to be corrected (i.e. -1) as we skipped 
@@ -141,16 +141,16 @@ impl Band {
                 let lower_signal_pos = signal_idx;
                 let lower_sequence_pos = self.end[lower_signal_pos];
 
-                sequence_start[lower_sequence_pos] = lower_signal_pos;
+                sequence_start[lower_sequence_pos - 1] = lower_signal_pos;
                 
                 prev_e = *e;
             }
             // fill the end values
             if prev_s != *s {
-                let upper_signal_pos = signal_idx + 1;
+                let upper_signal_pos = signal_idx;
                 let upper_sequence_pos = self.start[upper_signal_pos];
 
-                sequence_end[upper_sequence_pos] = upper_signal_pos;
+                sequence_end[upper_sequence_pos - 1] = upper_signal_pos;
 
                 prev_s = *s;
             }
