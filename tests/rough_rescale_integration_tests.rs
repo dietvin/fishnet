@@ -116,8 +116,7 @@ fn test_ls_00_t() {
 /// Test rough least squares rough rescaling with clip_bases=0 & use_base_center=false
 #[test]
 fn test_ls_00_f() {
-    // let input_dir = "tests/rough_rescale/ls_0_f";
-    let input_dir = "tests/rough_rescale/single_read";
+    let input_dir = "tests/rough_rescale/ls_0_f";
 
     let results = get_expected_actual(input_dir, "least_squares");
 
