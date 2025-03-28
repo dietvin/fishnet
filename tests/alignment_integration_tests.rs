@@ -25,7 +25,7 @@ fn test_query_to_signal() {
                 let query_to_signal = aligned_read.query_to_signal().unwrap();
 
                 let expected_mapping_path = format!(
-                    "tests/expected_alignments/{}_query_to_signal.txt",
+                    "tests/alignments/{}_query_to_signal.txt",
                     read_id
                 );
                 let expected_mapping = vec_from_file(&expected_mapping_path);
@@ -59,7 +59,7 @@ fn test_ref_to_signal() {
                 let ref_to_signal = aligned_read.reference_to_signal().unwrap();
 
                 let expected_mapping_path = format!(
-                    "tests/expected_alignments/{}_ref_to_signal.txt",
+                    "tests/alignments/{}_ref_to_signal.txt",
                     read_id
                 );
                 let expected_mapping = vec_from_file(&expected_mapping_path);
