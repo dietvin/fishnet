@@ -46,7 +46,7 @@ impl Band {
     ///
     /// # Returns
     /// * `Ok(Band)` if successful, or an error if validation fails.
-    fn compute_signal_band(
+    pub fn compute_signal_band(
         map: &[usize], // sequence_to_signal_map
         sequence_len: usize,
         half_bandwidth: usize,
@@ -57,7 +57,7 @@ impl Band {
         }
 
         let map_len = map.len();
-        if sequence_len != map_len {
+        if sequence_len != map_len - 1 {
             return Err(SignalBandError::LengthMismatch(map_len, sequence_len));
         }
 
@@ -73,8 +73,12 @@ impl Band {
                 let sequence_end_idx = map[sequence_idx + 1];
                 for signal_idx in sequence_start_idx..sequence_end_idx {
                     // Add the sequence boundaries for each signal measurement to the start and end vectors
-                    // (i.e. to which base can measurement x potentially belong) 
-                    start[signal_idx] = (sequence_idx - half_bandwidth).max(0);
+                    // (i.e. to which base can measurement x potentially belong)
+                    if sequence_idx >= half_bandwidth {
+                        // start is initialized with 0, so there is no need
+                        // to check for the max btw sequence_idx - half_bandwidth and 0
+                        start[signal_idx] = sequence_idx - half_bandwidth;
+                    } 
                     end[signal_idx] = (sequence_idx + half_bandwidth + 1).min(sequence_len);
                 }
             }
@@ -103,7 +107,7 @@ impl Band {
     /// # Returns
     /// * `Ok(())` if successful, or an error if validation fails
     /// or the band at hand is already a sequence band.
-    fn convert_to_sequence_band(&mut self) -> Result<(), SequenceBandError> {
+    pub fn convert_to_sequence_band(&mut self) -> Result<(), SequenceBandError> {
         if self.band_type == BandType::SequenceBand {
             return Err(SequenceBandError::AlreadySequenceBand);
         }
