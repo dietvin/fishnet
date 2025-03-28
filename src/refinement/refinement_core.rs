@@ -1,3 +1,3 @@
 pub mod refinement;
-mod bands;
+pub mod bands;
 mod dp_algorithm;
