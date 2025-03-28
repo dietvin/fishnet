@@ -54,19 +54,20 @@ impl Band {
 
         let signal_len = map[map_len - 1] - map[0];
 
-        let mut sequence_indices = Vec::new();
-        for i in 0..sequence_len {
-            // for each base repeat the index by the map length (map_end-map_start) 
-            sequence_indices.extend(vec![i as usize; map[i + 1] - map[i]]);
-        }
-
         let mut start = vec![0 as usize; signal_len];
         let mut end = vec![sequence_len; signal_len];
 
         if *is_banded {
-            for (i, sequence_idx) in sequence_indices.iter().enumerate() {
-                start[i] = (sequence_idx - half_bandwidth).max(0);
-                end[i] = (sequence_idx + half_bandwidth + 1).min(sequence_len);
+            for sequence_idx in 0..sequence_len {
+                // Iterate over the sequence intervals (i.e. the start end end signal indices for each base) 
+                let sequence_start_idx = map[sequence_idx];
+                let sequence_end_idx = map[sequence_idx + 1];
+                for signal_idx in sequence_start_idx..sequence_end_idx {
+                    // Add the sequence boundaries for each signal measurement to the start and end vectors
+                    // (i.e. to which base can measurement x potentially belong) 
+                    start[signal_idx] = (sequence_idx - half_bandwidth).max(0);
+                    end[signal_idx] = (sequence_idx + half_bandwidth + 1).min(sequence_len);
+                }
             }
         }
 
