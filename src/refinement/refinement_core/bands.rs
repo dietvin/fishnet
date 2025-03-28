@@ -17,7 +17,17 @@ impl fmt::Display for BandType {
     }
 }
 
-/// Represents a band with start and end indices.
+/// Represents a band with start and end indices. This is used during the
+/// dynamic programming run to constrain the search range, reducing the 
+/// number of needed calculations.
+/// 
+/// For a **signal band**, entry i corresponds to signal measurement i.
+/// start\[i\] shows the first base, end\[i\] the last base that the 
+/// measurement may potentially belong to.
+/// 
+/// For a **sequence band**, entry i corresponds to base i. start\[i\] shows 
+/// the first signal measurement, end\[i\] the last signal measurement 
+/// that the base may potentially belong to.
 #[derive(Debug)]
 pub struct Band {
     band_type: BandType,
@@ -26,7 +36,7 @@ pub struct Band {
 }
 
 impl Band {
-    /// Computes a signal band given a sequence-to-signal map and optional banding constraints.
+    /// Computes a signal band given a sequence-to-signal map. 
     ///
     /// # Arguments
     /// * `map` - A sequence-to-signal index map.
@@ -38,16 +48,15 @@ impl Band {
     /// * `Ok(Band)` if successful, or an error if validation fails.
     fn compute_signal_band(
         map: &[usize], // sequence_to_signal_map
-        expected_levels: &[f32],
-        half_bandwidth: &usize,
-        is_banded: &bool    
+        sequence_len: usize,
+        half_bandwidth: usize,
+        is_banded: bool    
     ) -> Result<Self, SignalBandError> {
-        if *is_banded && *half_bandwidth == 0 {
-            return Err(SignalBandError::InvalidOptions(*half_bandwidth, *is_banded));
+        if is_banded && half_bandwidth == 0 {
+            return Err(SignalBandError::InvalidOptions(half_bandwidth, is_banded));
         }
 
         let map_len = map.len();
-        let sequence_len = expected_levels.len();
         if sequence_len != map_len {
             return Err(SignalBandError::LengthMismatch(map_len, sequence_len));
         }
@@ -57,7 +66,7 @@ impl Band {
         let mut start = vec![0 as usize; signal_len];
         let mut end = vec![sequence_len; signal_len];
 
-        if *is_banded {
+        if is_banded {
             for sequence_idx in 0..sequence_len {
                 // Iterate over the sequence intervals (i.e. the start end end signal indices for each base) 
                 let sequence_start_idx = map[sequence_idx];
@@ -89,7 +98,11 @@ impl Band {
         Ok(band)
     }
 
-
+    /// Transforms a signal band into a sequence band.
+    ///
+    /// # Returns
+    /// * `Ok(())` if successful, or an error if validation fails
+    /// or the band at hand is already a sequence band.
     fn convert_to_sequence_band(&mut self) -> Result<(), SequenceBandError> {
         if self.band_type == BandType::SequenceBand {
             return Err(SequenceBandError::AlreadySequenceBand);
@@ -110,7 +123,8 @@ impl Band {
             .enumerate() {
             // fill the start values
             if prev_e != *e {
-                // index doesn't need to be corrected (i.e. -1) as we skipped the first position
+                // Index doesn't need to be corrected (i.e. -1) as we skipped 
+                // the first position and enumerate is called afterwards
                 let lower_signal_pos = signal_idx;
                 let lower_sequence_pos = self.end[lower_signal_pos];
 
@@ -138,7 +152,20 @@ impl Band {
         Ok(())
     }
 
-    
+    /// Validates a signal band.
+    /// 
+    /// # Arguments
+    /// * `band` - Reference to a band
+    /// * `signal_len` - The number of signal measurements
+    /// * `sequence_len` - The number of bases
+    /// 
+    /// # Returns
+    /// Ok(()) if the band is valid. Error if:
+    /// * The band is a sequence band
+    /// * The band doesn't start with 0
+    /// * A band element has a length of 0
+    /// * The length is invalid 
+    /// * The end coordinate is invalid
     fn validate_signal_band(
         band: &Band, 
         signal_len: usize, 
@@ -168,6 +195,20 @@ impl Band {
         Ok(())
     }
 
+    /// Validates a sequence band.
+    /// 
+    /// # Arguments
+    /// * `band` - Reference to a band
+    /// * `signal_len` - The number of signal measurements
+    /// * `sequence_len` - The number of bases
+    /// 
+    /// # Returns
+    /// Ok(()) if the band is valid. Error if:
+    /// * The band is a signal band
+    /// * The band doesn't start with 0
+    /// * A band element has a length of 0
+    /// * The length is invalid 
+    /// * The end coordinate is invalid
     fn validate_sequence_band(
         band: &Band, 
         signal_len: usize, 
@@ -197,6 +238,15 @@ impl Band {
         Ok(())
     }
 
+    /// Validates aspects that need testing for both signal and sequence bands.
+    /// 
+    /// # Arguments
+    /// * `start` - Start values
+    /// * `end` - end values
+    /// 
+    /// # Returns
+    /// Ok(()) if the band starts with 0 and doesn't have intervals of length 0.
+    /// Error otherwise.
     fn validate_general_band(
         start: &Vec<usize>, 
         end: &Vec<usize>
@@ -211,16 +261,18 @@ impl Band {
         Ok(())
     }
 
+    /// Returns the band type
     pub fn band_type(&self) -> &BandType {
         &self.band_type
     }
 
+    /// Returns the start vector.
     pub fn start(&self) -> &Vec<usize> {
         &self.start
     }
 
+    /// Returns the end vector.
     pub fn end(&self) -> &Vec<usize> {
         &self.end
     }
-
 }
