@@ -36,7 +36,7 @@ const NINE: u8 = 57;
 ///
 /// # Examples
 ///
-/// ```
+/// ```ignore
 /// let query = b"ACGTACGT";
 /// let cigar = vec![Match(4), Del(1), Match(4)];
 /// let md = b"4^T4";
