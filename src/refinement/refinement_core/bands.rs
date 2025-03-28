@@ -36,6 +36,15 @@ pub struct Band {
 }
 
 impl Band {
+    /// Basic initialization function only intended for testing purposes.
+    pub fn new(band_type: BandType,start: Vec<usize>, end: Vec<usize>) -> Self {
+        Band { 
+            band_type, 
+            start, 
+            end
+        }
+    }
+
     /// Computes a signal band given a sequence-to-signal map. 
     ///
     /// # Arguments
@@ -218,7 +227,7 @@ impl Band {
         signal_len: usize, 
         sequence_len: usize
     ) -> Result<(), SequenceBandError> {
-        if *band.band_type() != BandType::SignalBand {
+        if *band.band_type() != BandType::SequenceBand {
             return Err(SequenceBandError::ValidationError(
                 BandValidationError::UnexpectedBandType(*band.band_type())
             ));
