@@ -17,6 +17,31 @@ impl fmt::Display for BandType {
     }
 }
 
+/// An iterator over Band positions, yielding (start, end) pairs.
+///
+/// This struct is created by the `iter` method on `Band` or by using
+/// a reference to a band directly in a for loop through the `IntoIterator` trait.
+pub struct BandIterator<'a> {
+    band: &'a Band,
+    index: usize
+}
+
+impl<'a> Iterator for BandIterator<'a> {
+    type Item = (usize, usize);
+
+    /// Returns the next (start, end) pair in the band, or None if iteration is complete.
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.index < self.band.start.len() {
+            let result = (self.band.start[self.index], self.band.end[self.index]);
+            self.index += 1;
+            Some(result)
+        } else {
+            None
+        }
+    }
+}
+
+
 /// Represents a band with start and end indices. This is used during the
 /// dynamic programming run to constrain the search range, reducing the 
 /// number of needed calculations.
@@ -287,5 +312,24 @@ impl Band {
     /// Returns the end vector.
     pub fn end(&self) -> &Vec<usize> {
         &self.end
+    }
+
+    /// Returns an iterator over the band's positions.
+    /// Each iteration yields a tuple of (start, end) for a position.
+    pub fn iter(&self) -> BandIterator {
+        BandIterator {
+            band: self,
+            index: 0
+        }
+    }
+}
+
+impl<'a> IntoIterator for &'a Band {
+    type Item = (usize, usize);
+    type IntoIter = BandIterator<'a>;
+    
+    /// Creates an iterator that yields (start, end) pairs from a reference to a Band.
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
     }
 }
