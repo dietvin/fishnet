@@ -1,5 +1,5 @@
 use crate::{error::refinement_errors::refine_errors::RefineError, refinement::refinement_core::bands::Band};
-use super::super::signal_map_refiner::settings::RefineSettings;
+use super::{super::signal_map_refiner::settings::RefineSettings, dp_algorithm::banded_dp};
 
 pub fn refinement(
     signal_to_sequence_map: Vec<usize>,
@@ -23,10 +23,16 @@ pub fn refinement(
         *settings.half_bandwidth(),
         true
     )?;
-
     band.convert_to_sequence_band()?;
 
+    let optimized_map = banded_dp(
+        signal_trimmed, 
+        expected_levels, 
+        &band, 
+        settings.refinement_algo()
+    );
+
     Ok(
-        signal_to_sequence_map.iter().map(|el| el + sig_map_start).collect::<Vec<usize>>()
+        optimized_map.iter().map(|el| el + sig_map_start).collect::<Vec<usize>>()
     )
 }

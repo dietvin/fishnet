@@ -1,3 +1,5 @@
+use crate::refinement::refinement_core::bands::Band;
+
 /// Perform traceback to determine the path through a signal, reconstructing where each base starts.
 /// 
 /// This function performs the backtrace step of a banded dynamic programming algorithm,
@@ -15,31 +17,33 @@
 ///                 Organized as a flattened ragged array, with base_offsets indicating where
 ///                 each base's information begins
 pub fn banded_traceback(
-    path: &mut Vec<u32>,
-    seq_band_start: &Vec<u32>,
-    seq_band_end: &Vec<u32>,
-    base_offsets: &Vec<u32>,
+    path: &mut Vec<usize>,
+    band: &Band,
+    base_offsets: &Vec<usize>,
     traceback: &Vec<i32>
 ) {
+    let seq_band_start = band.start();
+    let seq_band_end = band.end();
+
     // Set start to 0 and end to final signal position
     path[0] = 0;
     let last_path_idx = path.len() - 1;
-    path[last_path_idx] = seq_band_end[seq_band_end.len()-1] as u32;
+    path[last_path_idx] = seq_band_end[seq_band_end.len()-1];
     
     for base_idx in (1..last_path_idx).rev() {
         // Signal position to lookup for this traceback step
         let sig_lookup_pos = path[base_idx + 1] - 1;
     
         // Calculate offset into traceback array
-        let base_offset = base_offsets[base_idx] as usize;
+        let base_offset = base_offsets[base_idx];
         let band_start = seq_band_start[base_idx];
-        let traceback_idx = base_offset + (sig_lookup_pos - band_start) as usize;
+        let traceback_idx = base_offset + (sig_lookup_pos - band_start);
         
         // Get number of steps backward to reach start of current base
         let next_sig_offset = traceback[traceback_idx];
 
         // Record position where base_idx starts
-        path[base_idx] = (sig_lookup_pos as u32) - (next_sig_offset as u32);
+        path[base_idx] = sig_lookup_pos - (next_sig_offset as usize);
     } 
 }
 
@@ -55,6 +59,8 @@ pub fn banded_traceback(
 #[cfg(test)]
 mod test{
     use std::vec;
+
+    use crate::refinement::refinement_core::bands::{Band, BandType};
 
     use super::banded_traceback;
 
@@ -74,10 +80,10 @@ mod test{
                            0, 1, 2, 3, 4
         ];
 
+        let band = Band::new(BandType::SequenceBand, seq_band_start, seq_band_end);
         banded_traceback(
             &mut path,
-            &seq_band_start,
-            &seq_band_end,
+            &band,
             &base_offsets,
             &traceback
         );

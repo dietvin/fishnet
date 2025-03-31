@@ -6,42 +6,43 @@ mod forward_step_dwell_penalty;
 use forward_pass::forward_pass;
 use traceback::banded_traceback;
 
+use crate::refinement::signal_map_refiner::settings::RefineAlgo;
+
+use super::bands::Band;
+
 pub fn banded_dp(
-    signal: &Vec<f32>,
+    signal: &[f32],
     levels: &Vec<f32>,
-    seq_band_start: &Vec<u32>,
-    seq_band_end: &Vec<u32>,
-    short_dwell_penalty: &Vec<f32>,
-    core_method: &str
-) -> Vec<u32> {
-    let mut base_offsets = vec![0];
+    band: &Band,
+    method: &RefineAlgo
+) -> Vec<usize> {
+    let mut base_offsets = Vec::with_capacity(band.len());
+    base_offsets.push(0);
     let mut offset_cumsum = 0;
-    for (start, end) in seq_band_start.iter().zip(seq_band_end) {
+    for (start, end) in band {
         offset_cumsum += end - start;
         base_offsets.push(offset_cumsum);
     }
 
-    let band_len = offset_cumsum as usize;
+    let band_len = offset_cumsum;
 
     let mut all_scores: Vec<f32> = Vec::with_capacity(band_len);
     let mut traceback: Vec<i32> = Vec::with_capacity(band_len);
+
     forward_pass(
         &mut all_scores,
         &mut traceback,
         &signal,
         &levels,
-        seq_band_start,
-        seq_band_end,
+        band,
         &base_offsets,
-        short_dwell_penalty,
-        core_method
+        method
     );
 
-    let mut path: Vec<u32> = Vec::with_capacity(levels.len()+1);
+    let mut path: Vec<usize> = Vec::with_capacity(levels.len()+1);
     banded_traceback(
         &mut path, 
-        seq_band_start, 
-        seq_band_end, 
+        band, 
         &base_offsets, 
         &traceback
     );
