@@ -139,3 +139,16 @@ fn calculate_short_dwell_penalty_vec(
     
     result
 }
+
+
+#[cfg(test)]
+mod test {
+    use super::calculate_short_dwell_penalty_vec;
+
+    #[test]
+    fn test_calculate_short_dwell_penalty_vec() {
+        let vec = calculate_short_dwell_penalty_vec(&4.0, &3.0, &0.5);
+
+        assert_eq!(vec, vec![8.0, 4.5, 2.0])
+    }
+}
