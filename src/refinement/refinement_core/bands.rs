@@ -322,12 +322,16 @@ impl Band {
             index: 0
         }
     }
+
+    pub fn len(&self) -> usize {
+        self.start.len()
+    }
 }
 
 impl<'a> IntoIterator for &'a Band {
     type Item = (usize, usize);
     type IntoIter = BandIterator<'a>;
-    
+
     /// Creates an iterator that yields (start, end) pairs from a reference to a Band.
     fn into_iter(self) -> Self::IntoIter {
         self.iter()
