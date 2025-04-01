@@ -32,32 +32,32 @@ fn load_banded_dp(path: &str) -> JsonDataBandedDp {
 }
 
 
-// #[test]
-// fn test_dp_algorithm() {
-//     let dir = "tests/banded_dp";
-//     let paths = std::fs::read_dir(dir).unwrap();
+#[test]
+fn test_dp_algorithm() {
+    let dir = "tests/banded_dp";
+    let paths = std::fs::read_dir(dir).unwrap();
 
-//     for path in paths {
-//         let file_name = path.unwrap().path();
-//         let path_str = file_name.to_str().unwrap();
+    for path in paths {
+        let file_name = path.unwrap().path();
+        let path_str = file_name.to_str().unwrap();
 
-//         let data = load_banded_dp(path_str);
-//         let band = Band::new(
-//             BandType::SequenceBand, 
-//             data.sequence_band_start, 
-//             data.sequence_band_end
-//         );
+        let data = load_banded_dp(path_str);
+        let band = Band::new(
+            BandType::SequenceBand, 
+            data.sequence_band_start, 
+            data.sequence_band_end
+        );
         
-//         let refined_map = banded_dp(
-//             &data.signal, 
-//             &data.levels, 
-//             &band, 
-//             &RefineAlgo::DwellPenalty { target: 4.0, limit: 3.0, weight: 0.5 }
-//         );
+        let refined_map = banded_dp(
+            &data.signal, 
+            &data.levels, 
+            &band, 
+            &RefineAlgo::DwellPenalty { target: 4.0, limit: 3.0, weight: 0.5 }
+        );
 
-//         assert_eq!(refined_map, data.path);
-//     }
-// }
+        assert_eq!(refined_map, data.path);
+    }
+}
 
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -85,48 +85,48 @@ fn load_forward_pass(path: &str) -> JsonDataForwardPass {
 }
 
 
-// #[test]
-// fn test_forward_pass() {
-//     let dir = "tests/forward_pass";
-//     let paths = std::fs::read_dir(dir).unwrap();
+#[test]
+fn test_forward_pass() {
+    let dir = "tests/forward_pass";
+    let paths = std::fs::read_dir(dir).unwrap();
 
-//     for path in paths {
-//         let file_name = path.unwrap().path();
-//         let path_str = file_name.to_str().unwrap();
+    for path in paths {
+        let file_name = path.unwrap().path();
+        let path_str = file_name.to_str().unwrap();
 
-//         let data = load_forward_pass(path_str);
-//         let band = Band::new(
-//             BandType::SequenceBand, 
-//             data.seq_band_start, 
-//             data.seq_band_end
-//         );
+        let data = load_forward_pass(path_str);
+        let band = Band::new(
+            BandType::SequenceBand, 
+            data.seq_band_start, 
+            data.seq_band_end
+        );
         
-//         let mut scores = vec![0.0; data.all_scores_len];
-//         let mut traceback = vec![0; data.traceback_len];
+        let mut scores = vec![0.0; data.all_scores_len];
+        let mut traceback = vec![0; data.traceback_len];
 
-//         let method = match data.core_method.as_str() {
-//             "dwell_penalty" => RefineAlgo::DwellPenalty { target: 4.0, limit: 3.0, weight: 0.5 },
-//             "Viterbi" => RefineAlgo::Viterbi,
-//             _ => panic!("Unknown core_method")
-//         };
+        let method = match data.core_method.as_str() {
+            "dwell_penalty" => RefineAlgo::DwellPenalty { target: 4.0, limit: 3.0, weight: 0.5 },
+            "Viterbi" => RefineAlgo::Viterbi,
+            _ => panic!("Unknown core_method")
+        };
 
-//         forward_pass(
-//             &mut scores, 
-//             &mut traceback, 
-//             &data.signal, 
-//             &data.levels, 
-//             &band, 
-//             &data.base_offsets, 
-//             &method
-//         );
+        forward_pass(
+            &mut scores, 
+            &mut traceback, 
+            &data.signal, 
+            &data.levels, 
+            &band, 
+            &data.base_offsets, 
+            &method
+        );
 
-//         for (r, e) in scores.iter().zip(data.all_scores_result.iter()) {
-//             assert_relative_eq!(r, e, epsilon=0.01);
-//         }
-//         assert_eq!(traceback, data.traceback_result);
-//     }
+        for (r, e) in scores.iter().zip(data.all_scores_result.iter()) {
+            assert_relative_eq!(r, e, epsilon=0.01);
+        }
+        assert_eq!(traceback, data.traceback_result);
+    }
 
-// }
+}
 
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -152,12 +152,13 @@ fn load_forward_step_viterbi(path: &str) -> JsonDataForwardStepViterbi {
 
 #[test]
 fn test_forward_step_viterbi() {
-    let dir = "tests/forward_step_viterbi/single";
+    let dir = "tests/forward_step_viterbi";
     let paths = std::fs::read_dir(dir).unwrap();
 
     for path in paths {
         let file_name = path.unwrap().path();
         let path_str = file_name.to_str().unwrap();
+        println!("{path_str}");
 
         let data = load_forward_step_viterbi(path_str);
         
