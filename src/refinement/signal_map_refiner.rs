@@ -7,7 +7,7 @@ use itertools::max;
 use settings::{RefineSettings, RefineAlgo, RoughRescaleAlgo, RescaleAlgo, WhichToRefine};
 use super::kmer_table::KmerTable;
 use self::rescale::{rough_rescale_lstsq, rough_rescale_theil_sen, rescale_lstsq, rescale_theil_sen};
-use super::refinement_core::refinement::refinement;
+use super::refinement_core::start_refinement::refinement;
 use super::super::alignment::aligned_read::AlignedRead;
 use super::super::error::refinement_errors::signal_map_refiner_errors::SigMapRefineError;
 

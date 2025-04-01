@@ -3,7 +3,7 @@ use fishnet::refinement::refinement_core::bands::{Band, BandType};
 use fishnet::refinement::refinement_core::dp_algorithm::forward_pass::forward_pass;
 use fishnet::refinement::refinement_core::dp_algorithm::forward_step::forward_step_viterbi;
 use fishnet::refinement::refinement_core::dp_algorithm::{banded_dp, forward_pass};
-use fishnet::refinement::refinement_core::refinement::refinement;
+use fishnet::refinement::refinement_core::start_refinement::refinement;
 use fishnet::refinement::signal_map_refiner::settings::RefineAlgo;
 use serde::{Deserialize, Serialize};
 use std::fs::File;
