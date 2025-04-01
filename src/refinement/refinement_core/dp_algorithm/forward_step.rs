@@ -1,34 +1,51 @@
 const LARGE_SCORE: f32 = 100.0;
 
 
-/// Calculate the squared difference between a measured and expected level
+/// Calculates the squared difference between expected and measured signal levels
 ///
 /// # Arguments
-/// * `expected` - Expected signal level
-/// * `measured` - Measured signal level
+///
+/// * `expected` - The expected or reference signal level
+/// * `measured` - The actual measured signal level from the data
 ///
 /// # Returns
-/// The squared difference between the expected and measured values
+///
+/// The squared difference (error) between the expected and measured values
 pub fn score(expected: f32, measured: f32) -> f32 {
     let tmp = measured - expected;
     tmp*tmp
 }
 
 
-/// Process one base using standard Viterbi path scoring with squared error
-/// between signal and levels.
-/// 
-/// Adapted from [here](https://github.com/nanoporetech/remora/blob/0787dae2da818c49a3aaade10515b1e6df88e6bd/src/remora/refine_signal_map_core.pyx#L256)
+/// Processes one base using the Viterbi algorithm with squared error scoring
+///
+/// This function implements a single forward step in the Viterbi algorithm for signal mapping,
+/// calculating optimal paths through a signal matrix using dynamic programming. It computes
+/// scores based on squared error between expected signal levels and measured values.
+///
+/// Adapted from [Nanopore Remora implementation](https://github.com/nanoporetech/remora/blob/0787dae2da818c49a3aaade10515b1e6df88e6bd/src/remora/refine_signal_map_core.pyx#L256)
 ///
 /// # Arguments
-/// * `current_scores` - To be populated with forward scores at each position
-/// * `current_traceback` - To be populated with the number of signal points
-///   backwards until the first point assigned to this base
-/// * `previous_scores` - Forward scores for the previous base
-/// * `current_level` - Expected signal level for the current base
-/// * `current_signal` - Signal values for the current base's band
-/// * `band_start_diff` - Difference in starting coordinates between
-///   current and previous base
+///
+/// * `current_scores` - Mutable slice to be populated with forward Viterbi scores at each position
+///   in the current base's band
+/// * `current_traceback` - Mutable slice to be populated with traceback information; each value 
+///   indicates the number of signal points backward until the first point assigned to this base
+/// * `previous_scores` - Forward Viterbi scores calculated for the previous base's band
+/// * `current_level` - Expected signal level for the current base based on reference data
+/// * `current_signal` - Slice containing the actual signal values measured for the current base's band
+/// * `band_start_diff` - Difference in starting coordinates between the current and previous base's bands;
+///   a value of 0 indicates a "stay" transition, while a positive value indicates a "move" transition
+///
+/// # Behavior
+///
+/// The function handles three distinct cases:
+///
+/// 1. Starting position in the band (either "stay" or "move" transition)
+/// 2. Overlapping regions where both "stay" and "move" transitions are possible
+/// 3. Remaining positions where only "stay" transitions are possible
+///
+/// At each position, the function computes scores and traceback information for the optimal path.
 pub fn forward_step_viterbi(
     current_scores: &mut [f32],
     current_traceback: &mut [i32],

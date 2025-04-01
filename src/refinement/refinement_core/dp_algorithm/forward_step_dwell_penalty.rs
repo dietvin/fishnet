@@ -2,6 +2,45 @@ use super::forward_step::{forward_step_viterbi, score};
 
 const LARGE_SCORE: f32 = 100.0;
 
+/// Processes one base using Viterbi algorithm with additional dwell time penalties
+///
+/// This function extends the standard Viterbi algorithm by incorporating dwell time penalties,
+/// which account for variable time that signals may spend at a particular base position.
+/// It computes optimal paths through a signal matrix while considering both signal level errors
+/// and penalties for different dwell times.
+///
+/// # Arguments
+///
+/// * `current_scores` - Mutable slice to be populated with forward scores at each position
+///   in the current base's band, including dwell penalties
+/// * `current_traceback` - Mutable slice to be populated with traceback information; each value
+///   indicates the dwell time (number of signal points) assigned to this position
+/// * `previous_scores` - Forward scores calculated for the previous base's band
+/// * `current_level` - Expected signal level for the current base based on reference data
+/// * `current_signal` - Slice containing the actual signal values measured for the current base's band
+/// * `band_start_diff` - Difference in starting coordinates between the current and previous base's bands;
+///   a value of 0 indicates a "stay" transition, while a positive value indicates a "move" transition
+/// * `dwell_penalty` - Slice containing penalty values for different dwell times; index corresponds to
+///   the dwell time, and the value is the penalty to apply
+///
+/// # Algorithm
+///
+/// The function works in several steps:
+/// 1. First calculates standard Viterbi scores without dwell penalties for later reference
+/// 2. For each position in the current band:
+///    - Handles edge cases for positions beyond the previous band
+///    - Calculates scores for all possible dwell times up to the maximum length of the penalty array
+///    - Accumulates the signal level error for each potential dwell time
+///    - Selects the optimal dwell time with the minimum combined score (error + penalty)
+///    - Updates the traceback to record the chosen dwell time
+/// 3. For positions beyond the maximum penalized length, considers both penalized and
+///    unpenalized paths to find the global optimum
+///
+/// # Relationship to forward_step_viterbi
+///
+/// This function builds on the basic Viterbi implementation but adds the concept of variable
+/// dwell times with associated penalties, making it more suitable for signals where the time
+/// spent at each position may vary and needs to be accounted for in the model.
 pub fn forward_step_dwell_penalty(
     current_scores: &mut [f32],
     current_traceback: &mut [i32],

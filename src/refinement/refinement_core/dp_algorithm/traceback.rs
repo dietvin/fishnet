@@ -1,21 +1,38 @@
 use crate::refinement::refinement_core::bands::Band;
 
-/// Perform traceback to determine the path through a signal, reconstructing where each base starts.
-/// 
-/// This function performs the backtrace step of a banded dynamic programming algorithm,
-/// working backwards from the end of the signal to determine where each base begins.
-/// 
+/// Performs traceback to reconstruct the optimal path (i.e. where each base starts)
+///
+/// This function implements the traceback step of the banded dynamic programming algorithm,
+/// working backwards from the end of the signal to determine the precise boundaries
+/// between bases in the sequence. It uses the traceback information computed during
+/// the forward pass to reconstruct where each base starts in the signal.
+///
 /// # Arguments
-/// 
-/// * `path` - Mutable vector to be populated with start positions. After execution:
-///   - path[0..len-1] will contain the start position of each base (first base always starts at beginning)
-///   - path[len-1] will contain the end position of the final base (signal length)
-/// * `seq_band_start` - Vector containing the lower bound of the band for each base
-/// * `seq_band_end` - Vector containing the upper bound of the band for each base
-/// * `base_offsets` - Vector containing offsets into the traceback array for each base's information
-/// * `traceback` - Vector containing the number of steps backward to reach the start of each base
-///                 Organized as a flattened ragged array, with base_offsets indicating where
-///                 each base's information begins
+///
+/// * `path` - Mutable vector to be populated with start positions for each base. After execution:
+///   - path[0] will contain the start position of the first base (always 0)
+///   - path[1..len-1] will contain the start positions of subsequent bases
+///   - path[len-1] will contain the end position of the final base (total signal length)
+/// * `band` - The Band structure containing information about the allowed regions for each base
+///   in the signal. This defines the search space constraints used during dynamic programming.
+/// * `base_offsets` - Vector containing offsets into the traceback array for each base's information.
+///   These offsets are necessary to locate the correct traceback information in the flattened array.
+/// * `traceback` - Vector containing traceback information computed during the forward pass.
+///   For each position, it stores the number of steps backward needed to reach the start of 
+///   the current base. Organized as a flattened ragged array, with base_offsets indicating where
+///   each base's information begins.
+///
+/// # Algorithm
+///
+/// The function works backwards through the sequence:
+/// 1. Sets the start of the first base to position 0
+/// 2. Sets the end of the last base to the end of the signal
+/// 3. For each base (working backwards from the end):
+///    - Uses the end position of the next base (already determined) as the lookup position
+///    - Finds the corresponding traceback entry using band information and base offsets
+///    - Uses the traceback value to determine how many steps backward to go to find the start
+///      position of the current base
+///    - Records this start position in the path vector
 pub fn banded_traceback(
     path: &mut Vec<usize>,
     band: &Band,

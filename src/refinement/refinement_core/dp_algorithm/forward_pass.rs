@@ -6,6 +6,43 @@ use crate::refinement::signal_map_refiner::settings::RefineAlgo;
 use super::forward_step::forward_step_viterbi;
 use super::forward_step_dwell_penalty::forward_step_dwell_penalty;
 
+/// Performs the forward pass of dynamic programming for signal refinement
+///
+/// This function implements the forward pass of either the Viterbi algorithm or a dwell penalty
+/// algorithm for signal refinement in nanopore sequencing. It processes each base in sequence,
+/// calculating optimal paths through the signal data within the constraints of specified bands.
+///
+/// # Arguments
+///
+/// * `all_scores` - Mutable vector to be populated with forward scores for all bases. This is
+///   pre-allocated with sufficient size to hold scores for all positions within the bands.
+/// * `traceback` - Mutable vector to be populated with traceback information for all bases.
+///   This will be used in a subsequent backtrace step to reconstruct the optimal path.
+/// * `signal` - Slice containing the raw signal values to be processed
+/// * `expected_levels` - Vector of expected signal levels for each base in the sequence
+/// * `band` - Structure defining the allowed regions (bands) for each base in the signal.
+///   These bands constrain the search space of the dynamic programming algorithm.
+/// * `base_offsets` - Slice containing offsets into the scores and traceback arrays for each base's information.
+///   These offsets enable efficient storage of variable-sized band information in flattened arrays.
+/// * `method` - Enum specifying which algorithm to use for the forward pass:
+///   - `RefineAlgo::Viterbi`: Standard Viterbi algorithm
+///   - `RefineAlgo::DwellPenalty`: Viterbi with additional penalties for deviations from target dwell times
+///
+/// # Algorithm
+///
+/// The function processes each base sequentially:
+/// 1. Initializes with special handling for the first base
+/// 2. For each subsequent base:
+///    - Extracts the appropriate band information and slices from the arrays
+///    - Calls either `forward_step_viterbi` or `forward_step_dwell_penalty` based on the specified method
+///    - Carefully manages array slices to avoid borrowing conflicts
+/// 3. Maintains necessary state between bases to ensure proper connectivity in the dynamic programming matrix
+///
+/// # Note
+///
+/// This implementation uses a banded approach where only specific regions of the signal
+/// are considered for each base, which is more efficient than considering all possible
+/// signal positions for each base.
 pub fn forward_pass (
     all_scores: &mut Vec<f32>,
     traceback: &mut Vec<i32>,
@@ -115,6 +152,33 @@ pub fn forward_pass (
 
 }
 
+
+/// Calculates penalty values for deviations from target dwell times
+///
+/// This function generates a vector of penalty values used in the dwell penalty algorithm.
+/// Each value represents the squared deviation from a target dwell time, weighted by a
+/// user-specified factor.
+///
+/// # Arguments
+///
+/// * `target` - Target dwell time value (ideal number of signal points per base)
+/// * `limit` - Maximum dwell time to consider when calculating penalties
+/// * `weight` - Weight factor to scale the penalty values
+///
+/// # Returns
+///
+/// A vector of penalty values, where the index corresponds to a specific dwell time
+/// and the value is the penalty to apply for that dwell time.
+///
+/// # Implementation Details
+///
+/// The function:
+/// 1. Ensures the limit doesn't exceed the target (capping it if necessary)
+/// 2. Creates a vector with entries for dwell times from 0 to limit
+/// 3. Calculates each penalty as: weight * (dwell_time - target)²
+///
+/// These penalties are designed to penalize both too short and too long dwell times,
+/// with the penalty increasing quadratically as the dwell time deviates from the target.
 fn calculate_short_dwell_penalty_vec(
     target: &f32, 
     limit: &f32, 
