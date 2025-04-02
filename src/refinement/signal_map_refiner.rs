@@ -1,11 +1,11 @@
 pub mod rescale;
 pub mod settings;
 
-use settings::{RefineSettings, RoughRescaleAlgo, RescaleAlgo, WhichToRefine};
+use settings::{RefineSettings, RoughRescaleAlgo, WhichToRefine};
+use crate::alignment::aligned_read::AlignedRead;
 use super::kmer_table::KmerTable;
 use self::rescale::{rough_rescale_lstsq, rough_rescale_theil_sen, rescale};
 use super::refinement_core::start_refinement::refinement;
-use super::super::alignment::aligned_read::AlignedRead;
 use super::super::error::refinement_errors::signal_map_refiner_errors::SigMapRefineError;
 
 /// Structure that handles the refinement process
@@ -97,33 +97,50 @@ impl<'a> SigMapRefiner<'a> {
             &self.settings
         )?;
 
+        self.refined_query_to_sig = Some(refined_query_to_sig);
+
         Ok(())
     }
 
     /// Performs the refinement of the reference to signal alignment
     fn start_ref_to_signal_refinement(&mut self) -> Result<(), SigMapRefineError> {
         let signal = self.aligned_read.signal_f32();
-        let seq_to_signal_map = self.aligned_read
-            .query_to_signal()
+        let reference_to_signal_map = self.aligned_read
+            .reference_to_signal()
             .ok_or(SigMapRefineError::RefToSigNotFound)?;
 
         let sequence = self.aligned_read.reference()?;
         let levels = self.kmer_table.extract_levels(&sequence)?;
 
-        let mut refined_query_to_sig: Vec<usize>;
+        let mut refined_reference_to_sig: Vec<usize>;
 
-        (refined_query_to_sig, self.scale_dacs_to_norm, self.shift_dacs_to_norm) = sequence_to_signal_refinement(
+        (refined_reference_to_sig, self.scale_dacs_to_norm, self.shift_dacs_to_norm) = sequence_to_signal_refinement(
             self.scale_dacs_to_norm, 
             self.shift_dacs_to_norm, 
-            seq_to_signal_map, 
+            reference_to_signal_map, 
             sequence, 
             &signal, 
             &levels,
             &self.settings
         )?;
 
+        self.refined_ref_to_sig = Some(refined_reference_to_sig);
+
         Ok(())
     }    
+
+    /// Returns the refined query to signal alignment if already calculated. 
+    /// Returns an error otherwise.
+    pub fn refined_query_to_sig(&self) -> Result<&Vec<usize>, SigMapRefineError> {
+        self.refined_query_to_sig.as_ref().ok_or(SigMapRefineError::RefinedQueryToSigNotFound)
+    }
+
+    /// Returns the refined reference to signal alignment if already calculated. 
+    /// Returns an error otherwise.
+    pub fn refined_ref_to_sig(&self) -> Result<&Vec<usize>, SigMapRefineError> {
+        self.refined_ref_to_sig.as_ref().ok_or(SigMapRefineError::RefinedRefToSigNotFound)
+    }
+
 }
 
 /// Calculate the scaling factor and shift to transform the raw signal measurements
