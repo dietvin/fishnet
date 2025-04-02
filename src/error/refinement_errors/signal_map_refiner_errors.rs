@@ -18,4 +18,8 @@ pub enum SigMapRefineError {
     AlignedReadError(#[from] AlignedReadError),
     #[error("Refinement error: {0}")]
     RefineError(#[from] RefineError),
+    #[error("Refined query-to-signal alignment not present")]
+    RefinedQueryToSigNotFound,
+    #[error("Refined reference-to-signal alignment not present")]
+    RefinedRefToSigNotFound,
 }
