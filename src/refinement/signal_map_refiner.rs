@@ -3,7 +3,7 @@ pub mod settings;
 
 use settings::{RefineSettings, RoughRescaleAlgo, RescaleAlgo, WhichToRefine};
 use super::kmer_table::KmerTable;
-use self::rescale::{rough_rescale_lstsq, rough_rescale_theil_sen, rescale_lstsq, rescale_theil_sen};
+use self::rescale::{rough_rescale_lstsq, rough_rescale_theil_sen, rescale};
 use super::refinement_core::start_refinement::refinement;
 use super::super::alignment::aligned_read::AlignedRead;
 use super::super::error::refinement_errors::signal_map_refiner_errors::SigMapRefineError;
@@ -218,14 +218,14 @@ fn sequence_to_signal_refinement(
         )?;
 
         if perform_rescaling {
-            (scale, shift) = match settings.rescale_algo() {
-                RescaleAlgo::LeastSquares => {
-                    rescale_lstsq()?
-                }
-                RescaleAlgo::TheilSen { max_points } => {
-                    rescale_theil_sen()?
-                }
-            }
+            (scale, shift) = rescale(
+                scale,
+                shift, 
+                &sequence_to_signal_map_refined,
+                expected_levels,
+                signal,
+                settings.rescale_algo()
+            )?
         }
     }
 
