@@ -74,7 +74,6 @@ impl BamRead {
         let query = bam_record.seq().as_bytes();
         
         let query_length = query.len();
-        println!("{:?}, {}, {}", query, query.len(), query_length);
         let (stride, move_table): (usize, Vec<bool>) = BamRead::get_stride_move_table(&bam_record)?;
 
         let sm_tag = helpers::get_float_tag(&bam_record, "sm")?;
