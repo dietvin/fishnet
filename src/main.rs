@@ -7,7 +7,7 @@ mod combined_data;
 
 use loader::{pod5, bam};
 use alignment::aligned_read::AlignedRead;
-use ::pod5::polars_arrow::bitmap::aligned::AlignedBitmapSlice;
+use refinement::signal_map_refiner::{settings::RefineSettings, SigMapRefiner};
 
 fn main() {
     let path: &str = "example_data/can_reads.pod5";
@@ -20,35 +20,36 @@ fn main() {
     for file in index.files() {
         if let Ok(file) = file {
             let mut file = file;
-            let mut pod5_read = file.get_mut("6e37823a-9398-4be8-b111-65cab029f4e0").unwrap();
-            let bam_read = bam_file.get("6e37823a-9398-4be8-b111-65cab029f4e0").unwrap();
-            let mut aligned_read = AlignedRead::new(pod5_read, &bam_read, false).unwrap();
-            
-            aligned_read.align_query_to_signal();
-            aligned_read.align_reference_to_signal();
+            // let mut pod5_read = file.get_mut("6e37823a-9398-4be8-b111-65cab029f4e0").unwrap();
+            // let bam_read = bam_file.get("6e37823a-9398-4be8-b111-65cab029f4e0").unwrap();
 
-            println!("{:?}", aligned_read.reference_to_signal());
-        //     for (_, read) in &mut file {
-        //         println!("\n{}\n", read.read_id());
-        //         println!("Loading corresponding bam read:");
-        //         let bam_read = bam_file.get(read.read_id()).unwrap();
+            for (read_id, read) in &mut file {
+                println!("#### {} ####", read_id);
 
-        //         println!("Aligning signal:");
-        //         let mut aligned_read = AlignedRead::new(
-        //             read, 
-        //             &bam_read, 
-        //             false
-        //         ).unwrap();
+                let bam_read = bam_file.get(read.read_id()).unwrap();
 
-        //         aligned_read.align_query_to_signal().unwrap();
-        //         aligned_read.align_reference_to_signal().unwrap();
-
-        //         // println!("{:?}", aligned_read.query_to_signal());
-        //         println!("Reference to signal:\n{:?}", aligned_read.reference_to_signal());
-        //     }
-        // } else {
-        //     println!("Failed to read File")
-        // }
+                let mut aligned_read = AlignedRead::new(
+                    read, 
+                    &bam_read, 
+                    false
+                ).unwrap();
+                
+                aligned_read.align_query_to_signal().unwrap();
+                aligned_read.align_reference_to_signal().unwrap();
+    
+                let settings: RefineSettings = RefineSettings::default();
+                let mut sig_map_refiner = SigMapRefiner::new(
+                    "example_data/levels.txt", 
+                    &aligned_read, 
+                    settings
+                ).unwrap();
+    
+                sig_map_refiner.start().unwrap();
+    
+                let refined_query_to_sig = sig_map_refiner.refined_query_to_sig().unwrap();
+    
+                println!("{:?}", refined_query_to_sig);
+            }
         }
     }
 }
