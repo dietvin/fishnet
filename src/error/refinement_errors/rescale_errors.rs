@@ -25,6 +25,28 @@ pub enum RoughRescaleError {
     TheilSenFailed(#[from] TheilSenError)
 }
 
+
+#[derive(Debug, thiserror::Error)]
+pub enum RescaleError {
+    #[error("Empty signal to sequence map")]
+    EmptyMap,
+    
+    #[error("Invalid levels vec length: {0} (expected_length: {1}")]
+    InvalidLevelsLen(usize, usize),
+
+    #[error("Failed to calculate the quantiles: {0}")]
+    QuantileError(#[from] QuantileCalcError),
+
+    #[error("Least squares calculation failed: {0}")]
+    LstqFailed(#[from] LstsqError),
+
+    #[error("Thein Sen calculation failed: {0}")]
+    TheilSenFailed(#[from] TheilSenError),
+
+    #[error("Not enough bases for rescaling: {0} (need >{1})")]
+    BelowMinNumFiltered(usize, usize)
+}
+
 #[derive(Debug, thiserror::Error)]
 pub enum QuantileCalcError {
     #[error("Empty data vec provided")]

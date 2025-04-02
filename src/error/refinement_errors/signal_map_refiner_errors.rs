@@ -1,7 +1,7 @@
 use super::kmer_table_errors::KmerTableError;
 use super::super::alignment_errors::aligned_read_errors::AlignedReadError;
 use super::refine_errors::RefineError;
-use super::rescale_errors::RoughRescaleError;
+use super::rescale_errors::{RescaleError, RoughRescaleError};
 #[derive(Debug, thiserror::Error)]
 pub enum SigMapRefineError {
     #[error("Failed to initialize the kmer table: {0}")]
@@ -18,8 +18,4 @@ pub enum SigMapRefineError {
     AlignedReadError(#[from] AlignedReadError),
     #[error("Refinement error: {0}")]
     RefineError(#[from] RefineError),
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum RescaleError {
 }
