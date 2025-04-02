@@ -46,6 +46,11 @@ impl RefineSettings {
             which_map_to_refine: WhichToRefine::Query,
             rough_rescale_algo: RoughRescaleAlgo::NoRoughRescaling,
             rescale_algo: RescaleAlgo::TheilSen { 
+                dwell_filter_lower_percentile: 0.1,
+                dwell_filter_upper_percentile: 0.9,
+                min_abs_level: 0.2,
+                n_bases_truncate: 10,
+                min_num_filtered_levels: 10,        
                 max_points: 1000 
             },
             refinement_algo: RefineAlgo::DwellPenalty { 
@@ -200,14 +205,47 @@ pub enum RoughRescaleAlgo {
 /// Enumeration of algorithms for precise signal rescaling.
 #[derive(Debug, Clone, PartialEq)]
 pub enum RescaleAlgo {
-    /// Least-squares regression-based rescaling.
-    LeastSquares,
+    /// Least-squares regression-based rescaling. 
+    /// 
+    /// NOTE: THIS IS NOT IMPLEMENTED IN REMORA!
+    /// 
+    /// * `dwell_filter_lower_percentile` - Lower percentile for filtering bases based on dwell time
+    ///                                     (bases with dwell time < lower_percentile value get removed)
+    /// * `dwell_filter_upper_percentile` - Upper percentile for filtering bases based on dwell time
+    ///                                     (bases with dwell time > upper_percentile value get removed)
+    /// * `min_abs_level` - The minimum absolute expected signal intensity value. Expected intensities that 
+    ///                     deviate less than this value from the mean of the expected intensity get removed. 
+    /// * `n_bases_truncate` - The number of bases that will be ignored at the start and end. 
+    /// * `min_num_filtered_levels` - Threshold of the minimum number of valid bases that are needed to
+    ///                               perform the rescaling.
+    LeastSquares {
+        dwell_filter_lower_percentile: f32,
+        dwell_filter_upper_percentile: f32,
+        min_abs_level: f32,
+        n_bases_truncate: usize,
+        min_num_filtered_levels: usize
+    },
+
     /// Theil-Sen estimator-based rescaling.
     /// 
+    /// * `dwell_filter_lower_percentile` - Lower percentile for filtering bases based on dwell time
+    ///                                     (bases with dwell time < lower_percentile value get removed)
+    /// * `dwell_filter_upper_percentile` - Upper percentile for filtering bases based on dwell time
+    ///                                     (bases with dwell time > upper_percentile value get removed)
+    /// * `min_abs_level` - The minimum absolute expected signal intensity value. Expected intensities that 
+    ///                     deviate less than this value from the mean of the expected intensity get removed. 
+    /// * `n_bases_truncate` - The number of bases that will be ignored at the start and end. 
+    /// * `min_num_filtered_levels` - Threshold of the minimum number of valid bases that are needed to
+    ///                               perform the rescaling.
     /// * `max_points` - Limits the number of data points used in the estimation.
     ///                  A subset is randomly selected if the data set exceeds 
     ///                  this threshold. Gets ignored if equal to 0.
     TheilSen {
+        dwell_filter_lower_percentile: f32,
+        dwell_filter_upper_percentile: f32,
+        min_abs_level: f32,
+        n_bases_truncate: usize,
+        min_num_filtered_levels: usize,
         max_points: usize
     }
 }
