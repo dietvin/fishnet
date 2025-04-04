@@ -77,7 +77,7 @@ impl<'a> SigMapRefiner<'a> {
     
     /// Performs the refinement of the query to signal alignment
     fn start_query_to_signal_refinement(&mut self) -> Result<(), SigMapRefineError> {
-        let signal = self.aligned_read.signal_f32();
+        let signal = self.aligned_read.signal_f32()?;
         let seq_to_signal_map = self.aligned_read
             .query_to_signal()
             .ok_or(SigMapRefineError::QueryToSigNotFound)?;
@@ -104,7 +104,7 @@ impl<'a> SigMapRefiner<'a> {
 
     /// Performs the refinement of the reference to signal alignment
     fn start_ref_to_signal_refinement(&mut self) -> Result<(), SigMapRefineError> {
-        let signal = self.aligned_read.signal_f32();
+        let signal = self.aligned_read.signal_f32()?;
         let reference_to_signal_map = self.aligned_read
             .reference_to_signal()
             .ok_or(SigMapRefineError::RefToSigNotFound)?;
