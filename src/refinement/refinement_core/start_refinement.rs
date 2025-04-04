@@ -63,7 +63,7 @@ pub fn refinement(
         *settings.half_bandwidth(),
         true
     )?;
-    band.convert_to_sequence_band()?;
+    band.convert_to_sequence_band(*settings.adjust_band_min_size())?;
 
     let optimized_map = banded_dp(
         signal_trimmed, 
