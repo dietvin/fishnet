@@ -136,12 +136,59 @@ impl Band {
         Ok(band)
     }
 
+    /// Validates a signal band.
+    /// 
+    /// # Arguments
+    /// * `band` - Reference to a band
+    /// * `signal_len` - The number of signal measurements
+    /// * `sequence_len` - The number of bases
+    /// 
+    /// # Returns
+    /// Ok(()) if the band is valid. Error if:
+    /// * The band is a sequence band
+    /// * The band doesn't start with 0
+    /// * A band element has a length of 0
+    /// * The length is invalid 
+    /// * The end coordinate is invalid
+    fn validate_signal_band(
+        band: &Band, 
+        signal_len: usize, 
+        sequence_len: usize
+    ) -> Result<(), SignalBandError> {
+        if *band.band_type() != BandType::SignalBand {
+            return Err(SignalBandError::ValidationError(
+                BandValidationError::UnexpectedBandType(*band.band_type())
+            ));
+        }
+
+        let start = band.start();
+        let end = band.end();
+
+        Band::validate_general_band(start, end)?;
+
+        if start.len() != signal_len {
+            return Err(SignalBandError::ValidationError(
+                BandValidationError::InvalidBandLen(start.len(), signal_len)
+            ));
+        }
+        if end[end.len() - 1] != sequence_len {
+            return Err(SignalBandError::ValidationError(
+                BandValidationError::InvalidEndCoord(end[end.len() - 1], sequence_len)
+            ));
+        } 
+        Ok(())
+    }
+
+
     /// Transforms a signal band into a sequence band.
+    ///
+    /// # Arguments
+    /// * `min_step` - Minimum step between one base and the next to enforce in band adjustment.
     ///
     /// # Returns
     /// * `Ok(())` if successful, or an error if validation fails
-    /// or the band at hand is already a sequence band.
-    pub fn convert_to_sequence_band(&mut self) -> Result<(), SequenceBandError> {
+    ///   or the band at hand is already a sequence band.
+    pub fn convert_to_sequence_band(&mut self, min_step: usize) -> Result<(), SequenceBandError> {
         if self.band_type == BandType::SequenceBand {
             return Err(SequenceBandError::AlreadySequenceBand);
         }
@@ -185,51 +232,78 @@ impl Band {
         self.start = sequence_start;
         self.end = sequence_end;
 
+        self.adjust_sequence_band(min_step)?;
+
         Band::validate_sequence_band(self, signal_len, sequence_len)?;
 
         Ok(())
     }
 
-    /// Validates a signal band.
+    /// Adjusts sequence band boundaries to disallow invalid paths.
     /// 
+    /// This function ensures each band start and end is properly positioned
+    /// relative to adjacent positions. It enforces monotonicity and minimum
+    /// step size between consecutive positions.
+    ///
     /// # Arguments
-    /// * `band` - Reference to a band
-    /// * `signal_len` - The number of signal measurements
-    /// * `sequence_len` - The number of bases
-    /// 
+    /// * `min_step` - Minimum step between one base and the next to enforce in band adjustment.
+    ///
     /// # Returns
-    /// Ok(()) if the band is valid. Error if:
-    /// * The band is a sequence band
-    /// * The band doesn't start with 0
-    /// * A band element has a length of 0
-    /// * The length is invalid 
-    /// * The end coordinate is invalid
-    fn validate_signal_band(
-        band: &Band, 
-        signal_len: usize, 
-        sequence_len: usize
-    ) -> Result<(), SignalBandError> {
-        if *band.band_type() != BandType::SignalBand {
-            return Err(SignalBandError::ValidationError(
-                BandValidationError::UnexpectedBandType(*band.band_type())
-            ));
+    /// * `Ok(())` if successful, or an error if adjustment fails.
+    ///
+    /// # Details
+    /// The function performs the following adjustments:
+    /// 1. Ensures each start position is at least `min_step` less than the next position
+    /// 2. Enforces monotonically increasing start positions
+    /// 3. Ensures each end position is at least `min_step` more than the previous position
+    /// 4. Enforces monotonically increasing end positions
+    /// 
+    /// The first start position and last end position are preserved from the original band.
+    fn adjust_sequence_band(&mut self, min_step: usize) -> Result<(), SequenceBandError> {
+        // Remember the initial values for first start and last end
+        let band_min = self.start[0];
+        let band_max = self.end[self.end.len() - 1];
+        let sequence_len = self.start.len();
+        
+        // Fix starts to make sure each start is at least min_step less than the next
+        for seq_pos in (0..sequence_len - 1).rev() {
+            if self.start[seq_pos] > self.start[seq_pos + 1].saturating_sub(min_step) {
+                self.start[seq_pos] = self.start[seq_pos + 1].saturating_sub(min_step);
+            }
         }
-
-        let start = band.start();
-        let end = band.end();
-
-        Band::validate_general_band(start, end)?;
-
-        if start.len() != signal_len {
-            return Err(SignalBandError::ValidationError(
-                BandValidationError::InvalidBandLen(start.len(), signal_len)
-            ));
+        
+        // Restore the first start position
+        self.start[0] = band_min;
+        
+        // Proceed through beginning of band ensuring only valid positions
+        let mut seq_pos = 1;
+        while seq_pos < sequence_len && self.start[seq_pos] <= self.start[seq_pos - 1] {
+            self.start[seq_pos] = self.start[seq_pos - 1] + 1;
+            seq_pos += 1;
         }
-        if end[end.len() - 1] != sequence_len {
-            return Err(SignalBandError::ValidationError(
-                BandValidationError::InvalidEndCoord(end[end.len() - 1], sequence_len)
-            ));
-        } 
+        
+        // Fix ends to make sure each end is at least min_step more than the previous
+        for seq_pos in 1..sequence_len {
+            if self.end[seq_pos] < self.end[seq_pos - 1] + min_step {
+                self.end[seq_pos] = self.end[seq_pos - 1] + min_step;
+            }
+        }
+        
+        // Restore the last end position
+        self.end[sequence_len - 1] = band_max;
+        
+        // Proceed through end of band ensuring only valid positions
+        if sequence_len > 1 {
+            let mut seq_pos = sequence_len - 2;
+            while self.end[seq_pos] >= self.end[seq_pos + 1] {
+                self.end[seq_pos] = self.end[seq_pos + 1] - 1;
+                if seq_pos == 0 {
+                    break;
+                }
+                seq_pos -= 1;
+            }
+        }
+        
         Ok(())
     }
 
