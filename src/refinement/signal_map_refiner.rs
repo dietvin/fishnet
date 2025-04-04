@@ -220,7 +220,7 @@ fn sequence_to_signal_refinement(
     // If the user sets n_refinement_iters to 0, one round of mapping refinement 
     // is performed without rescaling afterwards
     let perform_rescaling = n_iterations > 0;
-    for _ in 0..n_iterations {
+    for _ in 0..n_iterations.max(1) {
         // Normalize the signal with the scaling and shift parameters
         let signal_norm = signal
             .iter()
