@@ -71,7 +71,7 @@ impl<'a> AlignedRead<'a> {
             query_to_signal::align_query_to_signal(
                 self.bam_read.move_table(),
                 self.bam_read.stride(),
-                *self.pod5_read.num_samples(),
+                *self.pod5_read.num_samples_trimmed()?,
                 self.reverse_signal,
                 self.bam_read.query_length()
             )?
@@ -169,15 +169,19 @@ impl<'a> AlignedRead<'a> {
         self.pod5_read.signal()
     }
 
-    /// Returns the signal intensity values from the underlying Pod5Read as f32
-    pub fn signal_f32(&self) -> Vec<f32> {
-        self.pod5_read.signal()
-            .iter()
-            .map(|el| *el as f32)
-            .collect::<Vec<f32>>()
+    /// Returns the trimmed signal intensity values from the underlying 
+    /// Pod5Read as f32
+    pub fn signal_f32(&self) -> Result<Vec<f32>, AlignedReadError> {
+        Ok(
+            self.pod5_read.signal_trimmed()?
+                .iter()
+                .map(|el| *el as f32)
+                .collect::<Vec<f32>>()
+        )
     }
 
-    /// Returns the number of samples from the underlying Pod5Read
+    /// Returns the number of samples from the trimmed signal
+    /// of the underlying Pod5Read
     pub fn num_samples(&self) -> &usize {
         self.pod5_read.num_samples()
     }

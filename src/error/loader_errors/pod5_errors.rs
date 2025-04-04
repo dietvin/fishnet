@@ -5,7 +5,9 @@ use super::file_handling_errors::{FileHandlingError, DirHandlingError};
 #[derive(Debug, thiserror::Error)]
 pub enum Pod5ReadError {
     #[error("Failed to trim signal: {0}")]
-    TrimError(String)
+    TrimError(String),
+    #[error("Trimmed signal not set yet. Call `update_signal` to trim the signal")]
+    TrimmedSignalNotFound
 }
 
 #[derive(Debug, thiserror::Error)]

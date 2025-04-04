@@ -14,7 +14,9 @@ pub struct Pod5Read {
     calibration_offset: f32,
     calibration_scale: f32,
     signal: Vec<i16>,
-    num_samples: usize
+    num_samples: usize,
+    signal_trimmed: Option<Vec<i16>>,
+    num_samples_trimmed: Option<usize>
 }
 
 /// A container for Pod5 file data that provides access to reads using a HashMap
@@ -56,7 +58,9 @@ impl Pod5Read {
             calibration_offset: offset,
             calibration_scale: scale,
             signal: Vec::new(),
-            num_samples: 0
+            num_samples: 0,
+            signal_trimmed: None,
+            num_samples_trimmed: None
         }
     }
 
@@ -92,6 +96,20 @@ impl Pod5Read {
     /// Returns the number of samples in this read
     pub fn num_samples(&self) -> &usize {
         &self.num_samples
+    }
+
+    /// Returns the trimmed signal intensity values for this read
+    pub fn signal_trimmed(&self) -> Result<&Vec<i16>, Pod5ReadError> {
+        self.signal_trimmed
+            .as_ref()
+            .ok_or(Pod5ReadError::TrimmedSignalNotFound)
+    }
+
+    /// Returns the number of samples in the trimmed signal
+    pub fn num_samples_trimmed(&self) -> Result<&usize, Pod5ReadError> {
+        self.num_samples_trimmed
+            .as_ref()
+            .ok_or(Pod5ReadError::TrimmedSignalNotFound)
     }
 
     /// Returns the calibration offset for this read
@@ -139,50 +157,56 @@ impl Pod5Read {
         trimmed_signal_len: Option<usize>,
         subread_signal_len: Option<usize>
     ) -> Result<(), Pod5ReadError> {
-        let parent_signal_offset = match parent_signal_offset {
-            Some(v) => v,
-            None => 0            
-        };
-        let trimmed_signal_len = match trimmed_signal_len {
-            Some(v) => v,
-            None => 0
-        };
-
-        let start = parent_signal_offset + trimmed_signal_len;
-
-        let end = match subread_signal_len {
-            Some(v) => parent_signal_offset + v,
-            None => self.num_samples            
-        };
-
-        if end > self.num_samples {
-            return Err(Pod5ReadError::TrimError(
-                format!(
-                    "'subread_signal_len' ({}) out of bounds with signal length {}",
-                    end, self.num_samples
-                )
-            ));
-        } else if start >= end {
-            return Err(Pod5ReadError::TrimError(
-                format!(
-                    "Start index ({}) must be smaller than end index ({})",
-                    start, end
-                )
-            ));
+        match self.signal_trimmed {
+            None => {
+                let parent_signal_offset = match parent_signal_offset {
+                    Some(v) => v,
+                    None => 0            
+                };
+                let trimmed_signal_len = match trimmed_signal_len {
+                    Some(v) => v,
+                    None => 0
+                };
+        
+                let start = parent_signal_offset + trimmed_signal_len;
+        
+                let end = match subread_signal_len {
+                    Some(v) => parent_signal_offset + v,
+                    None => self.num_samples            
+                };
+        
+                if end > self.num_samples {
+                    return Err(Pod5ReadError::TrimError(
+                        format!(
+                            "'subread_signal_len' ({}) out of bounds with signal length {}",
+                            end, self.num_samples
+                        )
+                    ));
+                } else if start >= end {
+                    return Err(Pod5ReadError::TrimError(
+                        format!(
+                            "Start index ({}) must be smaller than end index ({})",
+                            start, end
+                        )
+                    ));
+                }
+        
+                let mut signal = self.signal.clone();
+                if reverse_signal {
+                    signal = helpers::reverse_signal(&signal);
+                    signal = signal[start..end].to_vec();
+                    signal = helpers::reverse_signal(&signal);
+                } else {
+                    signal = signal[start..end].to_vec();
+                }
+        
+                self.num_samples_trimmed = Some(signal.len());
+                self.signal_trimmed = Some(signal);
+                Ok(())
+            }
+            // If the trimming was performed before, no update is needed
+            Some(_) => Ok(())
         }
-
-        let mut signal = self.signal.clone();
-        if reverse_signal {
-            signal = helpers::reverse_signal(&signal);
-            signal = signal[start..end].to_vec();
-            signal = helpers::reverse_signal(&signal);
-        } else {
-            signal = signal[start..end].to_vec();
-        }
-
-        self.num_samples = signal.len();
-        self.signal = signal;
-        Ok(())
     }
 }
 
