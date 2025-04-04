@@ -177,11 +177,13 @@ pub enum RoughRescaleAlgo {
     /// Least-squares regression-based rescaling.
     /// 
     /// * `quantiles` - The quantiles based on which the scaling factors get calculated.
+    ///                 Default values: [0.05, 0.1 , 0.15, 0.2 , 0.25, 0.3 , 0.35, 0.4 , 
+    ///                 0.45, 0.5 , 0.55, 0.6 , 0.65, 0.7 , 0.75, 0.8 , 0.85, 0.9 , 0.95]
     /// * `clip_bases` - The number of bases that get clipped from the start and end of
-    ///                  the levels.
+    ///                  the levels. Default: 10
     /// * `use_base_center` - Whether to use only a single data point from the signal for
     ///                       each base. If false, all measurements are used for the 
-    ///                       computation.
+    ///                       computation. Default: true
     LeastSquares {
         quantiles: Vec<f32>,
         clip_bases: usize,
@@ -190,11 +192,13 @@ pub enum RoughRescaleAlgo {
     /// Theil-Sen estimator-based rescaling.
     /// 
     /// * `quantiles` - The quantiles based on which the scaling factors get calculated.
+    ///                 Default values: [0.05, 0.1 , 0.15, 0.2 , 0.25, 0.3 , 0.35, 0.4 , 
+    ///                 0.45, 0.5 , 0.55, 0.6 , 0.65, 0.7 , 0.75, 0.8 , 0.85, 0.9 , 0.95]
     /// * `clip_bases` - The number of bases that get clipped from the start and end of
-    ///                  the levels.
+    ///                  the levels. Default: 10
     /// * `use_base_center` - Whether to use only a single data point from the signal for
     ///                       each base. If false, all measurements are used for the 
-    ///                       computation.
+    ///                       computation. Default: true
     TheilSen {
         quantiles: Vec<f32>,
         clip_bases: usize,
