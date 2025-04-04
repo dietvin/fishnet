@@ -16,9 +16,9 @@ struct JsonDataBandedDp {
      pub sequence_band_end: Vec<usize>,
      pub short_dwell_penalty: Vec<f32>,
      pub core_method: String, 
-     pub all_scores: Vec<u32>,
+     pub all_scores: Vec<f32>,
      pub path: Vec<usize>,
-     pub traceback: Vec<u32>
+     pub traceback: Vec<i32>
 }
 
 
