@@ -40,8 +40,8 @@ impl<'a> SigMapRefiner<'a> {
         let (scale_dacs_to_norm, shift_dacs_to_norm) = calculate_initial_scaling_shift(
             *aligned_read.calibration_scale(),
             *aligned_read.calibration_offset(),
-            aligned_read.signal_scaling_mean(),
-            aligned_read.signal_scaling_dispersion()
+            aligned_read.signal_scaling_dispersion(),
+            aligned_read.signal_scaling_mean()
         );
 
         Ok(SigMapRefiner {
@@ -213,7 +213,7 @@ fn sequence_to_signal_refinement(
         }   
         RoughRescaleAlgo::NoRoughRescaling => (scale_measurements_to_norm, shift_measurements_to_norm) 
     };
-
+    println!("{}, {}", shift, scale);
     let mut sequence_to_signal_map_refined = seqence_to_signal_map.clone();
 
     let n_iterations = *settings.n_refinement_iters();
