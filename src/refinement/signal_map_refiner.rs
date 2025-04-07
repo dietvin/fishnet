@@ -213,7 +213,6 @@ fn sequence_to_signal_refinement(
         }   
         RoughRescaleAlgo::NoRoughRescaling => (scale_measurements_to_norm, shift_measurements_to_norm) 
     };
-    println!("{}, {}", shift, scale);
     let mut sequence_to_signal_map_refined = seqence_to_signal_map.clone();
 
     let n_iterations = *settings.n_refinement_iters();
