@@ -1,6 +1,8 @@
 use std::{collections::HashMap, fs::File, io::{BufRead, BufReader}, path::Path};
 use fishnet::error::refinement_errors::kmer_table_errors::KmerTableError;
 use fishnet::refinement::kmer_table::KmerTable;
+use approx::assert_relative_eq;
+use serde::{Deserialize, Serialize};
 
 #[test]
 fn test_valid_kmer_table() {
@@ -189,9 +191,49 @@ fn hashmap_from_file(path: &str) -> HashMap<String, f32> {
         .collect::<HashMap<String, f32>>();
     map
 }
+
 fn process_line(line: String) -> (String, f32) {
     let line = line.split("\t").collect::<Vec<&str>>();
     let kmer = line[0].to_string();
     let level = line[1].parse::<f32>().unwrap();
     (kmer, level)
+}
+
+
+#[derive(Debug, Deserialize)]
+struct JsonLevelData {
+    int_seq: Vec<u8>,
+    levels: Vec<f32>
+}
+
+fn load_test_data(path: &str) -> JsonLevelData {
+    let file = File::open(path).unwrap();
+    let reader = BufReader::new(file);
+    let data: JsonLevelData = serde_json::from_reader(reader).unwrap();
+    data
+}
+
+#[test]
+fn test_levels_from_seq() {
+    let kmer_table = KmerTable::new("example_data/levels.txt").unwrap();
+    let data = load_test_data("tests/kmer_tables/levels_test.json");
+
+    let seq = data.int_seq
+        .iter()
+        .map(|&el| {
+            match el {
+                0 => 65,
+                1 => 67,
+                2 => 71,
+                3 => 84,
+                _ => 0
+            }
+        })
+        .collect::<Vec<u8>>();
+
+    let levels_result = kmer_table.extract_levels(&seq).unwrap();
+
+    for i in 0..levels_result.len() - 1 {
+        assert_relative_eq!(levels_result[i], data.levels[i], epsilon=0.1);
+    }
 }
