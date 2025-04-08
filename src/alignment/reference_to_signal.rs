@@ -41,9 +41,9 @@ pub fn align_reference_to_signal(
 ) -> Result<Vec<usize>, RefToSignalError>{
     let mut cigar = cigar.clone();
 
-    if reverse_mapped {
-        cigar = cigar.iter().rev().map(|el| *el).collect();
-    }
+    // if reverse_mapped {
+    //     cigar = cigar.iter().rev().map(|el| *el).collect();
+    // }
 
     // Non-match operations at the end of the cigar strings must be cut off
     // Determine the number of these operations and remove them from the cigar vector. 

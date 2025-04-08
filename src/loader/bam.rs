@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use rust_htslib::bam::ext::BamRecordExtensions;
 use rust_htslib::bam::{record::Cigar, Record, Reader, Read};
 use super::super::error::loader_errors::bam_errors::{BamReadError, BamFileError};
-use super::helpers;
+use super::helpers::{self, reverse_complement};
 use super::ref_seq_reconstruction::build_reference_sequence;
 
 // ##################################################################################################
@@ -71,7 +71,7 @@ impl BamRead {
     /// * `Result<Self, BamReadError>` - A new BamRead instance or an error
     pub fn new(bam_record: Record) -> Result<Self, BamReadError> {
         let read_id = std::str::from_utf8(bam_record.qname())?.to_string();
-        let query = bam_record.seq().as_bytes();
+        let mut query = bam_record.seq().as_bytes();
         
         let query_length = query.len();
         let (stride, move_table): (usize, Vec<bool>) = BamRead::get_stride_move_table(&bam_record)?;
@@ -80,8 +80,8 @@ impl BamRead {
         let sd_tag = helpers::get_float_tag(&bam_record, "sd")?;
 
         let mapped = !bam_record.is_unmapped();
-        let mut cigar = None; 
-        let mut reference_seq = None;
+        let mut cigar: Option<Vec<Cigar>> = None; 
+        let mut reference_seq: Option<Vec<u8>> = None;
         let mut reference_len = None;
         let mut reverse_mapped = None;
         let mut pi_tag = None; 
@@ -90,13 +90,21 @@ impl BamRead {
         let mut ns_tag = None; 
 
         if mapped {
-            let cigar_raw = bam_record.cigar().take().0;
+            let mut cigar_raw = bam_record.cigar().take().0;
             let md_string = helpers::get_str_tag(&bam_record, "MD")?;
-            reference_seq = Some(
-                build_reference_sequence(&query, &cigar_raw, &md_string.as_bytes())?
-            );
+            let reference_seq_raw = build_reference_sequence(&query, &cigar_raw, &md_string.as_bytes())?;
 
-            cigar = Some(cigar_raw);
+            if bam_record.is_reverse() {
+                query = reverse_complement(&query)?;
+
+                reference_seq = Some(reverse_complement(&reference_seq_raw)?);
+                cigar_raw.reverse();
+                cigar = Some(cigar_raw);
+            } else {
+                reference_seq = Some(reference_seq_raw);
+                cigar = Some(cigar_raw);
+            }
+
             reference_len = Some(
                 (bam_record.reference_end() - bam_record.reference_start()) as usize
             );

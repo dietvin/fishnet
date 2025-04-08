@@ -9,7 +9,9 @@ pub enum BamReadError {
     #[error("Read not mapped - unable to retrieve {0}")]
     NoSuchDataForUnmappedRead(String),
     #[error("Failed to reconstruct the reference sequence: {0}")]
-    RefSeqError(#[from] RefSeqReconstructError)
+    RefSeqError(#[from] RefSeqReconstructError),
+    #[error("Failed to set up the reverse complement (Unexpected ascii value {0}")]
+    ReverseComplement(u8)
 }
 
 #[derive(Debug, thiserror::Error)]

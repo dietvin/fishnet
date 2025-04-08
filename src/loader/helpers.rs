@@ -137,8 +137,36 @@ fn handle_unexpected_type<V>(value: Aux<'_>, tag: &str, exp_type: &str) -> Resul
     ))
 }
 
+/// Sets up the reverse complement of a sequence.
+/// 
+/// # Arguments
+/// * `seq` - sequence that is mapped to the reverse strand
+/// 
+/// # Returns
+/// The reverse complement if the input sequence contained only
+/// A, C, G and T. An error otherwise.
+pub fn reverse_complement(seq: &Vec<u8>) -> Result<Vec<u8>, BamReadError> {
+    let mut rev_comp = Vec::with_capacity(seq.len());
+    
+    for base in seq.iter().rev() {
+        let complemented = match base {
+            65 => 84, // A to T
+            67 => 71, // C to G
+            71 => 67, // G to C
+            84 => 65, // T to A
+            97 => 84, // a to T
+            99 => 71, // c to G
+            103 => 67, // g to C
+            116 => 65, // t to A
 
-
+            _ => return Err(BamReadError::ReverseComplement(*base))
+        };
+        
+        rev_comp.push(complemented);
+    }
+    
+    Ok(rev_comp)
+}
 
 
 
