@@ -278,7 +278,7 @@ impl KmerTable {
         //  s   m     e(not incl)
         let mut current_kmer_target_idx = self.dominant_base;
         let mut current_kmer_end = self.k;
-        while current_kmer_end < seq.len() {
+        while current_kmer_end <= seq.len() {
             let current_kmer_ascii = &seq[(current_kmer_end - self.k)..current_kmer_end];
             let kmer = BinaryKmer::from_ascii(current_kmer_ascii)?;
 
