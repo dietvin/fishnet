@@ -1,5 +1,3 @@
-use std::env::current_exe;
-
 use crate::refinement::refinement_core::bands::Band;
 use crate::refinement::settings::RefineAlgo;
 
