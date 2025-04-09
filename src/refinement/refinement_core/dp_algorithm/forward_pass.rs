@@ -1,3 +1,4 @@
+use crate::logger::get_log_vector_sample;
 use crate::refinement::refinement_core::bands::Band;
 use crate::refinement::settings::RefineAlgo;
 
@@ -50,6 +51,18 @@ pub fn forward_pass (
     base_offsets: &[usize],
     method: &RefineAlgo
 ) {
+    log::trace!(
+        "forward_pass input: all_scores = {}, traceback = {}, signal = {}, expected_levels = {}, band start = {}, band end = {}, base_offsets = {}, method = {:?}",
+        get_log_vector_sample(all_scores, 2),
+        get_log_vector_sample(traceback, 2),
+        get_log_vector_sample(signal, 10),
+        get_log_vector_sample(expected_levels, 10),
+        get_log_vector_sample(band.start(), 10),
+        get_log_vector_sample(band.end(), 10),
+        get_log_vector_sample(base_offsets, 10),
+        method
+    );
+
     let mut short_dwell_penalty_vec = Vec::new();
     let use_dwell_penalty_alg = match method {
         RefineAlgo::DwellPenalty { 
@@ -61,6 +74,10 @@ pub fn forward_pass (
                 target, 
                 limit, 
                 weight
+            );
+            log::trace!(
+                "forward_pass short dwell penalty vec: short_dwell_penalty_vec = {}", 
+                get_log_vector_sample(&short_dwell_penalty_vec, 10)
             );
 
             true
@@ -75,6 +92,8 @@ pub fn forward_pass (
 
     let mut previous_scores = vec![f32::INFINITY; current_bandwidth];
     previous_scores[0] = 0.0;
+
+    log::trace!("forward_pass: processing base 0 of {}", expected_levels.len());
 
     if use_dwell_penalty_alg {
         forward_step_dwell_penalty(
@@ -101,6 +120,8 @@ pub fn forward_pass (
     let mut previous_offset = 0;
 
     for base_idx in 1..expected_levels.len() {
+        log::trace!("forward_pass: processing base {}", base_idx);
+
         let current_band_start = seq_band_start[base_idx];
         let current_band_end = seq_band_end[base_idx];
         let current_bandwidth = current_band_end - current_band_start;
@@ -184,6 +205,10 @@ fn calculate_short_dwell_penalty_vec(
 ) -> Vec<f32> {
     // Handle the case where limit > target
     let actual_limit = if limit > target {
+        log::warn!(
+            "calculate_short_dwell_penalty_vec: limit ({}) exceeds target ({}) - using target as limit",
+            limit, target
+        );
         target
     } else {
         limit

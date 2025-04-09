@@ -1,3 +1,5 @@
+use crate::logger::get_log_vector_sample;
+
 use super::forward_step::{forward_step_viterbi, score};
 
 const LARGE_SCORE: f32 = 100.0;
@@ -50,6 +52,10 @@ pub fn forward_step_dwell_penalty(
     band_start_diff: usize,
     dwell_penalty: &[f32]
 ) {
+    log::trace!(
+        "forward_step_dwell_penalty input: redirecting to forward_step_viterbi, dwell_penalty = {}",
+        get_log_vector_sample(dwell_penalty, 10)
+    );
     // Compute un-penalized band position scores for lookup after dwell_penalty range is searched
     let mut unpen_scores = vec![0.0f32; current_scores.len()];
     let mut unpen_tb = vec![0i32; current_traceback.len()];
@@ -114,6 +120,11 @@ pub fn forward_step_dwell_penalty(
             }
         }
     }
+    log::trace!(
+        "forward_step_dwell_penalty updated and penalized: current_scores = {}, current_traceback = {}",
+        get_log_vector_sample(current_scores, 10),
+        get_log_vector_sample(current_traceback, 10)
+    );
 }
 
 

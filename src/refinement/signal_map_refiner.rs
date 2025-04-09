@@ -1,6 +1,7 @@
 pub mod rescale;
 
 use crate::alignment::aligned_read::AlignedRead;
+use crate::logger::get_log_vector_sample;
 use super::kmer_table::KmerTable;
 use super::settings::{RefineSettings, RoughRescaleAlgo, WhichToRefine};
 use self::rescale::{rough_rescale_lstsq, rough_rescale_theil_sen, rescale};
@@ -29,6 +30,12 @@ impl<'a> SigMapRefiner<'a> {
         aligned_read: &'a AlignedRead<'a>,
         settings: RefineSettings
     ) -> Result<Self, SigMapRefineError> {
+        log::info!(
+            "Initializing SigMapRefiner from kmer table '{}' for read '{}'", 
+            kmer_table_path, aligned_read.read_id()
+        );
+        log::debug!("SigMapRefiner::new {}: Using the following settings: {:?}", aligned_read.read_id(), settings);
+
         // Set up the kmer table from the provided file path
         let mut kmer_table = KmerTable::new(kmer_table_path)?;
         if *settings.normalize_levels() {
@@ -41,6 +48,11 @@ impl<'a> SigMapRefiner<'a> {
             *aligned_read.calibration_offset(),
             aligned_read.signal_scaling_dispersion(),
             aligned_read.signal_scaling_mean()
+        );
+
+        log::debug!(
+            "SigMapRefiner::new {}: scale_dacs_to_norm = {}, shift_dacs_to_norm = {}", 
+            aligned_read.read_id(), scale_dacs_to_norm, shift_dacs_to_norm
         );
 
         Ok(SigMapRefiner {
@@ -76,6 +88,8 @@ impl<'a> SigMapRefiner<'a> {
     
     /// Performs the refinement of the query to signal alignment
     fn start_query_to_signal_refinement(&mut self) -> Result<(), SigMapRefineError> {
+        log::info!("Starting query to signal refinement for read {}", self.aligned_read.read_id());
+
         let signal = self.aligned_read.signal_f32()?;
         let seq_to_signal_map = self.aligned_read
             .query_to_signal()
@@ -84,7 +98,7 @@ impl<'a> SigMapRefiner<'a> {
         let sequence = self.aligned_read.query();
         let levels = self.kmer_table.extract_levels(sequence)?;
 
-        let mut refined_query_to_sig: Vec<usize>;
+        let refined_query_to_sig: Vec<usize>;
 
         (refined_query_to_sig, self.scale_dacs_to_norm, self.shift_dacs_to_norm) = sequence_to_signal_refinement(
             self.scale_dacs_to_norm, 
@@ -103,6 +117,8 @@ impl<'a> SigMapRefiner<'a> {
 
     /// Performs the refinement of the reference to signal alignment
     fn start_ref_to_signal_refinement(&mut self) -> Result<(), SigMapRefineError> {
+        log::info!("Starting reference to signal refinement for read {}", self.aligned_read.read_id());
+
         let signal = self.aligned_read.signal_f32()?;
         let reference_to_signal_map = self.aligned_read
             .reference_to_signal()
@@ -111,7 +127,7 @@ impl<'a> SigMapRefiner<'a> {
         let sequence = self.aligned_read.reference()?;
         let levels = self.kmer_table.extract_levels(&sequence)?;
 
-        let mut refined_reference_to_sig: Vec<usize>;
+        let refined_reference_to_sig: Vec<usize>;
 
         (refined_reference_to_sig, self.scale_dacs_to_norm, self.shift_dacs_to_norm) = sequence_to_signal_refinement(
             self.scale_dacs_to_norm, 
@@ -176,6 +192,14 @@ fn sequence_to_signal_refinement(
     expected_levels: &Vec<f32>,
     settings: &RefineSettings
 ) -> Result<(Vec<usize>, f32, f32), SigMapRefineError> {
+    log::debug!(
+        "sequence_to_signal_refinement input: scale_measurements_to_norm = {}, shift_measurements_to_norm = {}, seqence_to_signal_map = {}, signal = {}, expected_levels = {}, settings = {:?}",
+        scale_measurements_to_norm, shift_measurements_to_norm, 
+        get_log_vector_sample(seqence_to_signal_map, 10), 
+        get_log_vector_sample(signal, 10), 
+        get_log_vector_sample(expected_levels, 10),
+        settings
+    );
     // Determine the rough scale and shift estimation function
     let (mut scale, mut shift) = match settings.rough_rescale_algo() {
         RoughRescaleAlgo::LeastSquares { 
@@ -218,7 +242,10 @@ fn sequence_to_signal_refinement(
     // If the user sets n_refinement_iters to 0, one round of mapping refinement 
     // is performed without rescaling afterwards
     let perform_rescaling = n_iterations > 0;
-    for _ in 0..n_iterations.max(1) {
+    let n_iter = n_iterations.max(1);
+    for i in 0..n_iter {
+        log::debug!("sequence_to_signal_refinement: Starting refinement iteration {} of {}", i, n_iter);
+
         // Normalize the signal with the scaling and shift parameters
         let signal_norm = signal
             .iter()
@@ -233,6 +260,7 @@ fn sequence_to_signal_refinement(
         )?;
 
         if perform_rescaling {
+            log::debug!("sequence_to_signal_refinement: Starting rescaling in iteration {}", i);
             (scale, shift) = rescale(
                 scale,
                 shift, 
@@ -243,6 +271,13 @@ fn sequence_to_signal_refinement(
             )?
         }
     }
+
+    log::debug!(
+        "sequence_to_signal_refinement output: sequence_to_signal_map_refined = {}, scale_dacs_to_norm = {}, shift_dacs_to_norm = {}", 
+        get_log_vector_sample(&sequence_to_signal_map_refined, 10),
+        scale,
+        shift
+    );
 
     Ok((sequence_to_signal_map_refined, scale, shift))
 }

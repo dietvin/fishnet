@@ -1,4 +1,4 @@
-use crate::refinement::refinement_core::bands::Band;
+use crate::{logger::get_log_vector_sample, refinement::refinement_core::bands::Band};
 
 /// Performs traceback to reconstruct the optimal path (i.e. where each base starts)
 ///
@@ -39,6 +39,14 @@ pub fn banded_traceback(
     base_offsets: &Vec<usize>,
     traceback: &Vec<i32>
 ) {
+    log::debug!(
+        "banded_traceback input: path = {}, band start = {}, band end = {}, base_offsets = {}, traceback = {}",
+        get_log_vector_sample(path, 10),
+        get_log_vector_sample(band.start(), 10),
+        get_log_vector_sample(band.end(), 10),
+        get_log_vector_sample(base_offsets, 10),
+        get_log_vector_sample(traceback, 10)
+    );
     let seq_band_start = band.start();
     let seq_band_end = band.end();
 
@@ -62,6 +70,12 @@ pub fn banded_traceback(
         // Record position where base_idx starts
         path[base_idx] = sig_lookup_pos - (next_sig_offset as usize);
     } 
+
+    log::debug!(
+        "banded_traceback output: path = {}", 
+        get_log_vector_sample(path, 10),
+    );
+
 }
 
 

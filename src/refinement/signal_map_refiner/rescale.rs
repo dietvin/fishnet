@@ -1,7 +1,7 @@
 use rand::seq::IteratorRandom;
 use rand::rng;
 
-use crate::{error::refinement_errors::rescale_errors::{LstsqError, QuantileCalcError, RescaleError, RoughRescaleError, TheilSenError}, refinement::settings::RescaleAlgo};
+use crate::{error::refinement_errors::rescale_errors::{LstsqError, QuantileCalcError, RescaleError, RoughRescaleError, TheilSenError}, logger::get_log_vector_sample, refinement::settings::RescaleAlgo};
 
 /// Rescales a signal using least squares estimation.
 ///
@@ -31,6 +31,16 @@ pub fn rough_rescale_lstsq(
     clip_bases: usize,
     use_base_center: bool
 ) -> Result<(f32, f32), RoughRescaleError> {
+    log::trace!(
+        "rough_rescale_lstsq input:  scale = {}, shift = {}, seq_to_signal_map = {}, 
+        levels = {}, signal = {}, quantiles = {}, clip_bases = {}, use_base_center = {}",
+        scale, shift, 
+        get_log_vector_sample(seq_to_signal_map, 10), 
+        get_log_vector_sample(levels, 10), 
+        get_log_vector_sample(signal, 10), 
+        get_log_vector_sample(quantiles, 10), 
+        clip_bases, use_base_center
+    );
     let (norm_signal_quantiles, level_quantiles) = prep_rough_rescale(
         scale, 
         shift, 
@@ -48,6 +58,11 @@ pub fn rough_rescale_lstsq(
         shift,
         scale
     )?;
+
+    log::trace!(
+        "rough_rescale_lstsq output: new_scale = {}, new_shift = {}",
+        new_scale, new_shift
+    );
 
     Ok((new_shift, new_scale))
 }
@@ -83,6 +98,17 @@ pub fn rough_rescale_theil_sen(
     clip_bases: usize,
     use_base_center: bool,
 ) -> Result<(f32, f32), RoughRescaleError> {
+    log::trace!(
+        "rough_rescale_theil_sen input:  scale = {}, shift = {}, seq_to_signal_map = {}, 
+        levels = {}, signal = {}, quantiles = {}, clip_bases = {}, use_base_center = {}",
+        scale, shift, 
+        get_log_vector_sample(seq_to_signal_map, 10), 
+        get_log_vector_sample(levels, 10), 
+        get_log_vector_sample(signal, 10), 
+        get_log_vector_sample(quantiles, 10), 
+        clip_bases, use_base_center
+    );
+
     let (norm_signal_quantiles, level_quantiles) = prep_rough_rescale(
         scale, 
         shift, 
@@ -104,6 +130,11 @@ pub fn rough_rescale_theil_sen(
         // values (quantiles) are used)
         0 
     )?;
+
+    log::trace!(
+        "rough_rescale_theil_sen output: new_scale = {}, new_shift = {}",
+        new_scale, new_shift
+    );
 
     Ok((new_shift, new_scale))
 }
@@ -460,6 +491,16 @@ pub fn rescale(
     signal: &Vec<f32>,
     rescale_algo: &RescaleAlgo
 ) -> Result<(f32, f32), RescaleError> {
+    log::debug!(
+        "rescale input: scale = {}, shift = {}, seq_to_signal_map = {}, levels = {}, signal = {}, rescale_algo = {:?}",
+        scale,
+        shift,
+        get_log_vector_sample(seq_to_signal_map, 10),
+        get_log_vector_sample(levels, 10),
+        get_log_vector_sample(signal, 10),
+        rescale_algo
+    );
+
     // Check if map and levels have a valid length
     let seq_to_signal_map_len = seq_to_signal_map.len();
     if seq_to_signal_map_len == 0 {
@@ -467,7 +508,6 @@ pub fn rescale(
     } else if levels.len() != seq_to_signal_map_len - 1 {
         return Err(RescaleError::InvalidLevelsLen(levels.len(), seq_to_signal_map_len - 1));
     }
-
 
     // Get the used parameters from the RescaleAlgo enum
     let (dwell_filter_lower_percentile,
@@ -571,7 +611,7 @@ pub fn rescale(
         .collect::<Vec<f32>>();
 
     // Calculate the new shift and scale parameters and return these
-    Ok(match rescale_algo {
+    let (new_shift, new_scale) = match rescale_algo {
         RescaleAlgo::TheilSen { .. } => theil_sen(
             &norm_signal, 
             &levels_filtered, 
@@ -585,7 +625,15 @@ pub fn rescale(
             shift,
             scale
         )?
-    })
+    };
+
+    log::debug!(
+        "rescale output: new_scale = {}, new_shift = {}",
+        new_scale,
+        new_shift
+    );
+
+    Ok((new_shift, new_scale))
 }
 
 

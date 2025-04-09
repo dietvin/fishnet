@@ -1,4 +1,4 @@
-use crate::{error::refinement_errors::refine_errors::RefineError, refinement::{refinement_core::bands::Band, settings::RefineSettings}};
+use crate::{error::refinement_errors::refine_errors::RefineError, logger::get_log_vector_sample, refinement::{refinement_core::bands::Band, settings::RefineSettings}};
 use super::dp_algorithm::banded_dp;
 
 
@@ -47,15 +47,36 @@ pub fn refinement(
     expected_levels: &Vec<f32>,
     settings: &RefineSettings
 ) -> Result<Vec<usize>, RefineError> {
+    log::debug!(
+        "refinement input: sequence_to_signal_map = {}, signal = {}, expected_levels = {}, settings = {:?}",
+        get_log_vector_sample(&sequence_to_signal_map, 10),
+        get_log_vector_sample(&signal, 10),
+        get_log_vector_sample(&expected_levels, 10),
+        settings,
+    );
+
     // trim the signal and adjust the boundaries in the map so it starts at signal index 0
     let sig_map_start = sequence_to_signal_map[0];
     let sig_map_end = sequence_to_signal_map[sequence_to_signal_map.len() - 1];
 
     let signal_trimmed = &signal[sig_map_start..sig_map_end];
+    
+    log::debug!(
+        "refinement signal trimming: sig_map_start = {}, sig_map_end = {}, signal_trimmed = {}",
+        sig_map_start,
+        sig_map_end,
+        get_log_vector_sample(signal_trimmed, 10)
+    );
+
     let sequence_to_signal_map_zeroed = sequence_to_signal_map
         .iter()
         .map(|el| el-sig_map_start)
         .collect::<Vec<usize>>();
+
+    log::debug!(
+        "refinement zeroed map: sequence_to_signal_map_zeroed = {}",
+        get_log_vector_sample(&sequence_to_signal_map_zeroed, 10)
+    );
 
     let mut band = Band::compute_signal_band(
         &sequence_to_signal_map_zeroed,
@@ -63,7 +84,18 @@ pub fn refinement(
         *settings.half_bandwidth(),
         true
     )?;
+    log::debug!(
+        "refinement signal band: band start = {}, band end = {}",
+        get_log_vector_sample(band.start(), 10),
+        get_log_vector_sample(band.end(), 10)
+    );
+
     band.convert_to_sequence_band(*settings.adjust_band_min_size())?;
+    log::debug!(
+        "refinement sequence band: band start = {}, band end = {}",
+        get_log_vector_sample(band.start(), 10),
+        get_log_vector_sample(band.end(), 10)
+    );
 
     let optimized_map = banded_dp(
         signal_trimmed, 
@@ -72,7 +104,12 @@ pub fn refinement(
         settings.refinement_algo()
     );
 
-    Ok(
-        optimized_map.iter().map(|el| el + sig_map_start).collect::<Vec<usize>>()
-    )
+    let optimized_map = optimized_map.iter().map(|el| el + sig_map_start).collect::<Vec<usize>>();
+
+    log::debug!(
+        "refinement output: optimized_map = {}", 
+        get_log_vector_sample(&optimized_map, 10),
+    );
+
+    Ok(optimized_map)
 }

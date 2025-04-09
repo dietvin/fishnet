@@ -1,3 +1,5 @@
+use crate::logger::get_log_vector_sample;
+
 const LARGE_SCORE: f32 = 100.0;
 
 
@@ -54,6 +56,16 @@ pub fn forward_step_viterbi(
     current_signal: &[f32],
     band_start_diff: usize
 ) {
+    log::trace!(
+        "forward_step_viterbi input: current_scores = {}, current_traceback = {}, previous_scores = {}, current_level = {}, current_signal = {}, band_start_diff = {}",
+        get_log_vector_sample(current_scores, 10),
+        get_log_vector_sample(current_traceback, 10),
+        get_log_vector_sample(previous_scores, 10),
+        current_level,
+        get_log_vector_sample(current_signal, 10),
+        band_start_diff
+    );
+
     // Handle start position in band
     if band_start_diff == 0 {
         // If this is a "stay" band start, set invalid score and traceback
@@ -98,6 +110,12 @@ pub fn forward_step_viterbi(
         current_scores[band_pos] = stay_score;
         current_traceback[band_pos] = current_traceback[band_pos - 1] + 1;
     }
+    
+    log::trace!(
+        "forward_step_viterbi updated: current_scores = {}, current_traceback = {}",
+        get_log_vector_sample(current_scores, 10),
+        get_log_vector_sample(current_traceback, 10)
+    );
 }
 
 
