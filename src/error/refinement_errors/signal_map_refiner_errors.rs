@@ -1,5 +1,6 @@
+use crate::error::alignment_errors::AlignedReadError;
+
 use super::kmer_table_errors::KmerTableError;
-use super::super::alignment_errors::aligned_read_errors::AlignedReadError;
 use super::refine_errors::RefineError;
 use super::rescale_errors::{RescaleError, RoughRescaleError};
 #[derive(Debug, thiserror::Error)]

@@ -6,5 +6,4 @@ pub enum RefineError {
     SignalBandError(#[from] SignalBandError),
     #[error("Sequence band error: {0}")]
     SequenceBandError(#[from] SequenceBandError)
-
 }
