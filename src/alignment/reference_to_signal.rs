@@ -1,5 +1,6 @@
-use super::super::error::alignment_errors::reference_to_signal_errors::RefToSignalError;
 use rust_htslib::bam::record::Cigar;
+use crate::error::alignment_errors::RefToSignalError;
+
 use super::helpers::{is_match_ops, calculate_knots, interpolate};
 
 /// Aligns a reference sequence to raw signal measurements.

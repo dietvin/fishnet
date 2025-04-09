@@ -1,8 +1,7 @@
 use rand::seq::IteratorRandom;
 use rand::rng;
 
-use crate::error::refinement_errors::rescale_errors::{LstsqError, QuantileCalcError, RescaleError, RoughRescaleError, TheilSenError};
-use super::settings::RescaleAlgo;
+use crate::{error::refinement_errors::rescale_errors::{LstsqError, QuantileCalcError, RescaleError, RoughRescaleError, TheilSenError}, refinement::settings::RescaleAlgo};
 
 /// Rescales a signal using least squares estimation.
 ///

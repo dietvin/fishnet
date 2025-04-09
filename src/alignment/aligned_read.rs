@@ -1,5 +1,6 @@
+use crate::error::alignment_errors::AlignedReadError;
+
 use super::super::loader::{bam::BamRead, pod5::Pod5Read};
-use super::super::error::alignment_errors::aligned_read_errors::AlignedReadError;
 use super::{query_to_signal, reference_to_signal};
 
 /// Represents a nanopore read with associated alignment information.

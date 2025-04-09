@@ -1,9 +1,8 @@
 pub mod rescale;
-pub mod settings;
 
-use settings::{RefineSettings, RoughRescaleAlgo, WhichToRefine};
 use crate::alignment::aligned_read::AlignedRead;
 use super::kmer_table::KmerTable;
+use super::settings::{RefineSettings, RoughRescaleAlgo, WhichToRefine};
 use self::rescale::{rough_rescale_lstsq, rough_rescale_theil_sen, rescale};
 use super::refinement_core::start_refinement::refinement;
 use super::super::error::refinement_errors::signal_map_refiner_errors::SigMapRefineError;

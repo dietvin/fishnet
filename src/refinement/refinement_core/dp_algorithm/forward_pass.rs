@@ -1,7 +1,7 @@
 use std::env::current_exe;
 
 use crate::refinement::refinement_core::bands::Band;
-use crate::refinement::signal_map_refiner::settings::RefineAlgo;
+use crate::refinement::settings::RefineAlgo;
 
 use super::forward_step::forward_step_viterbi;
 use super::forward_step_dwell_penalty::forward_step_dwell_penalty;

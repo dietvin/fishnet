@@ -1,5 +1,5 @@
-use crate::{error::refinement_errors::refine_errors::RefineError, refinement::refinement_core::bands::Band};
-use super::{super::signal_map_refiner::settings::RefineSettings, dp_algorithm::banded_dp};
+use crate::{error::refinement_errors::refine_errors::RefineError, refinement::{refinement_core::bands::Band, settings::RefineSettings}};
+use super::dp_algorithm::banded_dp;
 
 
 /// Refines a preliminary sequence-to-signal mapping using dynamic programming

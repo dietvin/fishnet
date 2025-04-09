@@ -1,4 +1,4 @@
-use super::super::error::alignment_errors::query_to_signal_errors::QueryToSignalError;
+use crate::error::alignment_errors::QueryToSignalError;
 
 /// Aligns the query (base-called) sequence to raw signal measurements.
 /// 

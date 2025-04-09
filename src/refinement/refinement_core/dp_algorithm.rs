@@ -6,7 +6,8 @@ mod forward_step_dwell_penalty;
 use forward_pass::forward_pass;
 use traceback::banded_traceback;
 
-use crate::refinement::signal_map_refiner::settings::RefineAlgo;
+
+use crate::refinement::settings::RefineAlgo;
 
 use super::bands::Band;
 

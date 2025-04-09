@@ -3,6 +3,8 @@
 // ########################################################################################################################
 use rust_htslib::bam::record::Cigar;
 
+use crate::error::alignment_errors::RefToSignalError;
+
 /// Determines if the given CIGAR element represents a sequence match operation.
 ///
 /// # Arguments
@@ -117,7 +119,6 @@ pub fn consumes_query(cigar: &Cigar) -> bool {
 }
 
 
-use super::super::error::alignment_errors::reference_to_signal_errors::RefToSignalError;
 
 /// Performs linear interpolation similar to NumPy's `interp` function.
 ///
