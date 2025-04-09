@@ -17,7 +17,7 @@ use log4rs::{append::file::FileAppender, config::{Appender, Root}, encode::patte
 /// * `Result<(), Box<dyn std::error::Error>>` - Success or an error if logger setup fails
 pub fn setup_logger(path: &str, level_filter: LevelFilter) -> Result<(), Box<dyn std::error::Error>> {
     let logfile = FileAppender::builder()
-        .encoder(Box::new(PatternEncoder::new("{d(%Y-%m-%d %H:%M:%S)} {M} : {l} - {m}\n")))
+        .encoder(Box::new(PatternEncoder::new("{d(%Y-%m-%d %H:%M:%S)} {M}:{L} {l} - {m}\n")))
         .build(path)?;
 
     let config = Config::builder()
@@ -30,38 +30,31 @@ pub fn setup_logger(path: &str, level_filter: LevelFilter) -> Result<(), Box<dyn
     Ok(())
 }
 
-/// Logs a sample of a vector showing both the first and last elements.
-///
-/// This function logs a debug message containing either the complete vector (if it's
-/// small enough) or a sample showing the first and last `n` elements.
-///
+/// Retrieves the first and last n elements from a given vector as a String.
+/// 
+/// This function retrieves the first and last n elements from a vector as 
+/// a String representation. The string is intended to be used for debug
+/// messages. If the vector is short enough, its entirety gets represented
+/// in the string.
+/// 
 /// # Arguments
 ///
 /// * `vec` - The vector to log
 /// * `n` - The number of elements to show from the beginning and end
-/// * `name` - Optional name to identify the vector in the log (defaults to "Vector")
-pub fn log_vector_sample<T: std::fmt::Debug>(
-    vec: &[T], 
-    n: usize,
-    name: Option<&str>
-) {
-    let vec_name = name.unwrap_or("Vector");
-    
+/// 
+/// # Returns
+/// 
+/// String containing the vector start and end.
+pub fn get_log_vector_sample<T: std::fmt::Debug>(vec: &[T], n: usize) -> String {
     if vec.len() <= n * 2 {
         // If vector is small enough, log the whole thing
-        log::debug!("{} (complete, {} items): {:?}", vec_name, vec.len(), vec);
+        format!("{:?}", vec)
     } else {
         // Create a representation showing first n and last n elements
         let first = &vec[..n];
         let last = &vec[vec.len() - n..];
         
         // Format the first and last parts together
-        log::debug!(
-            "{} ({} items): {:?} ... {:?}", 
-            vec_name,
-            vec.len(), 
-            first, 
-            last
-        );
+        format!("{:?} ... {:?}", first, last)
     }
 }
