@@ -1,5 +1,6 @@
 use std::{collections::HashMap, fs::File};
 use itertools::multizip;
+use log4rs::append::file;
 use pod5::{polars_arrow::array::Int16Array, reader};
 use super::{super::error::loader_errors::pod5_errors::{Pod5FileError, Pod5IndexError, Pod5ReadError}, helpers};
 
@@ -78,9 +79,9 @@ impl Pod5Read {
     /// The method handles these chunks by simply appending the latest chunk (in order of the rows in the df)
     /// to the signal already stored in the Pod5Read. This is assuming that the original order is retained in
     /// the pod5 file. When all chunks are added the length is equal to the num_samples value. 
-    fn add_signal_df_data(&mut self, signal_chunk: &mut Vec<i16>, signal_cunk_len: usize) {
+    fn add_signal_df_data(&mut self, signal_chunk: &mut Vec<i16>, signal_chunk_len: usize) {
         self.signal.append(signal_chunk);
-        self.num_samples += signal_cunk_len;
+        self.num_samples += signal_chunk_len;
     }
 
     /// Returns the unique identifier for this read
@@ -200,6 +201,11 @@ impl Pod5Read {
                     signal = signal[start..end].to_vec();
                 }
         
+                log::debug!(
+                    "update_signal info: trimmed signal contains data from signal[{}..{}]; sig. len before = {}, after = {}",
+                    start, end, self.num_samples, signal.len()
+                );
+
                 self.num_samples_trimmed = Some(signal.len());
                 self.signal_trimmed = Some(signal);
                 Ok(())
@@ -236,6 +242,8 @@ impl Pod5File {
     /// * `Pod5FileError::ReadDataError` - If required data columns are missing or malformed
     /// * `Pod5FileError::KeyError` - If a read_id in the read dataframe doesn't match any in the signal dataframe    
     pub fn new(path: &str) -> Result<Self, Pod5FileError> {
+        log::info!("Initializing Pod5File from path '{}'", path);
+
         let file = File::open(path)?;
         let mut pod5_reader = reader::Reader::from_reader(file)?;
 
@@ -339,6 +347,11 @@ impl Pod5File {
             }
         }
 
+        log::debug!(
+            "Pod5File::new info: from '{}'; num reads = {}", 
+            path, read_collection.len()
+        );
+
         Ok(Pod5File {
             path: path.to_string(),
             reads: read_collection
@@ -439,6 +452,8 @@ impl Pod5Index {
     pub fn from_dir(path: &str, recursive: bool) -> Result<Self, Pod5IndexError> {
         let file_paths = helpers::find_files_in_dir(path, "pod5", recursive)?;
 
+        log::info!("Initialized Pod5Index from '{}' containing {} files", path, file_paths.len());
+        
         Ok(Pod5Index {
             file_paths,
         })
@@ -458,6 +473,8 @@ impl Pod5Index {
     pub fn from_files(paths: &Vec<String>) -> Result<Self, Pod5IndexError> {
         let file_paths = helpers::get_files(paths, "pod5")?;
 
+        log::info!("Initialized Pod5Index from {} files", file_paths.len());
+
         Ok(Pod5Index {
             file_paths,
         })
@@ -475,6 +492,8 @@ impl Pod5Index {
     /// * `Pod5IndexError::LoadPod5Error` - If the Pod5 file cannot be loaded
     /// * `Pod5IndexError::FileNotFound` - If the file path is not in the collection
     pub fn load_file(&self, file_path: &str) -> Result<Pod5File, Pod5IndexError> {
+        log::info!("Loading file '{}'", file_path);
+        
         // Check if the file path is in the current collection
         if !self.file_paths.contains(&file_path.to_string()) {
             return Err(Pod5IndexError::FileNotFound(file_path.to_string()));

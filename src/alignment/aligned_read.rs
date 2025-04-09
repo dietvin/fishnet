@@ -1,4 +1,7 @@
+use log::log_enabled;
+
 use crate::error::alignment_errors::AlignedReadError;
+use crate::logger::get_log_vector_sample;
 
 use super::super::loader::{bam::BamRead, pod5::Pod5Read};
 use super::{query_to_signal, reference_to_signal};
@@ -37,6 +40,8 @@ impl<'a> AlignedRead<'a> {
     /// * Other errors if signal updating fails
     pub fn new(pod5_read: &'a mut Pod5Read, bam_read: &'a BamRead, reverse_signal: bool) -> Result<Self, AlignedReadError> {
         let pod5_id = pod5_read.read_id();
+        log::info!("Initializing AlignedRead '{}'", pod5_id);
+
         let bam_id = bam_read.read_id();
         if pod5_id != bam_id {
             return Err(AlignedReadError::IdMismatch(pod5_id.to_string(), bam_id.to_string()));
@@ -68,6 +73,8 @@ impl<'a> AlignedRead<'a> {
     /// * `Ok(())` - If the mapping was successfully computed
     /// * `Err(AlignedReadError)` - If there was an error computing the mapping
     pub fn align_query_to_signal(&mut self) -> Result<(), AlignedReadError> {
+        log::info!("Aligning query to signal '{}'", self.read_id());
+
         self.query_to_signal = Some(
             query_to_signal::align_query_to_signal(
                 self.bam_read.move_table(),
@@ -77,6 +84,12 @@ impl<'a> AlignedRead<'a> {
                 self.bam_read.query_length()
             )?
         );
+
+        log::debug!(
+            "align_query_to_signal info: read id = {}; alignment = {}", 
+            self.read_id(), get_log_vector_sample(self.query_to_signal().unwrap(), 10)
+        );
+
         Ok(())
     }
 
@@ -102,6 +115,8 @@ impl<'a> AlignedRead<'a> {
     /// * `AlignedReadError::RefBeforeQuery` - If query-to-signal mapping hasn't been computed
     /// * Other errors if the reference-to-signal mapping calculation fails
     pub fn align_reference_to_signal(&mut self) -> Result<(), AlignedReadError> {
+        log::info!("Aligning reference to signal '{}'", self.read_id());
+
         if !self.bam_read.is_mapped() {
             return Err(
                 AlignedReadError::Unmapped
@@ -128,6 +143,12 @@ impl<'a> AlignedRead<'a> {
         } else {
             return Err(AlignedReadError::RefBeforeQuery);
         }
+
+        log::debug!(
+            "align_reference_to_signal info: read id = {}; alignment = {}", 
+            self.read_id(), get_log_vector_sample(self.reference_to_signal().unwrap(), 10)
+        );
+
         Ok(())
     }
 

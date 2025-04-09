@@ -71,6 +71,9 @@ impl BamRead {
     /// * `Result<Self, BamReadError>` - A new BamRead instance or an error
     pub fn new(bam_record: Record) -> Result<Self, BamReadError> {
         let read_id = std::str::from_utf8(bam_record.qname())?.to_string();
+
+        log::info!("Initializing BamRead '{}'", read_id);
+
         let mut query = bam_record.seq().as_bytes();
         
         let query_length = query.len();
@@ -126,6 +129,11 @@ impl BamRead {
                 None
             )?;
         }
+
+        log::debug!(
+            "BamRead::new info: read id = {}; is mapped = {}; query length = {}, reference length = {:?}", 
+            read_id, mapped, query_length, reference_len
+        );
 
         Ok(BamRead {
             read_id,
@@ -366,6 +374,8 @@ impl BamFileLazy {
     ///
     /// This operation can be expensive for large BAM files as it requires a full scan.
     pub fn new(path: &str) -> Result<Self, BamFileError> {
+        log::info!("Initializing BamFileLazy from file '{}'", path);
+
         let mut bam = Reader::from_path(path)?;
         let mut index: HashMap<String, i64> = HashMap::new();
 
@@ -378,6 +388,8 @@ impl BamFileLazy {
             offset = bam.tell();
         }
 
+        log::debug!("BamFileLazy::new info: path = {}, #reads = {}", path, index.len());
+    
         Ok(BamFileLazy { 
             path: String::from(path), 
             bam_reader: bam, 
@@ -402,6 +414,8 @@ impl BamFileLazy {
     /// * `BamFileError::IndexError` - If the read ID is not found in the index
     /// * `BamFileError::ValueError` - If the record cannot be read after seeking
     pub fn get(&mut self, id: &str) -> Result<BamRead, BamFileError> {
+        log::info!("Loading BamRead '{}'", id);
+
         let offset = *self.index.get(id).ok_or(
             BamFileError::IndexError(String::from(id))
         )?;
