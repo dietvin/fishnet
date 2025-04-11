@@ -15,9 +15,14 @@ use log4rs::{append::file::FileAppender, config::{Appender, Root}, encode::patte
 /// # Returns
 ///
 /// * `Result<(), Box<dyn std::error::Error>>` - Success or an error if logger setup fails
-pub fn setup_logger(path: &str, level_filter: LevelFilter) -> Result<(), Box<dyn std::error::Error>> {
+pub fn setup_logger(path: &str, level_filter: LevelFilter, include_function_name: bool) -> Result<(), Box<dyn std::error::Error>> {
+    let pattern = if include_function_name {
+        "{d(%Y-%m-%d %H:%M:%S)}\t{l}\t{M}:{L}\t{m}\n"
+    } else {
+        "{d(%Y-%m-%d %H:%M:%S)}\t{l}\t{m}\n"
+    };
     let logfile = FileAppender::builder()
-        .encoder(Box::new(PatternEncoder::new("{d(%Y-%m-%d %H:%M:%S)} {M}:{L} {l} - {m}\n")))
+        .encoder(Box::new(PatternEncoder::new(pattern)))
         .build(path)?;
 
     let config = Config::builder()
