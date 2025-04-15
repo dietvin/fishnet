@@ -2,6 +2,8 @@ mod helpers;
 mod binary_kmer;
 
 use std::{collections::{HashMap, HashSet}, fs::File, io::{BufRead, BufReader}};
+use crate::logger::get_log_vector_sample;
+
 use self::binary_kmer::BinaryKmer;
 use self::helpers::{process_line, sort_and_index, determine_dominant_base, Median};
 use super::super::error::refinement_errors::kmer_table_errors::KmerTableError;
@@ -50,6 +52,8 @@ impl KmerTable {
     /// * `KmerTableError::FloatConversionError` - If a level value cannot be parsed as a float
     /// * `KmerTableError::BinaryKmerError` - If there's an error in the binary representation of a k-mer    
     pub fn new(path: &str) -> Result<Self, KmerTableError> {
+        log::info!("Initializing KmerTable from path: {}", path);
+
         let file = File::open(path)?;
         let file_buffer = BufReader::new(file);
 
@@ -102,6 +106,14 @@ impl KmerTable {
         );
 
         let dominant_base = determine_dominant_base(&kmers_sorted, k)?;
+
+        log::debug!(
+            "Initialized KmerTable: k = {}, kmers = {}, levels = {}, dominant_base = {}",
+            k,
+            get_log_vector_sample(&kmers_sorted.iter().map(|el| el.to_string()).collect::<Vec<String>>(), 10),
+            get_log_vector_sample(&levels_sorted, 10),
+            dominant_base
+        );
 
         Ok(KmerTable {
             index,
@@ -276,18 +288,11 @@ impl KmerTable {
         //  0 1 2 3 4 5
         //  |   |     | 
         //  s   m     e(not incl)
-        let mut current_kmer_target_idx = self.dominant_base;
-        let mut current_kmer_end = self.k;
-        while current_kmer_end <= seq.len() {
-            let current_kmer_ascii = &seq[(current_kmer_end - self.k)..current_kmer_end];
-            let kmer = BinaryKmer::from_ascii(current_kmer_ascii)?;
-
+        for pos in 0..(seq.len() - self.k + 1) {
+            let center_pos = pos + self.dominant_base;
+            let kmer = BinaryKmer::from_ascii(&seq[pos..(pos + self.k)])?;
             let level = self.get_from_binarykmer(&kmer)?;
-            
-            level_vec[current_kmer_target_idx] = level.clone();
-
-            current_kmer_target_idx += 1;
-            current_kmer_end += 1;
+            level_vec[center_pos] = *level;
         }
 
         Ok(level_vec)        
