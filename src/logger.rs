@@ -1,5 +1,5 @@
 use log::LevelFilter;
-use log4rs::{append::file::FileAppender, config::{Appender, Root}, encode::pattern::PatternEncoder, Config};
+use log4rs::{append::file::FileAppender, config::{Appender, Logger, Root}, encode::pattern::PatternEncoder, Config};
 
 
 /// Sets up a file-based logging system using log4rs.
@@ -15,23 +15,44 @@ use log4rs::{append::file::FileAppender, config::{Appender, Root}, encode::patte
 /// # Returns
 ///
 /// * `Result<(), Box<dyn std::error::Error>>` - Success or an error if logger setup fails
-pub fn setup_logger(path: &str, level_filter: LevelFilter, include_function_name: bool) -> Result<(), Box<dyn std::error::Error>> {
+pub fn setup_logger(
+    path: &str, 
+    default_level: LevelFilter,
+    module_filters: Vec<(&str, LevelFilter)>,
+    include_function_name: bool
+) -> Result<(), Box<dyn std::error::Error>> {
     let pattern = if include_function_name {
         "{d(%Y-%m-%d %H:%M:%S)}\t{l}\t{M}:{L}\t{m}\n"
     } else {
         "{d(%Y-%m-%d %H:%M:%S)}\t{l}\t{m}\n"
     };
+    
     let logfile = FileAppender::builder()
         .encoder(Box::new(PatternEncoder::new(pattern)))
         .build(path)?;
 
-    let config = Config::builder()
-        .appender(Appender::builder().build("logfile", Box::new(logfile)))
-        .build(Root::builder().appender("logfile").build(level_filter))?;
+    let mut config_builder = Config::builder()
+        .appender(Appender::builder().build("logfile", Box::new(logfile)));
+
+    let mut info_string = String::new();
+
+    for (module, level) in module_filters {
+        info_string.push_str(&format!("{}: {},", module, level));
+
+        let logger = Logger::builder()
+            .appender("logfile")
+            .additive(false)
+            .build(module, level);
+
+        config_builder = config_builder.logger(logger)
+    }
+
+    let config = config_builder
+        .build(Root::builder().appender("logfile").build(default_level))?;
 
     log4rs::init_config(config)?;
-
-    log::info!("Logger initialized. Writing to file: {}", path);
+    log::info!("Logger initialized. Writing to file: '{}'. Logging level(s):", path);
+    log::info!("Logging level root: {}, Module logging levels: {}", default_level, info_string);
     Ok(())
 }
 
