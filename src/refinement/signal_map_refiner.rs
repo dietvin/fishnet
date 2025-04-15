@@ -261,7 +261,7 @@ fn sequence_to_signal_refinement(
 
         if perform_rescaling {
             log::debug!("sequence_to_signal_refinement: Starting rescaling in iteration {}", i);
-            (scale, shift) = rescale(
+            (shift, scale) = rescale(
                 scale,
                 shift, 
                 &sequence_to_signal_map_refined,
