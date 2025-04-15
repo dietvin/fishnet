@@ -200,8 +200,8 @@ fn sequence_to_signal_refinement(
         get_log_vector_sample(expected_levels, 10),
         settings
     );
-    // Determine the rough scale and shift estimation function
-    let (mut scale, mut shift) = match settings.rough_rescale_algo() {
+    // Determine the rough shift and scale estimation function
+    let (mut shift, mut scale) = match settings.rough_rescale_algo() {
         RoughRescaleAlgo::LeastSquares { 
             quantiles, 
             clip_bases, 
@@ -234,7 +234,7 @@ fn sequence_to_signal_refinement(
                 *use_base_center,
             )?
         }   
-        RoughRescaleAlgo::NoRoughRescaling => (scale_measurements_to_norm, shift_measurements_to_norm) 
+        RoughRescaleAlgo::NoRoughRescaling => (shift_measurements_to_norm, scale_measurements_to_norm) 
     };
     let mut sequence_to_signal_map_refined = seqence_to_signal_map.clone();
 
