@@ -32,8 +32,7 @@ pub fn rough_rescale_lstsq(
     use_base_center: bool
 ) -> Result<(f32, f32), RoughRescaleError> {
     log::trace!(
-        "rough_rescale_lstsq input:  scale = {}, shift = {}, seq_to_signal_map = {}, 
-        levels = {}, signal = {}, quantiles = {}, clip_bases = {}, use_base_center = {}",
+        "rough_rescale_lstsq input:  scale = {}, shift = {}, seq_to_signal_map = {}, levels = {}, signal = {}, quantiles = {}, clip_bases = {}, use_base_center = {}",
         scale, shift, 
         get_log_vector_sample(seq_to_signal_map, 10), 
         get_log_vector_sample(levels, 10), 
@@ -59,7 +58,7 @@ pub fn rough_rescale_lstsq(
         scale
     )?;
 
-    log::trace!(
+    log::debug!(
         "rough_rescale_lstsq output: new_scale = {}, new_shift = {}",
         new_scale, new_shift
     );
@@ -99,8 +98,7 @@ pub fn rough_rescale_theil_sen(
     use_base_center: bool,
 ) -> Result<(f32, f32), RoughRescaleError> {
     log::trace!(
-        "rough_rescale_theil_sen input:  scale = {}, shift = {}, seq_to_signal_map = {}, 
-        levels = {}, signal = {}, quantiles = {}, clip_bases = {}, use_base_center = {}",
+        "rough_rescale_theil_sen input:  scale = {}, shift = {}, seq_to_signal_map = {}, levels = {}, signal = {}, quantiles = {}, clip_bases = {}, use_base_center = {}",
         scale, shift, 
         get_log_vector_sample(seq_to_signal_map, 10), 
         get_log_vector_sample(levels, 10), 
@@ -131,7 +129,7 @@ pub fn rough_rescale_theil_sen(
         0 
     )?;
 
-    log::trace!(
+    log::debug!(
         "rough_rescale_theil_sen output: new_scale = {}, new_shift = {}",
         new_scale, new_shift
     );
