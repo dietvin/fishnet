@@ -1,4 +1,4 @@
-use crate::error::refinement_errors::band_errors::{BandValidationError, SequenceBandError, SignalBandError};
+use crate::{error::refinement_errors::band_errors::{BandValidationError, SequenceBandError, SignalBandError}, logger::get_log_vector_sample};
 use std::fmt;
 
 /// Enum representing the type of a band: SignalBand or SequenceBand.
@@ -86,6 +86,14 @@ impl Band {
         half_bandwidth: usize,
         is_banded: bool    
     ) -> Result<Self, SignalBandError> {
+        log::debug!(
+            "compute_signal_band input: sequence_to_signal_map = {}, sequence_len = {}, half_bandwidth = {}, is_banded = {}",
+            get_log_vector_sample(map, 10),
+            sequence_len,
+            half_bandwidth,
+            is_banded,
+        );
+    
         if is_banded && half_bandwidth == 0 {
             return Err(SignalBandError::InvalidOptions(half_bandwidth, is_banded));
         }
@@ -132,6 +140,12 @@ impl Band {
             end 
         };
         Band::validate_signal_band(&band, signal_len, sequence_len)?;
+
+        log::debug!(
+            "compute_signal_band output: band_start = {}, band_end = {}",
+            get_log_vector_sample(&band.start, 10),
+            get_log_vector_sample(&band.end, 10)
+        );
 
         Ok(band)
     }
@@ -189,6 +203,13 @@ impl Band {
     /// * `Ok(())` if successful, or an error if validation fails
     ///   or the band at hand is already a sequence band.
     pub fn convert_to_sequence_band(&mut self, min_step: usize) -> Result<(), SequenceBandError> {
+        log::debug!(
+            "convert_to_sequence_band input: self.start = {}, self.end = {}, min_step = {}",
+            get_log_vector_sample(self.start(), 10),
+            get_log_vector_sample(self.end(), 10),
+            min_step
+        );
+
         if self.band_type == BandType::SequenceBand {
             return Err(SequenceBandError::AlreadySequenceBand);
         }
@@ -199,42 +220,52 @@ impl Band {
         let mut sequence_start = vec![0; sequence_len];
         let mut sequence_end = vec![signal_len; sequence_len];
 
-        let mut prev_e = self.end[0];
-        let mut prev_s = self.start[0];
-        
-        for (signal_idx, (e, s)) in self.end.iter()
-            .zip(self.start.iter())
-            .enumerate() 
-            .skip(1) {
-            // fill the start values
-            if prev_e != *e {
-                // Index doesn't need to be corrected (i.e. -1) as we skipped 
-                // the first position and enumerate is called afterwards
-                let lower_signal_pos = signal_idx;
-                let lower_sequence_pos = self.end[lower_signal_pos];
-
-                sequence_start[lower_sequence_pos - 1] = lower_signal_pos;
-                
-                prev_e = *e;
+        // Find positions where changes occur in end array (equivalent to lower_sig_pos in Python)
+        for (signal_idx, window) in self.end.windows(2).enumerate() {
+            if window[0] != window[1] {
+                let lower_signal_pos = signal_idx + 1;  // +1 because we're looking at windows
+                let lower_base_pos = self.end[signal_idx];  // This is equivalent to sig_band[1, lower_sig_pos - 1]
+                sequence_start[lower_base_pos] = lower_signal_pos;
+                println!("Processed signal index {}: {}", lower_base_pos, lower_signal_pos);
             }
-            // fill the end values
-            if prev_s != *s {
-                let upper_signal_pos = signal_idx;
-                let upper_sequence_pos = self.start[upper_signal_pos];
+        }
 
-                sequence_end[upper_sequence_pos - 1] = upper_signal_pos;
-
-                prev_s = *s;
+        // Find positions where changes occur in start array (equivalent to upper_sig_pos in Python)
+        for (signal_idx, window) in self.start.windows(2).enumerate() {
+            if window[0] != window[1] {
+                let upper_signal_pos = signal_idx + 1;  // +1 because we're looking at windows
+                let upper_base_pos = self.start[upper_signal_pos];
+                sequence_end[upper_base_pos - 1] = upper_signal_pos;
             }
         }
         
+        let mut max_so_far = 0;
+        for idx in 0..sequence_start.len() {
+            max_so_far = max_so_far.max(sequence_start[idx]);
+            sequence_start[idx] = max_so_far;
+        }
+
+        let mut min_so_far = signal_len;
+        for idx in (0..sequence_end.len()).rev() {
+            min_so_far = min_so_far.min(sequence_end[idx]);
+            sequence_end[idx] = min_so_far;
+        }
+
         self.band_type = BandType::SequenceBand;
         self.start = sequence_start;
         self.end = sequence_end;
 
+        println!("Full:\n{:?}", self.start);
+
         self.adjust_sequence_band(min_step)?;
 
         Band::validate_sequence_band(self, signal_len, sequence_len)?;
+
+        log::debug!(
+            "convert_to_sequence_band output: self.start = {}, self.end = {}",
+            get_log_vector_sample(self.start(), 10),
+            get_log_vector_sample(self.end(), 10)
+        );
 
         Ok(())
     }
@@ -260,6 +291,13 @@ impl Band {
     /// 
     /// The first start position and last end position are preserved from the original band.
     fn adjust_sequence_band(&mut self, min_step: usize) -> Result<(), SequenceBandError> {
+        log::debug!(
+            "adjust_sequence_band input: self.start = {}, self.end = {}, min_step = {}",
+            get_log_vector_sample(self.start(), 10),
+            get_log_vector_sample(self.end(), 10),
+            min_step
+        );
+
         // Remember the initial values for first start and last end
         let band_min = self.start[0];
         let band_max = self.end[self.end.len() - 1];
@@ -303,6 +341,13 @@ impl Band {
                 seq_pos -= 1;
             }
         }
+
+        log::debug!(
+            "adjust_sequence_band input: self.start = {}, self.end = {}, min_step = {}",
+            get_log_vector_sample(self.start(), 10),
+            get_log_vector_sample(self.end(), 10),
+            min_step
+        );
         
         Ok(())
     }
