@@ -1,10 +1,9 @@
 pub mod forward_pass;
-mod traceback;
+pub mod traceback;
 pub mod forward_step;
 mod forward_step_dwell_penalty;
 
 use forward_pass::forward_pass;
-use polars::prelude::all;
 use traceback::banded_traceback;
 
 
