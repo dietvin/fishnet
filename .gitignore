@@ -21,4 +21,4 @@ Cargo.lock
 #.idea/
 
 tests/full_implementation/*/*.json
-remora_test_by_step/*
+remora_step_by_step/
