@@ -226,7 +226,6 @@ impl Band {
                 let lower_signal_pos = signal_idx + 1;  // +1 because we're looking at windows
                 let lower_base_pos = self.end[signal_idx];  // This is equivalent to sig_band[1, lower_sig_pos - 1]
                 sequence_start[lower_base_pos] = lower_signal_pos;
-                println!("Processed signal index {}: {}", lower_base_pos, lower_signal_pos);
             }
         }
 
@@ -254,8 +253,6 @@ impl Band {
         self.band_type = BandType::SequenceBand;
         self.start = sequence_start;
         self.end = sequence_end;
-
-        println!("Full:\n{:?}", self.start);
 
         self.adjust_sequence_band(min_step)?;
 
