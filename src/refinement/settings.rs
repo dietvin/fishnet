@@ -35,36 +35,27 @@ pub struct RefineSettings {
     normalize_levels: bool,
 }
 
-impl RefineSettings {
+impl Default for RefineSettings {
     /// Returns the default settings, which match the original Python implementation.
     /// 
     /// # Returns
     /// 
     /// * `RefineSettings` - The default settings.
-    pub fn default() -> Self {
+    fn default() -> Self {
         RefineSettings {
-            which_map_to_refine: WhichToRefine::Query,
-            rough_rescale_algo: RoughRescaleAlgo::NoRoughRescaling,
-            rescale_algo: RescaleAlgo::TheilSen { 
-                dwell_filter_lower_percentile: 0.1,
-                dwell_filter_upper_percentile: 0.9,
-                min_abs_level: 0.2,
-                n_bases_truncate: 10,
-                min_num_filtered_levels: 10,        
-                max_points: 1000 
-            },
-            refinement_algo: RefineAlgo::DwellPenalty { 
-                target: 4.0,
-                limit: 3.0,
-                weight: 0.5 
-            },
+            which_map_to_refine: WhichToRefine::default(),
+            rough_rescale_algo: RoughRescaleAlgo::default(),
+            rescale_algo: RescaleAlgo::default(),
+            refinement_algo: RefineAlgo::default(),
             normalize_levels: false,
             n_refinement_iters: 1,
             half_bandwidth: 5,
             adjust_band_min_size: 2
         }
     }
+}
 
+impl RefineSettings {
     /// Creates a custom settings configuration.
     /// 
     /// This function allows for custom settings for the refinement.
@@ -152,6 +143,15 @@ pub enum WhichToRefine {
     Reference
 }
 
+impl Default for WhichToRefine {
+    /// Returns the default option for which alignment to refine. 
+    /// Default: WhichToRefine::Query
+    fn default() -> Self {
+        Self::Query
+    }
+}
+
+
 /// Enumeration of available refinement algorithms.
 #[derive(Debug, Clone, PartialEq)]
 pub enum RefineAlgo {
@@ -168,6 +168,28 @@ pub enum RefineAlgo {
         weight: f32
     }
 }
+
+impl RefineAlgo {
+    /// Returns the default option for dwell penalty refinement. 
+    /// 
+    /// Default options are:
+    /// * target = 4.0
+    /// * limit = 3.0
+    /// * weight = 0.5
+    pub fn default_dwell_penalty() -> Self {
+        Self::DwellPenalty { target: 4.0, limit: 3.0, weight: 0.5 }
+    }
+}
+
+impl Default for RefineAlgo {
+    /// Returns the default option for the refinement algorithm. 
+    /// 
+    /// Default: Self::DwellPenalty { target: 4.0, limit: 3.0, weight: 0.5 }
+    fn default() -> Self {
+        Self::default_dwell_penalty()
+    }
+}
+
 
 /// Enumeration of algorithms for rough rescaling of signals.
 #[derive(Debug, Clone, PartialEq)]
@@ -205,6 +227,54 @@ pub enum RoughRescaleAlgo {
         use_base_center: bool,
     }
 }
+
+impl RoughRescaleAlgo {
+    /// Returns the default options for rough rescaling using least squares. 
+    /// 
+    /// Default options are:
+    /// * quantiles = 0.05 to 0.95 in steps of 0.05
+    /// * clip_bases = 10
+    /// * use_base_center = true
+    pub fn default_least_squares() -> Self {
+        Self::LeastSquares { 
+            quantiles: vec![
+                0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4,
+                0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8,
+                0.85, 0.9, 0.95,
+            ], 
+            clip_bases: 10, 
+            use_base_center: true 
+        }
+    }
+
+    /// Returns the default options for rough rescaling using theil sen. 
+    /// 
+    /// Default options are:
+    /// * quantiles = 0.05 to 0.95 in steps of 0.05
+    /// * clip_bases = 10
+    /// * use_base_center = true
+    pub fn default_theil_sen() -> Self {
+        RoughRescaleAlgo::TheilSen {
+            quantiles: vec![
+                0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4,
+                0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8,
+                0.85, 0.9, 0.95,
+            ],
+            clip_bases: 10,
+            use_base_center: true,
+        }
+    }
+}
+
+impl Default for RoughRescaleAlgo {
+    /// Returns the default option for rough rescaling. 
+    /// 
+    /// Default: RoughRescaleAlgo::NoRoughRescaling
+    fn default() -> Self {
+        Self::NoRoughRescaling
+    }
+}
+
 
 /// Enumeration of algorithms for precise signal rescaling.
 #[derive(Debug, Clone, PartialEq)]
@@ -251,5 +321,60 @@ pub enum RescaleAlgo {
         n_bases_truncate: usize,
         min_num_filtered_levels: usize,
         max_points: usize
+    }
+}
+
+impl RescaleAlgo {
+    /// Returns the default options for rescaling using least squares. 
+    /// 
+    /// Default options are:
+    /// * dwell_filter_lower_percentile = 0.1
+    /// * dwell_filter_upper_percentile = 0.9
+    /// * min_abs_level = 0.2
+    /// * n_bases_truncate = 10
+    /// * min_num_filtered_levels = 10
+    pub fn default_least_squares() -> Self {
+        RescaleAlgo::LeastSquares {
+            dwell_filter_lower_percentile: 0.1,
+            dwell_filter_upper_percentile: 0.9,
+            min_abs_level: 0.2,
+            n_bases_truncate: 10,
+            min_num_filtered_levels: 10,
+        }
+    }
+
+    /// Returns the default options for rescaling using theil sen. 
+    /// 
+    /// Default options are:
+    /// * dwell_filter_lower_percentile = 0.1
+    /// * dwell_filter_upper_percentile = 0.9
+    /// * min_abs_level = 0.2
+    /// * n_bases_truncate = 10
+    /// * min_num_filtered_levels = 10
+    /// * max_points = 1000
+    pub fn default_theil_sen() -> Self {
+        RescaleAlgo::TheilSen {
+            dwell_filter_lower_percentile: 0.1,
+            dwell_filter_upper_percentile: 0.9,
+            min_abs_level: 0.2,
+            n_bases_truncate: 10,
+            min_num_filtered_levels: 10,
+            max_points: 1000,
+        }
+    }
+}
+
+impl Default for RescaleAlgo {
+    /// Returns the default option for rough rescaling. 
+    /// 
+    /// Default: Theil sen with the following options
+    /// * dwell_filter_lower_percentile = 0.1
+    /// * dwell_filter_upper_percentile = 0.9
+    /// * min_abs_level = 0.2
+    /// * n_bases_truncate = 10
+    /// * min_num_filtered_levels = 10
+    /// * max_points = 1000
+    fn default() -> Self {
+        Self::default_theil_sen()
     }
 }
