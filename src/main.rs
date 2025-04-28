@@ -5,12 +5,10 @@ mod refinement;
 mod logger;
 
 use alignment::aligned_read::AlignedRead;
-use fishnet::{logger::setup_logger, refinement::signal_map_refiner};
-
 
 use loader::bam::BamFileLazy;
 use loader::pod5::Pod5Index;
-use refinement::{settings::{RefineAlgo, RefineSettings, RescaleAlgo, RoughRescaleAlgo, WhichToRefine}, signal_map_refiner::SigMapRefiner};
+use refinement::{kmer_table::KmerTable, settings::{RefineAlgo, RefineSettings, RescaleAlgo, RoughRescaleAlgo, WhichToRefine}, signal_map_refiner::SigMapRefiner};
 
 fn main() {
     let path: &str = "example_data/can_mappings.bam";
@@ -32,6 +30,12 @@ fn main() {
         true
     );
 
+    // Set up the kmer table from the provided file path
+    let mut kmer_table = KmerTable::new("example_data/levels.txt").unwrap();
+    if *refine_settings.normalize_levels() {
+        kmer_table.fix_gauge().unwrap();
+    }
+
     for read in index.reads() {
         let (file_path, read_id, mut pod5_read) = read.unwrap();
         println!("Processing {} found in file {}", read_id, file_path);
@@ -50,9 +54,10 @@ fn main() {
             aligned_read.align_reference_to_signal().unwrap();
         }
 
+
         // Initialize the SigMapRefiner
         let mut sig_map_refiner: SigMapRefiner<'_> = SigMapRefiner::new(
-            "example_data/levels.txt", 
+            &kmer_table, 
             &aligned_read, 
             &refine_settings
         ).unwrap();

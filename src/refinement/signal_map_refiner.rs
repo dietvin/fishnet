@@ -11,7 +11,7 @@ use super::super::error::refinement_errors::signal_map_refiner_errors::SigMapRef
 /// Structure that handles the refinement process
 #[derive(Debug)]
 pub struct SigMapRefiner<'a> {
-    kmer_table: KmerTable,
+    kmer_table: &'a KmerTable,
     aligned_read: &'a AlignedRead<'a>,
     settings: &'a RefineSettings,
 
@@ -26,21 +26,15 @@ impl<'a> SigMapRefiner<'a> {
     /// Initializes a new refinement instance from the path to a kmer level table,
     /// an aligned read object and settings for the refinement
     pub fn new(
-        kmer_table_path: &str,
+        kmer_table: &'a KmerTable,
         aligned_read: &'a AlignedRead<'a>,
         settings: &'a RefineSettings
     ) -> Result<Self, SigMapRefineError> {
         log::info!(
             "Initializing SigMapRefiner from kmer table '{}' for read '{}'", 
-            kmer_table_path, aligned_read.read_id()
+            kmer_table.source_path(), aligned_read.read_id()
         );
         log::debug!("SigMapRefiner::new {}: Using the following settings: {:?}", aligned_read.read_id(), settings);
-
-        // Set up the kmer table from the provided file path
-        let mut kmer_table = KmerTable::new(kmer_table_path)?;
-        if *settings.normalize_levels() {
-            kmer_table.fix_gauge()?;
-        }
 
         // Calculate the scaling scale and shift from the 
         let (scale_dacs_to_norm, shift_dacs_to_norm) = calculate_initial_scaling_shift(
