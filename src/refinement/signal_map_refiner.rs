@@ -13,7 +13,7 @@ use super::super::error::refinement_errors::signal_map_refiner_errors::SigMapRef
 pub struct SigMapRefiner<'a> {
     kmer_table: KmerTable,
     aligned_read: &'a AlignedRead<'a>,
-    settings: RefineSettings,
+    settings: &'a RefineSettings,
 
     scale_dacs_to_norm: f32,
     shift_dacs_to_norm: f32,
@@ -28,7 +28,7 @@ impl<'a> SigMapRefiner<'a> {
     pub fn new(
         kmer_table_path: &str,
         aligned_read: &'a AlignedRead<'a>,
-        settings: RefineSettings
+        settings: &'a RefineSettings
     ) -> Result<Self, SigMapRefineError> {
         log::info!(
             "Initializing SigMapRefiner from kmer table '{}' for read '{}'", 
