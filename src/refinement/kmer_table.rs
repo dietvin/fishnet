@@ -22,7 +22,9 @@ pub struct KmerTable{
     /// The length of k-mers stored in this table
     k: usize,
     /// Index of the position in k-mers that has the most influence on levels
-    dominant_base: usize
+    dominant_base: usize,
+    /// Path to the underlying file
+    source_path: String
 }
 
 impl KmerTable {
@@ -120,7 +122,8 @@ impl KmerTable {
             kmers: kmers_sorted,
             levels: levels_sorted,
             k,
-            dominant_base
+            dominant_base,
+            source_path: path.to_string()
         })
     }
 
@@ -250,6 +253,17 @@ impl KmerTable {
     pub fn dominant_base(&self) -> usize {
         self.dominant_base
     }
+
+
+    /// Returns the path to the table file
+    ///
+    /// # Returns
+    ///
+    /// * `&str` - Path to the kmer table file
+    pub fn source_path(&self) -> &str {
+        &self.source_path
+    }
+
 
     /// Extracts the expected levels for a given sequence
     ///
