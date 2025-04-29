@@ -185,16 +185,16 @@ impl Config {
                 CliError::ArgumentNone("rough-rescale-quants-max".to_string())
             )?;
     
-            let rough_rescale_quants_step = *matches.get_one::<usize>("rough-rescale-quants-steps").ok_or(
+            let rough_rescale_quants_steps = *matches.get_one::<usize>("rough-rescale-quants-steps").ok_or(
                 CliError::ArgumentNone("rough-rescale-quants-steps".to_string())
             )?;
 
-            // TODO: Check that rough_rescale_quants_min < rough_rescale_quants_max and rough_rescale_quants_step > 2
+            // TODO: Check that rough_rescale_quants_min < rough_rescale_quants_max and rough_rescale_quants_steps > 2
 
             let quantiles = calc_quantiles(
                 rough_rescale_quants_min, 
                 rough_rescale_quants_max,
-                rough_rescale_quants_step
+                rough_rescale_quants_steps
             );
     
             let rough_rescale_clip_bases = *matches.get_one::<usize>("rough-rescale-clip-bases").ok_or(

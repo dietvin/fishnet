@@ -126,7 +126,7 @@ pub fn parse_command_line() -> ArgMatches {
             Arg::new("refine-iters")
                 .long("refine-iters")
                 .help("Number of refinement iterations")
-                .value_parser(value_parser!(u32))
+                .value_parser(value_parser!(usize))
                 .default_value("2"),
         )
         .arg(
@@ -193,8 +193,8 @@ pub fn parse_command_line() -> ArgMatches {
         .arg(
             Arg::new("rough-rescale-quants-steps")
                 .long("rough-rescale-quants-steps")
-                .value_parser(value_parser!(f32))
-                .default_value("0.05"),
+                .value_parser(value_parser!(usize))
+                .default_value("19"),
         )
         .arg(
             Arg::new("rough-rescale-clip-bases")
