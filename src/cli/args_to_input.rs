@@ -1,0 +1,347 @@
+use std::path::PathBuf;
+
+use clap::ArgMatches;
+use log::LevelFilter;
+
+use crate::{core::refinement::settings::{RefineAlgo, RefineSettings, RescaleAlgo, RoughRescaleAlgo, WhichToRefine}, error::cli_errors::CliError};
+
+use super::helpers::{calc_quantiles, check_and_get_pod5_input, check_dir, check_file};
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum WhichToAlign {
+    Both,
+    Query,
+    Reference
+}
+
+impl Default for WhichToAlign {
+    fn default() -> Self {
+        WhichToAlign::Query
+    }
+}
+
+pub struct Config {
+    bam_input: PathBuf,
+    pod5_input: Vec<PathBuf>,
+    kmer_table_input: PathBuf,
+    output_dir: PathBuf,
+
+    alignment_type: WhichToAlign,
+    n_threads: usize,
+    debug_level: LevelFilter,
+
+    refine_settings: RefineSettings
+}
+
+impl Config {
+    pub fn from_argmatches(matches: ArgMatches) -> Result<Self, CliError> {
+        
+        // Required arguments
+
+        let bam_input = matches.get_one::<PathBuf>("bam").ok_or(
+            CliError::ArgumentNone("bam".to_string())
+        )?.clone();
+
+        check_file(&bam_input, "bam")?;
+
+        let pod5_input_raw = matches.get_many::<PathBuf>("pod5").ok_or(
+            CliError::ArgumentNone("pod5".to_string()) 
+        )?.map(|buf| buf.clone()).collect::<Vec<PathBuf>>();
+
+        let pod5_input = check_and_get_pod5_input(pod5_input_raw)?;
+
+        let kmer_table_input = matches.get_one::<PathBuf>("kmer-table").ok_or(
+            CliError::ArgumentNone("kmer-table".to_string())
+        )?.clone();
+
+        check_file(&kmer_table_input, "txt")?;
+
+        let output_dir = matches.get_one::<PathBuf>("output-dir").ok_or(
+            CliError::ArgumentNone("output-dir".to_string()) 
+        )?.clone();
+
+        check_dir(&output_dir)?;
+
+
+        // Optional general arguments
+
+        let alignment_type_raw = matches.get_one::<String>("alignment-type").ok_or(
+            CliError::ArgumentNone("alignment-type".to_string()) 
+        )?.clone();
+
+        let alignment_type = match alignment_type_raw.as_str() {
+            "query" => WhichToAlign::Query,
+            "reference" => WhichToAlign::Reference,
+            "both" => WhichToAlign::Both,
+            _ => unreachable!()
+        };
+
+        let num_threads = *matches.get_one::<usize>("threads").ok_or(
+            CliError::ArgumentNone("threads".to_string()) 
+        )?;
+
+        if num_threads == 0 {
+            return Err(
+                CliError::InvalidArgument("threads".to_string(), 0.to_string())
+            );
+        }
+
+        let debug_level_raw = matches.get_one::<String>("debug-level").ok_or(
+            CliError::ArgumentNone("debug-level".to_string()) 
+        )?.clone();
+
+        let debug_level = match debug_level_raw.as_str() {
+            "off" => LevelFilter::Off,
+            "error" => LevelFilter::Off,
+            "warn" => LevelFilter::Warn,
+            "info" => LevelFilter::Info,
+            "debug" => LevelFilter::Debug,
+            "trace" => LevelFilter::Trace,
+            _ => unreachable!()
+        };
+
+
+        // Optional refinement arguments
+
+        let refine_iters = *matches.get_one::<usize>("refine-iters").ok_or(
+            CliError::ArgumentNone("refine-iters".to_string())
+        )?;
+
+        let refine_algo_str = matches.get_one::<String>("refine-algo").ok_or(
+            CliError::ArgumentNone("refine-algo".to_string())
+        )?.clone();
+
+        let refine_algo = match refine_algo_str.as_str() {
+            "viterbi" => RefineAlgo::Viterbi,
+            "dwell-penalty" => {
+                let dwell_penalty_target = *matches.get_one::<f32>("dwell-penalty-target").ok_or(
+                    CliError::ArgumentNone("dwell-penalty-target".to_string())
+                )?;
+                if dwell_penalty_target < 0.0 {
+                    return Err(
+                        CliError::InvalidArgument("dwell-penalty-target".to_string(), dwell_penalty_target.to_string())
+                    );
+                }
+
+                let dwell_penalty_limit = *matches.get_one::<f32>("dwell-penalty-limit").ok_or(
+                    CliError::ArgumentNone("dwell-penalty-limit".to_string())
+                )?;
+                if dwell_penalty_limit < 0.0 {
+                    return Err(
+                        CliError::InvalidArgument("dwell-penalty-limit".to_string(), dwell_penalty_limit.to_string())
+                    );
+                }
+                
+                let dwell_penalty_weight = *matches.get_one::<f32>("dwell-penalty-weight").ok_or(
+                    CliError::ArgumentNone("dwell-penalty-weight".to_string())
+                )?;
+                if dwell_penalty_weight < 0.0 {
+                    return Err(
+                        CliError::InvalidArgument("dwell-penalty-weight".to_string(), dwell_penalty_weight.to_string())
+                    );
+                }
+
+                RefineAlgo::DwellPenalty { 
+                    target: dwell_penalty_target, 
+                    limit: dwell_penalty_limit, 
+                    weight: dwell_penalty_weight
+                }
+            }
+            _ => unreachable!()
+        };
+
+        let half_bandwidth = *matches.get_one::<usize>("half-bandwidth").ok_or(
+            CliError::ArgumentNone("half-bandwidth".to_string())
+        )?;
+        if half_bandwidth == 0 {
+            return Err(
+                CliError::InvalidArgument("half-bandwidth".to_string(), half_bandwidth.to_string())
+            );
+        }
+
+        let min_band_size = *matches.get_one::<usize>("min-band-size").ok_or(
+            CliError::ArgumentNone("min-band-size".to_string())
+        )?;
+        if min_band_size == 0 {
+            return Err(
+                CliError::InvalidArgument("min-band-size".to_string(), min_band_size.to_string())
+            );
+        }
+
+        let normalize_levels = matches.get_flag("normalize-levels");
+
+        let rough_rescale_algo_str = matches.get_one::<String>("rough-rescale-algo").ok_or(
+            CliError::ArgumentNone("rough-rescale-algo".to_string())
+        )?.clone();
+
+        let rough_rescale_algo = if rough_rescale_algo_str.as_str() == "none" {
+            RoughRescaleAlgo::NoRoughRescaling
+        } else {
+            let rough_rescale_quants_min = *matches.get_one::<f32>("rough-rescale-quants-min").ok_or(
+                CliError::ArgumentNone("rough-rescale-quants-min".to_string())
+            )?;
+    
+            let rough_rescale_quants_max = *matches.get_one::<f32>("rough-rescale-quants-max").ok_or(
+                CliError::ArgumentNone("rough-rescale-quants-max".to_string())
+            )?;
+    
+            let rough_rescale_quants_step = *matches.get_one::<usize>("rough-rescale-quants-steps").ok_or(
+                CliError::ArgumentNone("rough-rescale-quants-steps".to_string())
+            )?;
+
+            // TODO: Check that rough_rescale_quants_min < rough_rescale_quants_max and rough_rescale_quants_step > 2
+
+            let quantiles = calc_quantiles(
+                rough_rescale_quants_min, 
+                rough_rescale_quants_max,
+                rough_rescale_quants_step
+            );
+    
+            let rough_rescale_clip_bases = *matches.get_one::<usize>("rough-rescale-clip-bases").ok_or(
+                CliError::ArgumentNone("rough-rescale-clip-bases".to_string())
+            )?;
+    
+            let rough_rescale_use_all_signal = matches.get_flag("rough-rescale-use-all-signal");
+
+            match rough_rescale_algo_str.as_str() {
+                "least-squares" => {
+                    RoughRescaleAlgo::LeastSquares { 
+                        quantiles: quantiles, 
+                        clip_bases: rough_rescale_clip_bases, 
+                        use_base_center: rough_rescale_use_all_signal
+                    }
+                }
+                "theil-sen" => {
+                    RoughRescaleAlgo::TheilSen { 
+                        quantiles: quantiles, 
+                        clip_bases: rough_rescale_clip_bases, 
+                        use_base_center: rough_rescale_use_all_signal
+                    }
+                }
+                _ => unreachable!()         
+            }
+
+        };
+
+        let rescale_algo_str = matches.get_one::<String>("rescale-algo").ok_or(
+            CliError::ArgumentNone("rescale-algo".to_string())
+        )?.clone();
+
+        let rescale_dwell_filter_lower_percentile = *matches.get_one::<f32>("rescale-dwell-filter-lower-percentile").ok_or(
+            CliError::ArgumentNone("rescale-dwell-filter-lower-percentile".to_string())
+        )?;
+
+        let rescale_dwell_filter_upper_percentile = *matches.get_one::<f32>("rescale-dwell-filter-upper-percentile").ok_or(
+            CliError::ArgumentNone("rescale-dwell-filter-upper-percentile".to_string())
+        )?;
+
+        // TODO: Check that rescale_dwell_filter_lower_percentile < rescale_dwell_filter_upper_percentile
+
+        let rescale_min_abs_level = *matches.get_one::<f32>("rescale-min-abs-level").ok_or(
+            CliError::ArgumentNone("rescale-min-abs-level".to_string())
+        )?;
+
+        let rescale_num_bases_truncate = *matches.get_one::<usize>("rescale-num-bases-truncate").ok_or(
+            CliError::ArgumentNone("rescale-num-bases-truncate".to_string())
+        )?;
+
+        let rescale_min_num_filtered_levels = *matches.get_one::<usize>("rescale-min-num-filtered-levels").ok_or(
+            CliError::ArgumentNone("rescale-min-num-filtered-levels".to_string())
+        )?;
+        if rescale_min_num_filtered_levels == 0 {
+            return Err(
+                CliError::InvalidArgument(
+                    "rescale-min-num-filtered-levels".to_string(), 
+                    rescale_min_num_filtered_levels.to_string()
+                )
+            );
+        }
+
+        let rescale_algo = match rescale_algo_str.as_str() {
+            "least-squares" => RescaleAlgo::LeastSquares { 
+                dwell_filter_lower_percentile: rescale_dwell_filter_lower_percentile, 
+                dwell_filter_upper_percentile: rescale_dwell_filter_upper_percentile, 
+                min_abs_level: rescale_min_abs_level, 
+                n_bases_truncate: rescale_num_bases_truncate, 
+                min_num_filtered_levels: rescale_min_num_filtered_levels 
+            },
+            "theil-sen" => {
+                let rescale_max_points = *matches.get_one::<usize>("rescale-max-points").ok_or(
+                    CliError::ArgumentNone("rescale-max-points".to_string())
+                )?;
+                RescaleAlgo::TheilSen { 
+                    dwell_filter_lower_percentile: rescale_dwell_filter_lower_percentile, 
+                    dwell_filter_upper_percentile: rescale_dwell_filter_upper_percentile,
+                    min_abs_level: rescale_min_abs_level, 
+                    n_bases_truncate: rescale_num_bases_truncate, 
+                    min_num_filtered_levels: rescale_min_num_filtered_levels, 
+                    max_points: rescale_max_points 
+                }
+            }
+            _ => unreachable!()
+        };
+
+        let which_to_refine = match alignment_type {
+            WhichToAlign::Both => WhichToRefine::Both,
+            WhichToAlign::Query => WhichToRefine::Query,
+            WhichToAlign::Reference => WhichToRefine::Reference,
+        };
+
+        let refine_settings = RefineSettings::custom(
+            which_to_refine, 
+            refine_algo, 
+            refine_iters, 
+            half_bandwidth, 
+            min_band_size, 
+            rescale_algo, 
+            rough_rescale_algo, 
+            normalize_levels
+        );
+
+        Ok(Config { 
+            bam_input: bam_input, 
+            pod5_input: pod5_input, 
+            kmer_table_input: kmer_table_input, 
+            output_dir: output_dir, 
+            alignment_type: alignment_type, 
+            n_threads: num_threads, 
+            debug_level: debug_level, 
+            refine_settings: refine_settings 
+        })
+    }
+
+
+    pub fn bam_input(&self) -> &PathBuf {
+        &self.bam_input
+    }
+
+    pub fn pod5_input(&self) -> &Vec<PathBuf> {
+        &self.pod5_input
+    }
+
+    pub fn kmer_table_input(&self) -> &PathBuf {
+        &self.kmer_table_input
+    }
+
+    pub fn output_dir(&self) -> &PathBuf {
+        &self.output_dir
+    }
+
+    pub fn alignment_type(&self) -> &WhichToAlign {
+        &self.alignment_type
+    }
+
+    pub fn n_threads(&self) -> usize {
+        self.n_threads
+    }
+
+    pub fn debug_level(&self) -> &LevelFilter {
+        &self.debug_level
+    }
+
+    pub fn refine_settings(&self) -> &RefineSettings {
+        &self.refine_settings
+    }
+
+
+}
