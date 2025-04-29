@@ -1,7 +1,7 @@
 use approx::assert_relative_eq;
-use fishnet::refinement::refinement_core::bands::{Band, BandType};
-use fishnet::refinement::refinement_core::dp_algorithm::forward_pass::forward_pass;
-use fishnet::refinement::settings::RefineAlgo;
+use fishnet::core::refinement::refinement_core::bands::{Band, BandType};
+use fishnet::core::refinement::refinement_core::dp_algorithm::forward_pass::forward_pass;
+use fishnet::core::refinement::settings::RefineAlgo;
 use serde::{Deserialize, Serialize};
 use std::fs::File;
 use std::io::BufReader;

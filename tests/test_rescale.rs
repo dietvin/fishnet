@@ -1,6 +1,6 @@
 use approx::assert_relative_eq;
-use fishnet::refinement::settings::RescaleAlgo;
-use fishnet::refinement::signal_map_refiner::rescale::rescale;
+use fishnet::core::refinement::settings::RescaleAlgo;
+use fishnet::core::refinement::signal_map_refiner::rescale::rescale;
 use serde::{Deserialize, Serialize};
 use walkdir::WalkDir;
 use std::fs::File;

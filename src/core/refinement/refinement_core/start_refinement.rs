@@ -1,4 +1,4 @@
-use crate::{error::refinement_errors::refine_errors::RefineError, logger::get_log_vector_sample, refinement::{refinement_core::bands::Band, settings::RefineSettings}};
+use crate::{error::refinement_errors::refine_errors::RefineError, logger::get_log_vector_sample, core::refinement::{refinement_core::bands::Band, settings::RefineSettings}};
 use super::dp_algorithm::banded_dp;
 
 

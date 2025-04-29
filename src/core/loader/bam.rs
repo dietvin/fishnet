@@ -1,9 +1,10 @@
 use std::collections::HashMap;
 use rust_htslib::bam::ext::BamRecordExtensions;
 use rust_htslib::bam::{record::Cigar, Record, Reader, Read};
-use super::super::error::loader_errors::bam_errors::{BamReadError, BamFileError};
-use super::helpers::{self, reverse_complement};
-use super::ref_seq_reconstruction::build_reference_sequence;
+
+use crate::error::loader_errors::bam_errors::{BamFileError, BamReadError};
+use crate::core::loader::helpers::{self, reverse_complement};
+use crate::core::loader::ref_seq_reconstruction::build_reference_sequence;
 
 // ##################################################################################################
 // #                                            Structs                                             #

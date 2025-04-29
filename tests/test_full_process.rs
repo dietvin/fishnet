@@ -1,8 +1,9 @@
-use fishnet::refinement::settings::{RefineAlgo, RescaleAlgo, RoughRescaleAlgo, WhichToRefine};
-use fishnet::{alignment::aligned_read::AlignedRead, refinement::settings::RefineSettings};
-use fishnet::loader::bam::BamFileLazy;
-use fishnet::loader::pod5::Pod5Index;
-use fishnet::refinement::signal_map_refiner::SigMapRefiner;
+use fishnet::core::refinement::kmer_table::KmerTable;
+use fishnet::core::refinement::settings::{RefineAlgo, RescaleAlgo, RoughRescaleAlgo, WhichToRefine};
+use fishnet::{core::alignment::aligned_read::AlignedRead, core::refinement::settings::RefineSettings};
+use fishnet::core::loader::bam::BamFileLazy;
+use fishnet::core::loader::pod5::Pod5Index;
+use fishnet::core::refinement::signal_map_refiner::SigMapRefiner;
 use serde::{Deserialize, Serialize};
 use std::fs::File;
 use std::io::BufReader;
@@ -183,10 +184,11 @@ fn test_with_data_from(dirname: &str) {
         assert_eq!(*alignment, data.unrefined_map, "Unrefined: {}", path_str);
 
         let settings = refine_settings_from_data(&data);
+        let kmer_table = KmerTable::new("example_data/levels.txt").unwrap();
         let mut sig_map_refiner = SigMapRefiner::new(
-            "example_data/levels.txt", 
+            &kmer_table, 
             &aligned_read, 
-            settings.clone()
+            &settings
         ).unwrap();
 
         sig_map_refiner.start().unwrap();

@@ -1,7 +1,7 @@
 use itertools::max;
 
 use super::BinaryKmer;
-use super::super::super::error::refinement_errors::kmer_table_errors::KmerTableError;
+use crate::error::refinement_errors::kmer_table_errors::KmerTableError;
 use std::collections::HashMap;
 
 /// Processes one line from the kmer table 

@@ -1,14 +1,13 @@
-mod error;
-mod loader;
-mod alignment;
-mod refinement;
-mod logger;
+pub mod core;
+pub mod error;
+pub mod logger;
+pub mod alignment_functions;
+pub mod cli;
 
-use alignment::aligned_read::AlignedRead;
-
-use loader::bam::BamFileLazy;
-use loader::pod5::Pod5Index;
-use refinement::{kmer_table::KmerTable, settings::{RefineAlgo, RefineSettings, RescaleAlgo, RoughRescaleAlgo, WhichToRefine}, signal_map_refiner::SigMapRefiner};
+use core::alignment::aligned_read::AlignedRead;
+use core::loader::bam::BamFileLazy;
+use core::loader::pod5::Pod5Index;
+use core::refinement::{kmer_table::KmerTable, settings::{RefineAlgo, RefineSettings, RescaleAlgo, RoughRescaleAlgo, WhichToRefine}, signal_map_refiner::SigMapRefiner};
 
 fn main() {
     let path: &str = "example_data/can_mappings.bam";
@@ -39,7 +38,7 @@ fn main() {
     for read in index.reads() {
         let (file_path, read_id, mut pod5_read) = read.unwrap();
         println!("Processing {} found in file {}", read_id, file_path);
-        let bam_read: loader::bam::BamRead = bam_file.get(&read_id).unwrap();
+        let bam_read = bam_file.get(&read_id).unwrap();
         let mut aligned_read: AlignedRead<'_> = AlignedRead::new(
             &mut pod5_read, 
             &bam_read, 

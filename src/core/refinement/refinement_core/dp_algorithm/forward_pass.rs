@@ -1,6 +1,6 @@
 use crate::logger::get_log_vector_sample;
-use crate::refinement::refinement_core::bands::Band;
-use crate::refinement::settings::RefineAlgo;
+use crate::core::refinement::refinement_core::bands::Band;
+use crate::core::refinement::settings::RefineAlgo;
 
 use super::forward_step::forward_step_viterbi;
 use super::forward_step_dwell_penalty::forward_step_dwell_penalty;

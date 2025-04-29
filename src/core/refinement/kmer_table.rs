@@ -6,7 +6,7 @@ use crate::logger::get_log_vector_sample;
 
 use self::binary_kmer::BinaryKmer;
 use self::helpers::{process_line, sort_and_index, determine_dominant_base, Median};
-use super::super::error::refinement_errors::kmer_table_errors::KmerTableError;
+use crate::error::refinement_errors::kmer_table_errors::KmerTableError;
 /// A data structure for storing and querying k-mers with their associated levels
 ///
 /// This structure reads k-mers and their associated levels from a tab-delimited file,

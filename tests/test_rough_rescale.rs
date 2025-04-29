@@ -1,7 +1,7 @@
 use std::{fs::File, io::BufReader, path::PathBuf};
 
 use approx::assert_relative_eq;
-use fishnet::refinement::signal_map_refiner::rescale::{rough_rescale_lstsq, rough_rescale_theil_sen};
+use fishnet::core::refinement::signal_map_refiner::rescale::{rough_rescale_lstsq, rough_rescale_theil_sen};
 use serde::{Deserialize, Serialize};
 use walkdir::WalkDir;
 

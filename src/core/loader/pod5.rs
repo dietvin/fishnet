@@ -1,8 +1,7 @@
 use std::{collections::HashMap, fs::File};
 use itertools::multizip;
-use log4rs::append::file;
 use pod5::{polars_arrow::array::Int16Array, reader};
-use super::{super::error::loader_errors::pod5_errors::{Pod5FileError, Pod5IndexError, Pod5ReadError}, helpers};
+use crate::{error::loader_errors::pod5_errors::{Pod5FileError, Pod5IndexError, Pod5ReadError}, core::loader::helpers};
 
 // ##################################################################################################
 // #                                            Structs                                             #

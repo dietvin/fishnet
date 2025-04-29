@@ -1,5 +1,5 @@
 use rust_htslib::bam::record::{Aux, Record};
-use super::super::error::loader_errors::{bam_errors::BamReadError, pod5_errors::Pod5FileError};
+use crate::error::loader_errors::{bam_errors::BamReadError, pod5_errors::Pod5FileError};
 
 // ########################################################################################################################
 //                                             Helper functions for BamRead
@@ -251,7 +251,7 @@ pub fn read_id_from_binary(binary_id: Option<&[u8]>) -> Result<String, Pod5FileE
 // ########################################################################################################################
 use std::{path::{PathBuf, Path}, ffi::OsStr, fs};
 use walkdir::WalkDir;
-use super::super::error::loader_errors::file_handling_errors::{DirHandlingError, FileHandlingError};
+use crate::error::loader_errors::file_handling_errors::{DirHandlingError, FileHandlingError};
 
 /// Finds files with a specific extension in a directory.
 /// 

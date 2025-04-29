@@ -1,6 +1,6 @@
 use std::{collections::HashMap, fs::File, io::{BufRead, BufReader}, path::{Path, PathBuf}};
 use fishnet::error::refinement_errors::kmer_table_errors::KmerTableError;
-use fishnet::refinement::kmer_table::KmerTable;
+use fishnet::core::refinement::kmer_table::KmerTable;
 use approx::assert_relative_eq;
 use serde::Deserialize;
 use walkdir::WalkDir;

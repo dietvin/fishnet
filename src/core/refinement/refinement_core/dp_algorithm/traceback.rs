@@ -1,4 +1,4 @@
-use crate::{logger::get_log_vector_sample, refinement::refinement_core::bands::Band};
+use crate::{logger::get_log_vector_sample, core::refinement::refinement_core::bands::Band};
 
 /// Performs traceback to reconstruct the optimal path (i.e. where each base starts)
 ///
@@ -91,7 +91,7 @@ pub fn banded_traceback(
 mod test{
     use std::vec;
 
-    use crate::refinement::refinement_core::bands::{Band, BandType};
+    use crate::core::refinement::refinement_core::bands::{Band, BandType};
 
     use super::banded_traceback;
 

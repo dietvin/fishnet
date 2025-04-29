@@ -1,5 +1,5 @@
-use fishnet::loader::{bam::BamFileLazy, pod5::Pod5Index};
-use fishnet::alignment::aligned_read::AlignedRead;
+use fishnet::core::loader::{bam::BamFileLazy, pod5::Pod5Index};
+use fishnet::core::alignment::aligned_read::AlignedRead;
 
 use std::fs::File;
 use std::io::{BufRead, BufReader};

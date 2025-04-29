@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::fs::File;
 use std::io::BufReader;
 
-use fishnet::refinement::refinement_core::bands::{Band, BandType};
+use fishnet::core::refinement::refinement_core::bands::{Band, BandType};
 
 #[derive(Debug, Serialize, Deserialize)]
 struct JsonData {

@@ -1,12 +1,12 @@
 pub mod rescale;
 
-use crate::alignment::aligned_read::AlignedRead;
+use crate::core::alignment::aligned_read::AlignedRead;
 use crate::logger::get_log_vector_sample;
 use super::kmer_table::KmerTable;
 use super::settings::{RefineSettings, RoughRescaleAlgo, WhichToRefine};
 use self::rescale::{rough_rescale_lstsq, rough_rescale_theil_sen, rescale};
 use super::refinement_core::start_refinement::refinement;
-use super::super::error::refinement_errors::signal_map_refiner_errors::SigMapRefineError;
+use crate::error::refinement_errors::signal_map_refiner_errors::SigMapRefineError;
 
 /// Structure that handles the refinement process
 #[derive(Debug)]

@@ -1,5 +1,5 @@
-use fishnet::refinement::refinement_core::bands::{Band, BandType};
-use fishnet::refinement::refinement_core::dp_algorithm::traceback::banded_traceback;
+use fishnet::core::refinement::refinement_core::bands::{Band, BandType};
+use fishnet::core::refinement::refinement_core::dp_algorithm::traceback::banded_traceback;
 use serde::{Deserialize, Serialize};
 use std::fs::File;
 use std::io::BufReader;

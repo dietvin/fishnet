@@ -7,7 +7,7 @@ use forward_pass::forward_pass;
 use traceback::banded_traceback;
 
 
-use crate::{logger::get_log_vector_sample, refinement::settings::RefineAlgo};
+use crate::{logger::get_log_vector_sample, core::refinement::settings::RefineAlgo};
 
 use super::bands::Band;
 

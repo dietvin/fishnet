@@ -1,4 +1,4 @@
-use crate::refinement::refinement_core::bands::BandType;
+use crate::core::refinement::refinement_core::bands::BandType;
 
 #[derive(Debug, thiserror::Error)]
 pub enum SignalBandError {
