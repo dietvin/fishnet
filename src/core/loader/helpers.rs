@@ -74,6 +74,9 @@ pub fn get_uint_tag(bam_record: &Record, tag: &str) -> Result<usize, BamReadErro
         Ok(rust_htslib::bam::record::Aux::U8(value)) => Ok(value as usize),
         Ok(rust_htslib::bam::record::Aux::U16(value)) => Ok(value as usize),
         Ok(rust_htslib::bam::record::Aux::U32(value)) => Ok(value as usize),
+        Ok(rust_htslib::bam::record::Aux::I8(value)) => Ok(value as usize),
+        Ok(rust_htslib::bam::record::Aux::I16(value)) => Ok(value as usize),
+        Ok(rust_htslib::bam::record::Aux::I32(value)) => Ok(value as usize),
         Err(e) => Err(BamReadError::HTSLibError(e)),
         Ok(other) => handle_unexpected_type(other, tag, "unsigned int")
     }
@@ -129,6 +132,7 @@ pub fn get_float_tag(bam_record: &Record, tag: &str) -> Result<f32, BamReadError
 ///
 /// * `Err(BamReadError::TagUnexpectedTypeError)` - Always returns an error
 fn handle_unexpected_type<V>(value: Aux<'_>, tag: &str, exp_type: &str) -> Result<V, BamReadError> {
+    println!("{:?}", value);
     let type_name = std::any::type_name_of_val(&value).to_string();
     Err(BamReadError::TagUnexpectedTypeError(
         tag.to_string(), 
