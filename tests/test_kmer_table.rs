@@ -27,8 +27,8 @@ fn process_line(line: String) -> (String, f32) {
 
 #[test]
 fn test_valid_kmer_table() {
-    let path = Path::new("tests/kmer_tables/valid.txt");
-    let result = KmerTable::new(path.to_str().unwrap());
+    let path = PathBuf::from("tests/kmer_tables/valid.txt");
+    let result = KmerTable::new(&path);
     assert!(result.is_ok(), "Failed to create KmerTable from valid file");
     
     let table = result.unwrap();
@@ -49,8 +49,8 @@ fn test_valid_kmer_table() {
 
 #[test]
 fn test_missing_entries_kmer_table() {
-    let path = Path::new("tests/kmer_tables/invalid1_missing_entries.txt");
-    let result = KmerTable::new(path.to_str().unwrap());
+    let path = PathBuf::from("tests/kmer_tables/invalid1_missing_entries.txt");
+    let result = KmerTable::new(&path);
     
     assert!(result.is_err(), "KmerTable creation should fail with missing entries");
     
@@ -65,8 +65,8 @@ fn test_missing_entries_kmer_table() {
 
 #[test]
 fn test_invalid_kmer_table() {
-    let path = Path::new("tests/kmer_tables/invalid2_invalid_kmer.txt");
-    let result = KmerTable::new(path.to_str().unwrap());
+    let path = PathBuf::from("tests/kmer_tables/invalid2_invalid_kmer.txt");
+    let result = KmerTable::new(&path);
     
     assert!(result.is_err(), "KmerTable creation should fail with invalid k-mer");
     
@@ -85,8 +85,8 @@ fn test_invalid_kmer_table() {
 
 #[test]
 fn test_empty_kmer_table() {
-    let path = Path::new("tests/kmer_tables/invalid3_empty.txt");
-    let result = KmerTable::new(path.to_str().unwrap());
+    let path = PathBuf::from("tests/kmer_tables/invalid3_empty.txt");
+    let result = KmerTable::new(&path);
     
     assert!(result.is_err(), "KmerTable creation should fail with empty file");
 }
@@ -94,8 +94,8 @@ fn test_empty_kmer_table() {
 
 #[test]
 fn test_nonexistent_kmer_table() {
-    let path = Path::new("tests/kmer_tables/nonexistent.txt");
-    let result = KmerTable::new(path.to_str().unwrap());
+    let path = PathBuf::from("tests/kmer_tables/nonexistent.txt");
+    let result = KmerTable::new(&path);
     
     assert!(result.is_err(), "KmerTable creation should fail with nonexistent file");
     
@@ -108,8 +108,8 @@ fn test_nonexistent_kmer_table() {
 
 #[test]
 fn test_get_invalid_kmer() {
-    let path = Path::new("tests/kmer_tables/valid.txt");
-    let result = KmerTable::new(path.to_str().unwrap());
+    let path = PathBuf::from("tests/kmer_tables/valid.txt");
+    let result = KmerTable::new(&path);
     
     assert!(result.is_ok(), "Failed to create KmerTable from valid file");
     
@@ -138,8 +138,8 @@ fn test_get_invalid_kmer() {
 
 #[test]
 fn test_kmer_table_sorted_by_level() {
-    let path = Path::new("tests/kmer_tables/valid.txt");
-    let result = KmerTable::new(path.to_str().unwrap());
+    let path = PathBuf::from("tests/kmer_tables/valid.txt");
+    let result = KmerTable::new(&path);
     
     assert!(result.is_ok(), "Failed to create KmerTable from valid file");
     
@@ -162,8 +162,8 @@ fn test_kmer_table_sorted_by_level() {
 
 #[test]
 fn test_levels_as_expected() {
-    let path = Path::new("tests/kmer_tables/valid.txt");
-    let result = KmerTable::new(path.to_str().unwrap());
+    let path = PathBuf::from("tests/kmer_tables/valid.txt");
+    let result = KmerTable::new(&path);
     
     assert!(result.is_ok(), "Failed to create KmerTable from valid file");
     
@@ -185,8 +185,8 @@ fn test_levels_as_expected() {
 
 #[test]
 fn test_levels_fix_gauge_as_expected() {
-    let path = Path::new("tests/kmer_tables/valid.txt");
-    let result = KmerTable::new(path.to_str().unwrap());
+    let path = PathBuf::from("tests/kmer_tables/valid.txt");
+    let result = KmerTable::new(&path);
     
     assert!(result.is_ok(), "Failed to create KmerTable from valid file");
     
@@ -233,7 +233,7 @@ fn load_json(path: &str) -> JsonData {
 fn test_with_data_from(dirname: &str) {
     let dir = format!("tests/{}/kmer_table/extract_levels", dirname);
 
-    let mut kmer_table = KmerTable::new("example_data/levels.txt").unwrap();
+    let mut kmer_table = KmerTable::new(&PathBuf::from("example_data/levels.txt")).unwrap();
     kmer_table.fix_gauge().unwrap();
 
     let mut files= WalkDir::new(dir)

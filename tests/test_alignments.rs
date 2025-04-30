@@ -3,11 +3,12 @@ use fishnet::core::alignment::aligned_read::AlignedRead;
 
 use std::fs::File;
 use std::io::{BufRead, BufReader};
+use std::path::PathBuf;
 
 #[test]
 fn test_query_to_signal() {
-    let pod5_index = Pod5Index::from_dir("example_data", false).unwrap();
-    let mut bam_file = BamFileLazy::new("example_data/can_mappings.bam").unwrap();
+    let pod5_index = Pod5Index::from_dir(&PathBuf::from("example_data"), false).unwrap();
+    let mut bam_file = BamFileLazy::new(&PathBuf::from("example_data/can_mappings.bam")).unwrap();
 
     for read in pod5_index.reads() {
         match read {
@@ -39,8 +40,8 @@ fn test_query_to_signal() {
 
 #[test]
 fn test_ref_to_signal() {
-    let pod5_index = Pod5Index::from_dir("example_data", false).unwrap();
-    let mut bam_file = BamFileLazy::new("example_data/can_mappings.bam").unwrap();
+    let pod5_index = Pod5Index::from_dir(&PathBuf::from("example_data"), false).unwrap();
+    let mut bam_file = BamFileLazy::new(&PathBuf::from("example_data/can_mappings.bam")).unwrap();
 
     for read in pod5_index.reads() {
         match read {

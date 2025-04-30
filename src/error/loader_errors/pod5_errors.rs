@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use crate::error;
 
 use super::file_handling_errors::{FileHandlingError, DirHandlingError};
@@ -61,7 +63,7 @@ pub enum Pod5IndexError {
 
     /// Invalid file path given to load_file
     #[error("File not found: {0}")]
-    FileNotFound(String),
+    FileNotFound(PathBuf),
 
     #[error("Error loading file: {0}")]
     FileLoadingError(#[from] Pod5FileError),

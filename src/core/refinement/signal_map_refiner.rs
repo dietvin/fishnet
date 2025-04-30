@@ -32,7 +32,7 @@ impl<'a> SigMapRefiner<'a> {
     ) -> Result<Self, SigMapRefineError> {
         log::info!(
             "Initializing SigMapRefiner from kmer table '{}' for read '{}'", 
-            kmer_table.source_path(), aligned_read.read_id()
+            kmer_table.source_path().display(), aligned_read.read_id()
         );
         log::debug!("SigMapRefiner::new {}: Using the following settings: {:?}", aligned_read.read_id(), settings);
 

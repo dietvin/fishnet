@@ -268,13 +268,13 @@ use crate::error::loader_errors::file_handling_errors::{DirHandlingError, FileHa
 /// 
 /// * `Ok(Vec<String>)` - A vector of file paths if successful
 /// * `Err(DirHandlingError)` - If the directory doesn't exist or no matching files are found
-pub fn find_files_in_dir(path: &str, file_type: &str, recursive: bool) -> Result<Vec<String>,DirHandlingError> {
+pub fn find_files_in_dir(path: &PathBuf, file_type: &str, recursive: bool) -> Result<Vec<PathBuf>,DirHandlingError> {
     let path_obj = Path::new(path);
 
     // Checks if the path is a directory and if it exists
     if !path_obj.exists() || !path_obj.is_dir() {
         return Err(
-            DirHandlingError::DirectoryNotFound(path.to_string())
+            DirHandlingError::DirectoryNotFound(path.clone())
         );
     }
 
@@ -289,12 +289,7 @@ pub fn find_files_in_dir(path: &str, file_type: &str, recursive: bool) -> Result
 
             if valid_type_path(&file_path, file_type) {
                 // Maybe include check for non-unicode chars (return error if found)
-                file_paths.push(
-                    file_path.clone()
-                        .to_str()
-                        .ok_or(DirHandlingError::PathConvError(file_path))?
-                        .to_string()
-                    );
+                file_paths.push(file_path.clone());
             }
         }
     } else {
@@ -303,12 +298,7 @@ pub fn find_files_in_dir(path: &str, file_type: &str, recursive: bool) -> Result
             let entry = entry?;
             let file_path = entry.path();
             if valid_type_path(&file_path, file_type) {
-                file_paths.push(
-                    file_path.clone()
-                        .to_str()
-                        .ok_or(DirHandlingError::PathConvError(file_path))?
-                        .to_string()
-                );
+                file_paths.push(file_path.clone());
             }
         }
     }
@@ -317,7 +307,7 @@ pub fn find_files_in_dir(path: &str, file_type: &str, recursive: bool) -> Result
     if file_paths.len() > 0 {
         Ok(file_paths)
     } else {
-        Err(DirHandlingError::NoFilesFound(file_type.to_string(), path.to_string()))
+        Err(DirHandlingError::NoFilesFound(file_type.to_string(), path.clone()))
     }
 }
 
@@ -349,7 +339,7 @@ fn valid_type_path(file_path: &PathBuf, extension: &str) -> bool {
 /// 
 /// * `Ok(Vec<String>)` - A vector of valid file paths
 /// * `Err(FileHandlingError)` - If any file doesn't exist or has an incorrect extension
-pub fn get_files(file_paths: &Vec<String>, file_type: &str) -> Result<Vec<String>,FileHandlingError> {
+pub fn get_files(file_paths: &Vec<PathBuf>, file_type: &str) -> Result<Vec<PathBuf>,FileHandlingError> {
     let mut valid_paths = Vec::new();
 
     for path in file_paths {

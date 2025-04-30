@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fs::File};
+use std::{collections::HashMap, fs::File, path::PathBuf};
 use itertools::multizip;
 use pod5::{polars_arrow::array::Int16Array, reader};
 use crate::{error::loader_errors::pod5_errors::{Pod5FileError, Pod5IndexError, Pod5ReadError}, core::loader::helpers};
@@ -25,7 +25,7 @@ pub struct Pod5Read {
 /// signal data through a HashMap interface.
 #[derive(Debug, Clone)]
 pub struct Pod5File {
-    path: String,
+    path: PathBuf,
     reads: HashMap<String, Pod5Read>
 }
 
@@ -36,7 +36,7 @@ pub struct Pod5File {
 #[derive(Debug)]
 pub struct Pod5Index {
     // Stores the Pod5File object with the path to the file
-    file_paths: Vec<String>,
+    file_paths: Vec<PathBuf>,
 }
 
 
@@ -240,8 +240,8 @@ impl Pod5File {
     /// * `Pod5FileError::IoError` - If the file cannot be opened
     /// * `Pod5FileError::ReadDataError` - If required data columns are missing or malformed
     /// * `Pod5FileError::KeyError` - If a read_id in the read dataframe doesn't match any in the signal dataframe    
-    pub fn new(path: &str) -> Result<Self, Pod5FileError> {
-        log::info!("Initializing Pod5File from path '{}'", path);
+    pub fn new(path: &PathBuf) -> Result<Self, Pod5FileError> {
+        log::info!("Initializing Pod5File from path '{}'", path.display());
 
         let file = File::open(path)?;
         let mut pod5_reader = reader::Reader::from_reader(file)?;
@@ -348,11 +348,11 @@ impl Pod5File {
 
         log::debug!(
             "Pod5File::new info: from '{}'; num reads = {}", 
-            path, read_collection.len()
+            path.display(), read_collection.len()
         );
 
         Ok(Pod5File {
-            path: path.to_string(),
+            path: path.clone(),
             reads: read_collection
         })
     }
@@ -375,7 +375,7 @@ impl Pod5File {
     }
 
     /// Returns the path of the underlying pod5 file
-    pub fn path(&self) -> &String {
+    pub fn path(&self) -> &PathBuf {
         &self.path
     }
 }
@@ -448,10 +448,10 @@ impl Pod5Index {
     /// 
     /// # Errors
     /// * `Pod5IndexError::IoInvalidDir` - If the directory cannot be read or doesn't contain pod5 files
-    pub fn from_dir(path: &str, recursive: bool) -> Result<Self, Pod5IndexError> {
+    pub fn from_dir(path: &PathBuf, recursive: bool) -> Result<Self, Pod5IndexError> {
         let file_paths = helpers::find_files_in_dir(path, "pod5", recursive)?;
 
-        log::info!("Initialized Pod5Index from '{}' containing {} files", path, file_paths.len());
+        log::info!("Initialized Pod5Index from '{}' containing {} files", path.display(), file_paths.len());
         
         Ok(Pod5Index {
             file_paths,
@@ -469,7 +469,7 @@ impl Pod5Index {
     /// 
     /// # Errors
     /// * `Pod5IndexError::IoInvalidFileList` - If a file in the list doesn't have the .pod5 extension    
-    pub fn from_files(paths: &Vec<String>) -> Result<Self, Pod5IndexError> {
+    pub fn from_files(paths: &Vec<PathBuf>) -> Result<Self, Pod5IndexError> {
         let file_paths = helpers::get_files(paths, "pod5")?;
 
         log::info!("Initialized Pod5Index from {} files", file_paths.len());
@@ -490,12 +490,12 @@ impl Pod5Index {
     /// # Errors
     /// * `Pod5IndexError::LoadPod5Error` - If the Pod5 file cannot be loaded
     /// * `Pod5IndexError::FileNotFound` - If the file path is not in the collection
-    pub fn load_file(&self, file_path: &str) -> Result<Pod5File, Pod5IndexError> {
-        log::info!("Loading file '{}'", file_path);
+    pub fn load_file(&self, file_path: &PathBuf) -> Result<Pod5File, Pod5IndexError> {
+        log::info!("Loading file '{}'", file_path.display());
         
         // Check if the file path is in the current collection
-        if !self.file_paths.contains(&file_path.to_string()) {
-            return Err(Pod5IndexError::FileNotFound(file_path.to_string()));
+        if !self.file_paths.contains(&file_path) {
+            return Err(Pod5IndexError::FileNotFound(file_path.clone()));
         }
 
         // Load the file
@@ -509,7 +509,7 @@ impl Pod5Index {
     /// 
     /// # Returns
     /// * `&[String]` - Slice of file paths
-    pub fn file_paths(&self) -> &[String] {
+    pub fn file_paths(&self) -> &[PathBuf] {
         &self.file_paths
     }
 
@@ -603,14 +603,14 @@ impl<'a> Iterator for Pod5FileIterator<'a> {
 
 /// An iterator that yields reads from all Pod5 files in the index
 pub struct Pod5ReadIterator {
-    file_paths: Vec<String>,
+    file_paths: Vec<PathBuf>,
     current_file_idx: usize,
     current_reads: Vec<(String, Pod5Read)>,
     current_read_idx: usize
 }
 
 impl Iterator for Pod5ReadIterator {
-    type Item = Result<(String, String, Pod5Read), Pod5IndexError>;
+    type Item = Result<(PathBuf, String, Pod5Read), Pod5IndexError>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.current_read_idx < self.current_reads.len() {

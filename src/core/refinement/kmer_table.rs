@@ -1,7 +1,7 @@
 mod helpers;
 mod binary_kmer;
 
-use std::{collections::{HashMap, HashSet}, fs::File, io::{BufRead, BufReader}};
+use std::{collections::{HashMap, HashSet}, fs::File, io::{BufRead, BufReader}, path::PathBuf};
 use crate::logger::get_log_vector_sample;
 
 use self::binary_kmer::BinaryKmer;
@@ -24,7 +24,7 @@ pub struct KmerTable{
     /// Index of the position in k-mers that has the most influence on levels
     dominant_base: usize,
     /// Path to the underlying file
-    source_path: String
+    source_path: PathBuf
 }
 
 impl KmerTable {
@@ -53,8 +53,8 @@ impl KmerTable {
     /// * `KmerTableError::LineParsingError` - If a line doesn't have exactly 2 columns
     /// * `KmerTableError::FloatConversionError` - If a level value cannot be parsed as a float
     /// * `KmerTableError::BinaryKmerError` - If there's an error in the binary representation of a k-mer    
-    pub fn new(path: &str) -> Result<Self, KmerTableError> {
-        log::info!("Initializing KmerTable from path: {}", path);
+    pub fn new(path: &PathBuf) -> Result<Self, KmerTableError> {
+        log::info!("Initializing KmerTable from path: {}", path.display());
 
         let file = File::open(path)?;
         let file_buffer = BufReader::new(file);
@@ -123,7 +123,7 @@ impl KmerTable {
             levels: levels_sorted,
             k,
             dominant_base,
-            source_path: path.to_string()
+            source_path: path.clone()
         })
     }
 
@@ -260,7 +260,7 @@ impl KmerTable {
     /// # Returns
     ///
     /// * `&str` - Path to the kmer table file
-    pub fn source_path(&self) -> &str {
+    pub fn source_path(&self) -> &PathBuf {
         &self.source_path
     }
 

@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::path::PathBuf;
 use rust_htslib::bam::ext::BamRecordExtensions;
 use rust_htslib::bam::{record::Cigar, Record, Reader, Read};
 
@@ -47,7 +48,7 @@ pub struct BamRead {
 /// index mapping read IDs to file offsets for efficient retrieval.
 #[derive(Debug)]
 pub struct BamFileLazy {
-    path: String,
+    path: PathBuf,
     bam_reader: Reader,
     index: HashMap<String, i64>
 }
@@ -374,8 +375,8 @@ impl BamFileLazy {
     /// # Note
     ///
     /// This operation can be expensive for large BAM files as it requires a full scan.
-    pub fn new(path: &str) -> Result<Self, BamFileError> {
-        log::info!("Initializing BamFileLazy from file '{}'", path);
+    pub fn new(path: &PathBuf) -> Result<Self, BamFileError> {
+        log::info!("Initializing BamFileLazy from file '{}'", path.display());
 
         let mut bam = Reader::from_path(path)?;
         let mut index: HashMap<String, i64> = HashMap::new();
@@ -389,10 +390,10 @@ impl BamFileLazy {
             offset = bam.tell();
         }
 
-        log::debug!("BamFileLazy::new info: path = {}, #reads = {}", path, index.len());
+        log::debug!("BamFileLazy::new info: path = {}, #reads = {}", path.display(), index.len());
     
         Ok(BamFileLazy { 
-            path: String::from(path), 
+            path: path.clone(), 
             bam_reader: bam, 
             index 
         })
@@ -447,7 +448,7 @@ impl BamFileLazy {
     /// # Returns
     ///
     /// * `&str` - Path to the BAM file
-    pub fn path(&self) -> &str {
+    pub fn path(&self) -> &PathBuf {
         &self.path
     }
 
