@@ -1,6 +1,23 @@
-use crate::{cli::args_to_input::WhichToAlign, core::{alignment::aligned_read::AlignedRead, loader::{bam::BamFileLazy, pod5::Pod5Index}, refinement::{kmer_table::KmerTable, signal_map_refiner::SigMapRefiner}}, error::FishnetError, logger::setup_logger};
-
-use super::{args_to_input::Config, init_cli::parse_command_line};
+use crate::{
+    cli::{
+        args_to_input::{
+            Config, WhichToAlign
+        },
+        init_cli::parse_command_line
+    }, 
+    core::{
+        alignment::aligned_read::AlignedRead, 
+        loader::{
+            bam::BamFileLazy, 
+            pod5::Pod5Index
+        }, 
+        refinement::{
+            kmer_table::KmerTable, signal_map_refiner::SigMapRefiner
+        }
+    }, 
+    error::FishnetError, 
+    logger::setup_logger
+};
 
 pub fn execute() {
     let command_line_input = parse_command_line();
