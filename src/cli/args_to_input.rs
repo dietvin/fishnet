@@ -30,6 +30,7 @@ pub struct Config {
     alignment_type: WhichToAlign,
     n_threads: usize,
     debug_level: LevelFilter,
+    debug_path: PathBuf,
 
     refine_settings: RefineSettings
 }
@@ -103,6 +104,11 @@ impl Config {
             _ => unreachable!()
         };
 
+        let debug_path = matches.get_one::<PathBuf>("debug-path").ok_or(
+            CliError::ArgumentNone("debug-path".to_string()) 
+        )?.clone();
+
+        // check_file(&debug_path, ".txt")?;
 
         // Optional refinement arguments
 
@@ -230,12 +236,12 @@ impl Config {
             CliError::ArgumentNone("rescale-algo".to_string())
         )?.clone();
 
-        let rescale_dwell_filter_lower_percentile = *matches.get_one::<f32>("rescale-dwell-filter-lower-percentile").ok_or(
-            CliError::ArgumentNone("rescale-dwell-filter-lower-percentile".to_string())
+        let rescale_dwell_filter_lower_percentile = *matches.get_one::<f32>("rescale-dwell-filter-lower-quant").ok_or(
+            CliError::ArgumentNone("rescale-dwell-filter-lower-quant".to_string())
         )?;
 
-        let rescale_dwell_filter_upper_percentile = *matches.get_one::<f32>("rescale-dwell-filter-upper-percentile").ok_or(
-            CliError::ArgumentNone("rescale-dwell-filter-upper-percentile".to_string())
+        let rescale_dwell_filter_upper_percentile = *matches.get_one::<f32>("rescale-dwell-filter-upper-quant").ok_or(
+            CliError::ArgumentNone("rescale-dwell-filter-upper-quant".to_string())
         )?;
 
         // TODO: Check that rescale_dwell_filter_lower_percentile < rescale_dwell_filter_upper_percentile
@@ -269,8 +275,8 @@ impl Config {
                 min_num_filtered_levels: rescale_min_num_filtered_levels 
             },
             "theil-sen" => {
-                let rescale_max_points = *matches.get_one::<usize>("rescale-max-points").ok_or(
-                    CliError::ArgumentNone("rescale-max-points".to_string())
+                let rescale_max_points = *matches.get_one::<usize>("rescale-max-len").ok_or(
+                    CliError::ArgumentNone("rescale-max-len".to_string())
                 )?;
                 RescaleAlgo::TheilSen { 
                     dwell_filter_lower_percentile: rescale_dwell_filter_lower_percentile, 
@@ -310,6 +316,7 @@ impl Config {
             alignment_type: alignment_type, 
             n_threads: num_threads, 
             debug_level: debug_level, 
+            debug_path: debug_path,
             refine_settings: refine_settings 
         })
     }
@@ -345,6 +352,10 @@ impl Config {
 
     pub fn debug_level(&self) -> &LevelFilter {
         &self.debug_level
+    }
+
+    pub fn debug_path(&self) -> &PathBuf {
+        &self.debug_path
     }
 
     pub fn refine_settings(&self) -> &RefineSettings {

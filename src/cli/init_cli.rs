@@ -136,11 +136,18 @@ pub fn parse_command_line() -> ArgMatches {
         .arg(
             Arg::new("debug-level")
                 .long("debug-level")
-                .short('d')
                 .value_parser(["off", "error", "warn", "info", "debug", "trace"])
                 .default_value("off")
                 .help_heading("General settings")
                 .help("Which debug level to use")
+        )
+        .arg(
+            Arg::new("debug-path")
+                .long("debug-path")
+                .default_value("log.txt")
+                .value_parser(value_parser!(PathBuf))
+                .help_heading("General settings")
+                .help("Path to the log file. Only regarded if debug-level is other than off.")
         )
 
         // Refinement general options
@@ -151,7 +158,7 @@ pub fn parse_command_line() -> ArgMatches {
                 .value_parser(value_parser!(usize))
                 .default_value("2")
                 .help_heading("Refinement settings (dynamic programming refinement)")
-                .help("Number of refinement iterations. If set to 0 the refinement is skipped")
+                .help("Number of refinement iterations. If set to 0 the refinement is skipped.")
         )
         .arg(
             Arg::new("refine-algo")
@@ -174,7 +181,7 @@ dwell times at a given base."
                 .help_heading("Refinement settings (dynamic programming refinement)")
                 .long_help(
 "Dwell penalty settings. Only considered if refine-algo is dwell-penalty. 
-Preferred dwell time"
+Preferred dwell time."
                 )
         )
         .arg(
@@ -185,7 +192,7 @@ Preferred dwell time"
                 .help_heading("Refinement settings (dynamic programming refinement)")
                 .long_help(
 "Dwell penalty settings. Only considered if refine-algo is dwell-penalty.
-Maximum dwell time that is penalized"
+Maximum dwell time that is penalized."
                 )
         )
         .arg(
@@ -196,7 +203,7 @@ Maximum dwell time that is penalized"
                 .help_heading("Refinement settings (dynamic programming refinement)")
                 .help(
 "Dwell penalty settings. Only considered if refine-algo is dwell-penalty. 
-Strength of the penalty applied to short dwell times"
+Strength of the penalty applied to short dwell times."
                 )
         )
         .arg(
@@ -208,7 +215,7 @@ Strength of the penalty applied to short dwell times"
                 .long_help(
 "Half-width of the signal band, meaning that for each signal measurement 
 bases half-bandwidth up- and downstream from the currently assigned one 
-can be considered"
+can be considered."
                 )
         )
         .arg(
@@ -217,7 +224,7 @@ can be considered"
                 .value_parser(value_parser!(usize))
                 .default_value("2")
                 .help_heading("Refinement settings (dynamic programming refinement)")
-                .help("The minimum band size when adjusting the sequence band")
+                .help("The minimum band size when adjusting the sequence band.")
         )
         .arg(
             Arg::new("normalize-levels")
@@ -311,7 +318,7 @@ filtered out before rescaling."
 "Maximum number of data points (signal data for given bases) to use. If the sequence
 contains more bases than the given number, the data is randomly subset to contain the
 given number of data points. 
-Only regarded when rescale-algo is theil-sen. If set to 0 no subsetting is performed"
+Only regarded when rescale-algo is theil-sen. If set to 0 no subsetting is performed."
                 )
         )
         
@@ -328,7 +335,7 @@ Only regarded when rescale-algo is theil-sen. If set to 0 no subsetting is perfo
 the signal measurement (norm_signal = (signal - shift) / scale).
 Rough rescaling, because only given percentile values are used instead of all
 measurements. Available algorithms are least-squares and theil-sen. Theil-sen
-is considered to be more robust against outliers"
+is considered to be more robust against outliers."
                 )
         )
         .arg(
@@ -337,7 +344,7 @@ is considered to be more robust against outliers"
                 .value_parser(value_parser!(f32))
                 .default_value("0.05")
                 .help_heading("Refinement settings (rough rescaling)")
-                .help("Lowest percentile to calculate from the signal data during rough rescaling")
+                .help("Lowest percentile to calculate from the signal data during rough rescaling.")
         )
         .arg(
             Arg::new("rough-rescale-quants-max")
@@ -345,7 +352,7 @@ is considered to be more robust against outliers"
                 .value_parser(value_parser!(f32))
                 .default_value("0.95")
                 .help_heading("Refinement settings (rough rescaling)")
-                .help("Highest percentile to calculate from the signal data during rough rescaling")
+                .help("Highest percentile to calculate from the signal data during rough rescaling.")
         )
         .arg(
             Arg::new("rough-rescale-quants-steps")
@@ -364,7 +371,7 @@ lowest and highest values."
                 .value_parser(value_parser!(usize))
                 .default_value("10")
                 .help_heading("Refinement settings (rough rescaling)")
-                .help("Number of bases to ignore at the start and end during rough rescaling")
+                .help("Number of bases to ignore at the start and end during rough rescaling.")
         )
         .arg(
             Arg::new("rough-rescale-use-all-signal")

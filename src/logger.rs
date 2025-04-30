@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use log::LevelFilter;
 use log4rs::{append::file::FileAppender, config::{Appender, Logger, Root}, encode::pattern::PatternEncoder, Config};
 
@@ -16,7 +18,7 @@ use log4rs::{append::file::FileAppender, config::{Appender, Logger, Root}, encod
 ///
 /// * `Result<(), Box<dyn std::error::Error>>` - Success or an error if logger setup fails
 pub fn setup_logger(
-    path: &str, 
+    path: &PathBuf, 
     default_level: LevelFilter,
     module_filters: Vec<(&str, LevelFilter)>,
     include_function_name: bool
@@ -51,7 +53,7 @@ pub fn setup_logger(
         .build(Root::builder().appender("logfile").build(default_level))?;
 
     log4rs::init_config(config)?;
-    log::info!("Logger initialized. Writing to file: '{}'. Logging level(s):", path);
+    log::info!("Logger initialized. Writing to file: '{}'. Logging level(s):", path.display());
     log::info!("Logging level root: {}, Module logging levels: {}", default_level, info_string);
     Ok(())
 }
