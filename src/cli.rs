@@ -67,189 +67,314 @@ pub fn parse_command_line() -> ArgMatches {
     let matches = Command::new("fishnet")
         .version("0.1.0")
         .author("Vincent Dietrich")
-        .about("Perform signal to sequence alignment from Nanopore sequencing data.")
+        .about("Fast signal-to-sequence alignment!")
         // Required arguments
+
         .arg(
             Arg::new("bam")
                 .long("bam")
-                .help("Path to a single BAM file")
+                .short('b')
                 .required(true)
-                .value_parser(value_parser!(PathBuf)),
+                .value_parser(value_parser!(PathBuf))
+                .help_heading("Required input/output arguments")
+                .help("Path to a single BAM file")
         )
         .arg(
             Arg::new("pod5")
                 .long("pod5")
-                .help("Path to one or multiple pod5 files or directories")
+                .short('p')
                 .required(true)
                 .num_args(1..)
-                .value_parser(value_parser!(PathBuf)),
+                .value_parser(value_parser!(PathBuf))
+                .help_heading("Required input/output arguments")
+                .help("Path to one or multiple pod5 files or directories")
         )
         .arg(
             Arg::new("kmer-table")
                 .long("kmer-table")
-                .help("Path to a kmer table file")
+                .short('k')
                 .required(true)
-                .value_parser(value_parser!(PathBuf)),
+                .value_parser(value_parser!(PathBuf))
+                .help_heading("Required input/output arguments")
+                .help("Path to a kmer table file")
         )
         .arg(
             Arg::new("output-dir")
                 .long("output-dir")
-                .help("Path to an output directory")
+                .short('o')
                 .required(true)
-                .value_parser(value_parser!(PathBuf)),
+                .value_parser(value_parser!(PathBuf))
+                .help_heading("Required input/output arguments")
+                .help("Path to an output directory")
         )
 
         // General options
+
         .arg(
             Arg::new("alignment-type")
                 .long("alignment-type")
-                .help("Type of alignment to perform")
+                .short('a')
                 .value_parser(["query", "reference", "both"])
-                .default_value("query"),
+                .default_value("query")
+                .help_heading("General settings")
+                .help("Type of alignment to perform")
         )
         .arg(
             Arg::new("threads")
                 .long("threads")
-                .help("Number of threads to use")
+                .short('t')
                 .value_parser(value_parser!(usize))
-                .default_value("8"),
+                .default_value("8")
+                .help_heading("General settings")
+                .help("Number of threads to use")
         )
         .arg(
             Arg::new("debug-level")
                 .long("debug-level")
-                .help("Which debug level to use")
+                .short('d')
                 .value_parser(["off", "error", "warn", "info", "debug", "trace"])
-                .default_value("off"),
+                .default_value("off")
+                .help_heading("General settings")
+                .help("Which debug level to use")
         )
-        // Refinement options
+
+        // Refinement general options
+
         .arg(
             Arg::new("refine-iters")
                 .long("refine-iters")
-                .help("Number of refinement iterations")
                 .value_parser(value_parser!(usize))
-                .default_value("2"),
+                .default_value("2")
+                .help_heading("Refinement settings (dynamic programming refinement)")
+                .help("Number of refinement iterations. If set to 0 the refinement is skipped")
         )
         .arg(
             Arg::new("refine-algo")
                 .long("refine-algo")
-                .help("Refinement algorithm")
                 .value_parser(["viterbi", "dwell-penalty"])
-                .default_value("dwell-penalty"),
+                .default_value("dwell-penalty")
+                .help_heading("Refinement settings (dynamic programming refinement)")
+                .long_help(
+"Refinement algorithm. Viterbi and dwell penalty approaches are available. 
+The dwell penalty approach also performs the viterbi approach internally,
+while additionally penalizing adjustments in the mapping that result in short
+dwell times at a given base."
+                )
         )
         .arg(
             Arg::new("dwell-penalty-target")
                 .long("dwell-penalty-target")
                 .value_parser(value_parser!(f32))
-                .default_value("4.0"),
+                .default_value("4.0")
+                .help_heading("Refinement settings (dynamic programming refinement)")
+                .long_help(
+"Dwell penalty settings. Only considered if refine-algo is dwell-penalty. 
+Preferred dwell time"
+                )
         )
         .arg(
             Arg::new("dwell-penalty-limit")
                 .long("dwell-penalty-limit")
                 .value_parser(value_parser!(f32))
-                .default_value("3.0"),
+                .default_value("3.0")
+                .help_heading("Refinement settings (dynamic programming refinement)")
+                .long_help(
+"Dwell penalty settings. Only considered if refine-algo is dwell-penalty.
+Maximum dwell time that is penalized"
+                )
         )
         .arg(
             Arg::new("dwell-penalty-weight")
                 .long("dwell-penalty-weight")
                 .value_parser(value_parser!(f32))
-                .default_value("0.5"),
+                .default_value("0.5")
+                .help_heading("Refinement settings (dynamic programming refinement)")
+                .help(
+"Dwell penalty settings. Only considered if refine-algo is dwell-penalty. 
+Strength of the penalty applied to short dwell times"
+                )
         )
         .arg(
             Arg::new("half-bandwidth")
                 .long("half-bandwidth")
                 .value_parser(value_parser!(usize))
-                .default_value("5"),
+                .default_value("5")
+                .help_heading("Refinement settings (dynamic programming refinement)")
+                .long_help(
+"Half-width of the signal band, meaning that for each signal measurement 
+bases half-bandwidth up- and downstream from the currently assigned one 
+can be considered"
+                )
         )
         .arg(
             Arg::new("min-band-size")
                 .long("min-band-size")
                 .value_parser(value_parser!(usize))
-                .default_value("2"),
+                .default_value("2")
+                .help_heading("Refinement settings (dynamic programming refinement)")
+                .help("The minimum band size when adjusting the sequence band")
         )
         .arg(
             Arg::new("normalize-levels")
                 .long("normalize-levels")
                 .action(ArgAction::SetTrue)
-                .help("Normalize the levels given in the kmer-table"),
+                .help_heading("Refinement settings (dynamic programming refinement)")
+                .long_help(
+"Normalize the levels given in the kmer-table. Equivalent to `do_fix_gauge` setting
+in Remora."
+                )
         )
-        .arg(
-            Arg::new("rough-rescale-algo")
-                .long("rough-rescale-algo")
-                .value_parser(["none", "least-squares", "theil-sen"])
-                .default_value("theil-sen"),
-        )
-        .arg(
-            Arg::new("rough-rescale-quants-min")
-                .long("rough-rescale-quants-min")
-                .value_parser(value_parser!(f32))
-                .default_value("0.05"),
-        )
-        .arg(
-            Arg::new("rough-rescale-quants-max")
-                .long("rough-rescale-quants-max")
-                .value_parser(value_parser!(f32))
-                .default_value("0.95"),
-        )
-        .arg(
-            Arg::new("rough-rescale-quants-steps")
-                .long("rough-rescale-quants-steps")
-                .value_parser(value_parser!(usize))
-                .default_value("19"),
-        )
-        .arg(
-            Arg::new("rough-rescale-clip-bases")
-                .long("rough-rescale-clip-bases")
-                .value_parser(value_parser!(usize))
-                .default_value("10"),
-        )
-        .arg(
-            Arg::new("rough-rescale-use-all-signal")
-                .long("rough-rescale-use-all-signal")
-                .action(ArgAction::SetTrue)
-                .help("Use the entire signal assigned to a base for rough rescaling"),
-        )
+
+        // Refinement rescale options
+
         .arg(
             Arg::new("rescale-algo")
                 .long("rescale-algo")
                 .value_parser(["least-squares", "theil-sen"])
-                .default_value("theil-sen"),
+                .default_value("theil-sen")
+                .help_heading("Refinement settings (Rescaling)")
+                .help(
+"Rescaling algorithm. Calculates shift and scale parameters to normalize
+the signal measurement (norm_signal = (signal - shift) / scale). Other than
+the rough rescaling, here the entire signal is used for the estimation.
+Available algorithms are least-squares and theil-sen. Note that least-squares
+is not available and tested in Remora."
+                )
         )
         .arg(
-            Arg::new("rescale-dwell-filter-lower-percentile")
-                .long("rescale-dwell-filter-lower-percentile")
+            Arg::new("rescale-dwell-filter-lower-quant")
+                .long("rescale-dwell-filter-lower-quant")
                 .value_parser(value_parser!(f32))
-                .default_value("0.1"),
+                .default_value("0.1")
+                .help_heading("Refinement settings (Rescaling)")
+                .long_help(
+"Lower dwell filter quantile. Signal data for bases with dwell times below this quantile 
+value are filtered out before rescaling."
+                )
         )
         .arg(
-            Arg::new("rescale-dwell-filter-upper-percentile")
-                .long("rescale-dwell-filter-upper-percentile")
+            Arg::new("rescale-dwell-filter-upper-quant")
+                .long("rescale-dwell-filter-upper-quant")
                 .value_parser(value_parser!(f32))
-                .default_value("0.9"),
+                .default_value("0.9")
+                .help_heading("Refinement settings (Rescaling)")
+                .long_help(
+"Upper dwell filter quantile. Signal data for bases with dwell times above this quantile 
+value are filtered out before rescaling."
+                )
         )
         .arg(
             Arg::new("rescale-min-abs-level")
                 .long("rescale-min-abs-level")
                 .value_parser(value_parser!(f32))
-                .default_value("0.2"),
+                .default_value("0.2")
+                .help_heading("Refinement settings (Rescaling)")
+                .help(
+"Minimum absolute (normalized) signal intensity. Signal data from bases, where the mean signal 
+itensity deviates less than the given value from the expected intensity, is filtered out before 
+rescaling."
+                )
         )
         .arg(
             Arg::new("rescale-num-bases-truncate")
                 .long("rescale-num-bases-truncate")
                 .value_parser(value_parser!(usize))
-                .default_value("10"),
+                .default_value("10")
+                .help_heading("Refinement settings (Rescaling)")
+                .long_help(
+"Number of bases to truncate. Signal data from the first and last given number of bases are
+filtered out before rescaling."
+                )
         )
         .arg(
             Arg::new("rescale-min-num-filtered-levels")
                 .long("rescale-min-num-filtered-levels")
                 .value_parser(value_parser!(usize))
-                .default_value("10"),
+                .default_value("10")
+                .help_heading("Refinement settings (Rescaling)")
+                .long_help(
+"Minimum number of bases that must remain after filtering to be considered valid for rescaling."
+                )
         )
         .arg(
-            Arg::new("rescale-max-points")
-                .long("rescale-max-points")
+            Arg::new("rescale-max-len")
+                .long("rescale-max-len")
                 .value_parser(value_parser!(usize))
-                .default_value("1000"),
+                .default_value("1000")
+                .help_heading("Refinement settings (Rescaling)")
+                .long_help(
+"Maximum number of data points (signal data for given bases) to use. If the sequence
+contains more bases than the given number, the data is randomly subset to contain the
+given number of data points. 
+Only regarded when rescale-algo is theil-sen. If set to 0 no subsetting is performed"
+                )
+        )
+        
+        // Refinement rough rescale options
+
+        .arg(
+            Arg::new("rough-rescale-algo")
+                .long("rough-rescale-algo")
+                .value_parser(["none", "least-squares", "theil-sen"])
+                .default_value("theil-sen")
+                .help_heading("Refinement settings (rough rescaling)")
+                .long_help(
+"Rough rescaling algorithm. Calculates shift and scale parameters to normalize
+the signal measurement (norm_signal = (signal - shift) / scale).
+Rough rescaling, because only given percentile values are used instead of all
+measurements. Available algorithms are least-squares and theil-sen. Theil-sen
+is considered to be more robust against outliers"
+                )
+        )
+        .arg(
+            Arg::new("rough-rescale-quants-min")
+                .long("rough-rescale-quants-min")
+                .value_parser(value_parser!(f32))
+                .default_value("0.05")
+                .help_heading("Refinement settings (rough rescaling)")
+                .help("Lowest percentile to calculate from the signal data during rough rescaling")
+        )
+        .arg(
+            Arg::new("rough-rescale-quants-max")
+                .long("rough-rescale-quants-max")
+                .value_parser(value_parser!(f32))
+                .default_value("0.95")
+                .help_heading("Refinement settings (rough rescaling)")
+                .help("Highest percentile to calculate from the signal data during rough rescaling")
+        )
+        .arg(
+            Arg::new("rough-rescale-quants-steps")
+                .long("rough-rescale-quants-steps")
+                .value_parser(value_parser!(usize))
+                .default_value("19")
+                .help_heading("Refinement settings (rough rescaling)")
+                .long_help(
+"Number of percentile values to consider during rough rescaling. This includes the 
+lowest and highest values."
+                )
+        )
+        .arg(
+            Arg::new("rough-rescale-clip-bases")
+                .long("rough-rescale-clip-bases")
+                .value_parser(value_parser!(usize))
+                .default_value("10")
+                .help_heading("Refinement settings (rough rescaling)")
+                .help("Number of bases to ignore at the start and end during rough rescaling")
+        )
+        .arg(
+            Arg::new("rough-rescale-use-all-signal")
+                .long("rough-rescale-use-all-signal")
+                .action(ArgAction::SetTrue)
+                .help_heading("Refinement settings (rough rescaling)")
+                .long_help(
+"Whether to use the entire signal for quantile calculation during rough rescaling. 
+If set, the quantile values are calculated from all measurements. Otherwise the 
+signal is subset to contain only a single measurement for each base, reducing the 
+computational load. This measurement is taken from the center of the signal assigned 
+to a given base."
+                )
         )
         .get_matches();
+
     matches
 }
