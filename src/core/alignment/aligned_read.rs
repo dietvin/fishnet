@@ -49,9 +49,9 @@ impl<'a> AlignedRead<'a> {
 
         pod5_read.update_signal(
             reverse_signal, 
-            bam_read.get_parent_signal_offset()?, 
-            bam_read.get_trimmed_signal_length()?, 
-            bam_read.get_subread_signal_length()?
+            *bam_read.get_parent_signal_offset(), 
+            *bam_read.get_trimmed_signal_length(), 
+            *bam_read.get_subread_signal_length()
         )?;
 
         Ok(AlignedRead{

@@ -89,10 +89,23 @@ impl BamRead {
         let mut reference_seq: Option<Vec<u8>> = None;
         let mut reference_len = None;
         let mut reverse_mapped = None;
-        let mut pi_tag = None; 
-        let mut sp_tag = None; 
-        let mut ts_tag = None; 
-        let mut ns_tag = None; 
+
+        let pi_tag = helpers::unpack_tag(
+            helpers::get_str_tag(&bam_record, "pi"),
+            None
+        )?;
+        let sp_tag = helpers::unpack_tag(
+            helpers::get_uint_tag(&bam_record, "sp"),
+            Some(0 as usize)
+        )?;
+        let ts_tag = helpers::unpack_tag(
+            helpers::get_uint_tag(&bam_record, "ts"),
+            Some(0 as usize)
+        )?;
+        let ns_tag = helpers::unpack_tag(
+            helpers::get_uint_tag(&bam_record, "ns"),
+            None
+        )?;
 
         if mapped {
             let mut cigar_raw = bam_record.cigar().take().0;
@@ -114,22 +127,6 @@ impl BamRead {
                 (bam_record.reference_end() - bam_record.reference_start()) as usize
             );
             reverse_mapped = Some(bam_record.is_reverse());
-            pi_tag = helpers::unpack_tag(
-                helpers::get_str_tag(&bam_record, "pi"),
-                None
-            )?;
-            sp_tag = helpers::unpack_tag(
-                helpers::get_uint_tag(&bam_record, "sp"),
-                Some(0 as usize)
-            )?;
-            ts_tag = helpers::unpack_tag(
-                helpers::get_uint_tag(&bam_record, "ts"),
-                Some(0 as usize)
-            )?;
-            ns_tag = helpers::unpack_tag(
-                helpers::get_uint_tag(&bam_record, "ns"),
-                None
-            )?;
         }
 
         log::debug!(
@@ -314,46 +311,34 @@ impl BamRead {
         }
     }
 
-    /// Gets the parent signal offset with error handling
+    /// Gets the parent signal offset
     ///
     /// # Returns
     ///
-    /// * `Result<Option<&usize>, BamReadError>` - The parent signal offset, 
-    /// None if the tag is not set, or an error if unmapped
-    pub fn get_parent_signal_offset(&self) -> Result<Option<usize>, BamReadError> {
-        if self.mapped {
-            Ok(self.parent_signal_offset)
-        } else {
-            Err(BamReadError::NoSuchDataForUnmappedRead("parent_signal_offset".to_string()))
-        }
+    /// * `&Option<usize` - The parent signal offset, 
+    /// None if the tag is not set
+    pub fn get_parent_signal_offset(&self) -> &Option<usize> {
+        &self.parent_signal_offset
     }
 
-    /// Gets the trimmed signal length with error handling
+    /// Gets the trimmed signal length
     ///
     /// # Returns
     ///
-    /// * `Result<Option<&usize>, BamReadError>` - The trimmed signal length, 
-    /// None if the tag is not set, or an error if unmapped
-    pub fn get_trimmed_signal_length(&self) -> Result<Option<usize>, BamReadError> {
-        if self.mapped {
-            Ok(self.trimmed_signal_length)
-        } else {
-            Err(BamReadError::NoSuchDataForUnmappedRead("trimmed_signal_length".to_string()))
-        }
+    /// * `&Option<usize>` - The trimmed signal length, 
+    /// None if the tag is not set
+    pub fn get_trimmed_signal_length(&self) -> &Option<usize> {
+        &self.trimmed_signal_length
     }
 
-    /// Gets the subread signal length with error handling
+    /// Gets the subread signal length
     ///
     /// # Returns
     ///
-    /// * `Result<Option<&usize>, BamReadError>` - The subread signal length, 
-    /// None if the tag is not set, or an error if unmapped
-    pub fn get_subread_signal_length(&self) -> Result<Option<usize>, BamReadError> {
-        if self.mapped {
-            Ok(self.subread_signal_length)
-        } else {
-            Err(BamReadError::NoSuchDataForUnmappedRead("subread_signal_length".to_string()))
-        }
+    /// * `Option<&usize>` - The subread signal length, 
+    /// None if the tag is not set
+    pub fn get_subread_signal_length(&self) -> &Option<usize> {
+        &self.subread_signal_length
     }
 }
 
