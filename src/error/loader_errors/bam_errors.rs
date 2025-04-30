@@ -24,7 +24,7 @@ pub enum BamFileError {
     IndexError(String),
     #[error("Could not access record: {0}")]
     ValueError(String),
-    #[error("Could not initialize BamRead")]
+    #[error("Could not initialize BamRead: {0}")]
     BamReadError(#[from] BamReadError),
 }
 
