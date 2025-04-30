@@ -160,6 +160,7 @@ pub fn run_alignment_single_threaded(input: Config) -> Result<(), FishnetError> 
         if let Err(e) = sig_map_refiner.start() {
             println!("Mapping refinement failed for {read_id}: {e}");
             log::error!("Mapping refinement failed for {read_id}: {e}");
+            continue;
         }
 
         let refined_query_map = match sig_map_refiner.refined_query_to_sig() {
@@ -170,7 +171,6 @@ pub fn run_alignment_single_threaded(input: Config) -> Result<(), FishnetError> 
                 continue;
             }
         };
-        println!("Refine query map: {:?}", &refined_query_map[..20]);
 
         if *input.alignment_type() == WhichToAlign::Both || *input.alignment_type() == WhichToAlign::Reference {
             let refined_ref_map = match sig_map_refiner.refined_ref_to_sig() {
@@ -181,9 +181,9 @@ pub fn run_alignment_single_threaded(input: Config) -> Result<(), FishnetError> 
                     continue;
                 }
             };
-            println!("Refine ref map: {:?}", &refined_ref_map[..20]);
         }
 
+        println!("Successfully processed read {read_id}");
         log::info!("Successfully processed read {read_id}");
     }
 
