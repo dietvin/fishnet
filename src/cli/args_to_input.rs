@@ -26,6 +26,7 @@ pub struct Config {
     kmer_table_input: PathBuf,
     output_dir: PathBuf,
 
+    is_drna: bool,
     alignment_type: WhichToAlign,
     n_threads: usize,
     debug_level: LevelFilter,
@@ -64,6 +65,8 @@ impl Config {
 
 
         // Optional general arguments
+
+        let is_drna = matches.get_flag("rna");
 
         let alignment_type_raw = matches.get_one::<String>("alignment-type").ok_or(
             CliError::ArgumentNone("alignment-type".to_string()) 
@@ -303,6 +306,7 @@ impl Config {
             pod5_input: pod5_input, 
             kmer_table_input: kmer_table_input, 
             output_dir: output_dir, 
+            is_drna: is_drna,
             alignment_type: alignment_type, 
             n_threads: num_threads, 
             debug_level: debug_level, 
@@ -325,6 +329,10 @@ impl Config {
 
     pub fn output_dir(&self) -> &PathBuf {
         &self.output_dir
+    }
+
+    pub fn is_drna(&self) -> bool {
+        self.is_drna
     }
 
     pub fn alignment_type(&self) -> &WhichToAlign {
