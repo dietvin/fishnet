@@ -1,11 +1,11 @@
-use std::path::PathBuf;
+use std::{env, path::PathBuf};
 
 use clap::ArgMatches;
 use log::LevelFilter;
 
 use crate::{core::refinement::settings::{RefineAlgo, RefineSettings, RescaleAlgo, RoughRescaleAlgo, WhichToRefine}, error::cli_errors::CliError};
 
-use super::helpers::{calc_quantiles, check_and_get_pod5_input, check_dir, check_file};
+use super::helpers::{calc_quantiles, check_and_get_output_file, check_and_get_pod5_input, check_input_file};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum WhichToAlign {
@@ -24,7 +24,7 @@ pub struct Config {
     bam_input: PathBuf,
     pod5_input: Vec<PathBuf>,
     kmer_table_input: PathBuf,
-    output_dir: PathBuf,
+    output_file: PathBuf,
 
     is_drna: bool,
     alignment_type: WhichToAlign,
@@ -44,7 +44,7 @@ impl Config {
             CliError::ArgumentNone("bam".to_string())
         )?.clone();
 
-        check_file(&bam_input, "bam")?;
+        check_input_file(&bam_input, "bam")?;
 
         let pod5_input_raw = matches.get_many::<PathBuf>("pod5").ok_or(
             CliError::ArgumentNone("pod5".to_string()) 
@@ -56,13 +56,14 @@ impl Config {
             CliError::ArgumentNone("kmer-table".to_string())
         )?.clone();
 
-        check_file(&kmer_table_input, "txt")?;
+        check_input_file(&kmer_table_input, "txt")?;
 
-        let output_dir = matches.get_one::<PathBuf>("output-dir").ok_or(
-            CliError::ArgumentNone("output-dir".to_string()) 
+        let output_file_raw = matches.get_one::<PathBuf>("output-bam").ok_or(
+            CliError::ArgumentNone("output-bam".to_string()) 
         )?.clone();
 
-        check_dir(&output_dir)?;
+        let force_overwrite = matches.get_flag("force-overwrite");
+        let output_file = check_and_get_output_file(output_file_raw, "bam", force_overwrite)?;
 
 
         // Optional general arguments
@@ -108,7 +109,7 @@ impl Config {
             CliError::ArgumentNone("debug-path".to_string()) 
         )?.clone();
 
-        // check_file(&debug_path, ".txt")?;
+        // check_input_file(&debug_path, ".txt")?;
 
         // Optional refinement arguments
 
@@ -311,7 +312,7 @@ impl Config {
             bam_input: bam_input, 
             pod5_input: pod5_input, 
             kmer_table_input: kmer_table_input, 
-            output_dir: output_dir, 
+            output_file: output_file, 
             is_drna: is_drna,
             alignment_type: alignment_type, 
             n_threads: num_threads, 
@@ -334,8 +335,8 @@ impl Config {
         &self.kmer_table_input
     }
 
-    pub fn output_dir(&self) -> &PathBuf {
-        &self.output_dir
+    pub fn output_file(&self) -> &PathBuf {
+        &self.output_file
     }
 
     pub fn is_drna(&self) -> bool {
