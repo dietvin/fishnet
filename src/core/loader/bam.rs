@@ -38,7 +38,9 @@ pub struct BamRead {
     parent_read_id: Option<String>, // stored in the pi tag
     parent_signal_offset: Option<usize>, // stored in the sp tag, start position in parent
     trimmed_signal_length: Option<usize>, // stored in the ts tag
-    subread_signal_length: Option<usize> // stored in the ns tag
+    subread_signal_length: Option<usize>, // stored in the ns tag
+
+    record: Record
 }
 
 
@@ -151,6 +153,7 @@ impl BamRead {
             parent_signal_offset: sp_tag,
             trimmed_signal_length: ts_tag,
             subread_signal_length: ns_tag,
+            record: bam_record
         })
     }
 
@@ -339,6 +342,15 @@ impl BamRead {
     /// None if the tag is not set
     pub fn get_subread_signal_length(&self) -> &Option<usize> {
         &self.subread_signal_length
+    }
+
+    /// Gets the underlying read record
+    ///
+    /// # Returns
+    ///
+    /// * `&Record` - The original record from which the BamRead was constructed
+    pub fn get_record_mut(&mut self) -> &mut Record {
+        &mut self.record
     }
 }
 

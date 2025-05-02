@@ -1,5 +1,7 @@
 pub mod rescale;
 
+use rust_htslib::bam::Record;
+
 use crate::core::alignment::aligned_read::AlignedRead;
 use crate::logger::get_log_vector_sample;
 use super::kmer_table::KmerTable;
@@ -12,7 +14,7 @@ use crate::error::refinement_errors::signal_map_refiner_errors::SigMapRefineErro
 #[derive(Debug)]
 pub struct SigMapRefiner<'a> {
     kmer_table: &'a KmerTable,
-    aligned_read: &'a AlignedRead<'a>,
+    aligned_read: &'a mut AlignedRead<'a>,
     settings: &'a RefineSettings,
 
     scale_dacs_to_norm: f32,
@@ -27,7 +29,7 @@ impl<'a> SigMapRefiner<'a> {
     /// an aligned read object and settings for the refinement
     pub fn new(
         kmer_table: &'a KmerTable,
-        aligned_read: &'a AlignedRead<'a>,
+        aligned_read: &'a mut AlignedRead<'a>,
         settings: &'a RefineSettings
     ) -> Result<Self, SigMapRefineError> {
         log::info!(
@@ -148,6 +150,10 @@ impl<'a> SigMapRefiner<'a> {
     /// Returns an error otherwise.
     pub fn refined_ref_to_sig(&self) -> Result<&Vec<usize>, SigMapRefineError> {
         self.refined_ref_to_sig.as_ref().ok_or(SigMapRefineError::RefinedRefToSigNotFound)
+    }
+
+    pub fn bam_record_mut(&mut self) -> &mut Record {
+        self.aligned_read.bam_read_mut().get_record_mut()
     }
 
 }

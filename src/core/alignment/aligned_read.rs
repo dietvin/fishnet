@@ -14,7 +14,7 @@ use super::{query_to_signal, reference_to_signal};
 #[derive(Debug)]
 pub struct AlignedRead<'a> {
     pod5_read: &'a mut Pod5Read,
-    bam_read: &'a BamRead,
+    bam_read: &'a mut BamRead,
     reverse_signal: bool,
     query_to_signal: Option<Vec<usize>>,
     reference_to_signal: Option<Vec<usize>>
@@ -38,7 +38,7 @@ impl<'a> AlignedRead<'a> {
     ///
     /// * `AlignedReadError::IdMismatch` - If the read IDs in the Pod5 and BAM files don't match
     /// * Other errors if signal updating fails
-    pub fn new(pod5_read: &'a mut Pod5Read, bam_read: &'a BamRead, reverse_signal: bool) -> Result<Self, AlignedReadError> {
+    pub fn new(pod5_read: &'a mut Pod5Read, bam_read: &'a mut BamRead, reverse_signal: bool) -> Result<Self, AlignedReadError> {
         let pod5_id = pod5_read.read_id();
         log::info!("Initializing AlignedRead '{}'", pod5_id);
 
@@ -226,6 +226,16 @@ impl<'a> AlignedRead<'a> {
     pub fn bam_read(&self) -> &BamRead {
         &self.bam_read
     }
+
+    /// Gets a mutable reference to the BAM read.
+    ///
+    /// # Returns
+    ///
+    /// * `&BamRead` - The BAM read containing alignment information
+    pub fn bam_read_mut(&mut self) -> &mut BamRead {
+        &mut self.bam_read
+    }
+
 
     /// Returns the query sequence as bytes from the underlying BamRead
     pub fn query(&self) -> &Vec<u8> {
