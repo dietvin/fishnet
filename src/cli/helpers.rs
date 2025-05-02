@@ -1,8 +1,8 @@
-use std::{fs, path::PathBuf};
+use std::{env, fs, path::PathBuf};
 use crate::error::cli_errors::{PathError, Pod5PathError};
 
 
-pub fn check_file(input: &PathBuf, expected_ext: &str) -> Result<(), PathError> {
+pub fn check_input_file(input: &PathBuf, expected_ext: &str) -> Result<(), PathError> {
     if !input.is_file() {
         return Err(
             PathError::IsNotFile(input.clone())
@@ -24,7 +24,7 @@ pub fn check_file(input: &PathBuf, expected_ext: &str) -> Result<(), PathError> 
     Ok(())
 }
 
-pub fn check_dir(input: &PathBuf) -> Result<(), PathError> {
+pub fn check_input_dir(input: &PathBuf) -> Result<(), PathError> {
     if !input.is_dir() {
         return Err(
             PathError::IsNotDir(input.clone())
@@ -41,7 +41,38 @@ pub fn check_dir(input: &PathBuf) -> Result<(), PathError> {
     Ok(())
 }
 
+pub fn check_and_get_output_file(output: PathBuf, expected_ext: &str, force_overwrite: bool) -> Result<PathBuf, PathError> {
+    let output = if output.is_absolute() {
+        output
+    } else {
+        let pwd = env::current_dir()?;
+        pwd.join(output)
+    };
 
+    if output.exists() && !force_overwrite {
+        return Err(PathError::FileExists(output.clone()));
+    }
+    else if !check_base_dir_exists(&output) {
+        log::error!("Base directory for {} does not exist.", output.display());
+        return Err(PathError::BaseDirNotExist(output.clone()));
+    }
+    else if let Some(ext) = output.extension() {
+        if ext != expected_ext {
+            return Err(
+                PathError::InvalidExtension(output.clone(), expected_ext.to_string())
+            );
+        }
+    }
+
+    Ok(output)
+}
+
+fn check_base_dir_exists(path: &PathBuf) -> bool {
+    if let Some(parent) = path.parent() {
+        return parent.exists();
+    }
+    false
+}
 
 pub fn check_and_get_pod5_input(inputs: Vec<PathBuf>) -> Result<Vec<PathBuf>, Pod5PathError> {
     log::info!("Parsing {} paths given", inputs.len());

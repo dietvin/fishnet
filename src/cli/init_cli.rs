@@ -7,7 +7,7 @@ use clap::{value_parser, Arg, ArgAction, ArgMatches, Command};
 /// * `bam` - Path to a single BAM file (Can contain mapped or unmapped reads; mapped reads are needed for reference alignment)
 /// * `pod5` - Path to one or multiple pod5 files or directories containing pod5 files
 /// * `kmer-table` - Path to a kmer table file
-/// * `output-dir` - Path to the 
+/// * `output-dir` - Path to the output directory
 /// 
 /// # Optional arguments:
 /// 
@@ -96,13 +96,13 @@ pub fn parse_command_line() -> ArgMatches {
                 .help("Path to a kmer table file")
         )
         .arg(
-            Arg::new("output-dir")
-                .long("output-dir")
+            Arg::new("output-bam")
+                .long("output-bam")
                 .short('o')
                 .required(true)
                 .value_parser(value_parser!(PathBuf))
                 .help_heading("Required input/output arguments")
-                .help("Path to an output directory")
+                .help("Path to the output bam file")
         )
 
         // General options
@@ -113,7 +113,14 @@ pub fn parse_command_line() -> ArgMatches {
             .action(ArgAction::SetTrue)
             .help_heading("General settings")
             .help("Whether direct RNA data is provided. Reverses the signal for alignment.")
-
+        )        
+        .arg(
+            Arg::new("force-overwrite")
+            .long("force-overwrite")
+            .short('f')
+            .action(ArgAction::SetTrue)
+            .help_heading("General settings")
+            .help("Whether existing output files should be overwritten.")
         )
         .arg(
             Arg::new("alignment-type")

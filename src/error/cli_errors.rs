@@ -12,7 +12,13 @@ pub enum PathError {
     #[error("Provided path '{0}' is not a directory")]
     IsNotDir(PathBuf),
     #[error("Failed to create directory '{0}'")]
-    FailedToCreateDir(PathBuf)
+    FailedToCreateDir(PathBuf),
+    #[error("Base directory does not exist for '{0}'")]
+    BaseDirNotExist(PathBuf),
+    #[error("File '{0}' already exists and force overwrite is disabled")]
+    FileExists(PathBuf),
+    #[error("Io error: {0}")]
+    IoError(#[from] std::io::Error)
 }
 
 
@@ -34,5 +40,7 @@ pub enum CliError {
     #[error("Pod5PathError: {0}")]
     Pod5PathError(#[from] Pod5PathError),
     #[error("Invalid value for argument {0}: {1}")]
-    InvalidArgument(String, String)
+    InvalidArgument(String, String),
+    #[error("Io error: {0}")]
+    IoError(#[from] std::io::Error)
 }
