@@ -521,6 +521,15 @@ impl Pod5Index {
         self.file_paths.len()
     }
 
+    pub fn num_reads(&self) -> Result<usize, Pod5IndexError> {
+        let mut n_reads = 0;
+        for file in self.files() {
+            let file = file?;
+            n_reads += file.num_reads();
+        }
+        Ok(n_reads)
+    }
+
 
     /// Returns an iterator that yields all files.
     ///
