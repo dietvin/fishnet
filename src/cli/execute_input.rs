@@ -1,9 +1,12 @@
+use indicatif::{ProgressBar, ProgressStyle};
+
 use crate::{
     cli::{
         args_to_input::{
             Config, WhichToAlign
         },
-        init_cli::parse_command_line
+        init_cli::parse_command_line,
+        handle_output::BamWriter
     }, 
     core::{
         alignment::aligned_read::AlignedRead, 
@@ -91,101 +94,135 @@ pub fn run_alignment_single_threaded(input: Config) -> Result<(), FishnetError> 
         }
     }
 
+    let output_path = input.output_file();
+    let mut output_writer = match BamWriter::new(output_path, bam_path) {
+        Ok(v) => v,
+        Err(e) => {
+            println!("Failed to initialize the output writer: {e}");
+            log::error!("Failed to initialize the output writer: {e}");
+            std::process::exit(1);
+        }
+    };
+
+
+    let total_reads = match pod5_index.num_reads() {
+        Ok(v) => v,
+        Err(e) => {
+            println!("Failed to count number of reads: {e}");
+            log::error!("Failed to count number of reads: {e}");
+            std::process::exit(1);
+        }
+    };
+    let mut n_successful_reads = 0;
+    let mut n_failed_reads = 0;
+    let mut progress_bar = ProgressBar::new(total_reads as u64);
+    progress_bar.set_style(
+        ProgressStyle::default_bar()
+        .template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} reads ({percent}%) | Success: {msg}")
+        .unwrap()
+        .progress_chars("#>-")
+    );
+
     for read in pod5_index.reads() {
         let (file_path, read_id, mut pod5_read) = match read {
             Ok(v) => v,
             Err(e) => {
-                println!("Failed to load pod5 read: {e}");
                 log::error!("Failed to load pod5 read: {e}");
+                update_progress_fail(&mut progress_bar, &n_successful_reads, &mut n_failed_reads);
                 continue;
             }
         };
         log::info!("Starting alignment for read {read_id} from file {}", file_path.display());
 
-        let bam_read = match bam_file.get(&read_id) {
+        let mut bam_read = match bam_file.get(&read_id) {
             Ok(v) => v,
             Err(e) => {
-                println!("Failed to load bam read {read_id}: {e}");
                 log::error!("Failed to load bam read {read_id}: {e}");
+                update_progress_fail(&mut progress_bar, &n_successful_reads, &mut n_failed_reads);
                 continue;
             }
         };
 
         let mut aligned_read = match AlignedRead::new(
             &mut pod5_read, 
-            &bam_read, 
+            &mut bam_read, 
             input.is_drna()
         ) {
             Ok(v) => v,
             Err(e) => {
-                println!("Failed to set up aligned read for {read_id}: {e}");
                 log::error!("Failed to set up aligned read for {read_id}: {e}");
+                update_progress_fail(&mut progress_bar, &n_successful_reads, &mut n_failed_reads);
                 continue;
             }
         };
 
         if let Err(e) = aligned_read.align_query_to_signal() {
-            println!("Query to sequence alignment failed for {read_id}: {e}");
             log::error!("Query to sequence alignment failed for {read_id}: {e}");
-            continue;
+                update_progress_fail(&mut progress_bar, &n_successful_reads, &mut n_failed_reads);
+                continue;
         };
 
         if *input.alignment_type() == WhichToAlign::Both || *input.alignment_type() == WhichToAlign::Reference {
             if aligned_read.is_mapped() {
                 if let Err(e) = aligned_read.align_reference_to_signal() {
-                    println!("Reference to sequence alignment failed for {read_id}: {e}");
                     log::error!("Reference to sequence alignment failed for {read_id}: {e}");
-                    continue;
+                    update_progress_fail(&mut progress_bar, &n_successful_reads, &mut n_failed_reads);
+                continue;
                 }
             } else {
-                println!("Reference to sequence alignment not possible for {read_id}: Read is unmapped.");
                 log::error!("Reference to sequence alignment not possible for {read_id}: Read is unmapped.");
+                update_progress_fail(&mut progress_bar, &n_successful_reads, &mut n_failed_reads);
                 continue;
             }
         }
 
         let mut sig_map_refiner = match SigMapRefiner::new(
             &kmer_table, 
-            &aligned_read, 
+            &mut aligned_read, 
             refine_settings
         ) {
             Ok(v) => v,
             Err(e) => {
-                println!("Failed to initialize signal mapping refiner for {read_id}: {e}");
                 log::error!("Failed to initialize signal mapping refiner for {read_id}: {e}");
+                update_progress_fail(&mut progress_bar, &n_successful_reads, &mut n_failed_reads);
                 continue;
             }
         };
 
         if let Err(e) = sig_map_refiner.start() {
-            println!("Mapping refinement failed for {read_id}: {e}");
             log::error!("Mapping refinement failed for {read_id}: {e}");
+            update_progress_fail(&mut progress_bar, &n_successful_reads, &mut n_failed_reads);
             continue;
         }
 
-        let refined_query_map = match sig_map_refiner.refined_query_to_sig() {
-            Ok(v) => v,
+        match output_writer.write_read(
+            &mut sig_map_refiner, 
+            input.alignment_type()
+        ) {
+            Ok(_) => {
+                log::info!("Successfully processed read {read_id}");
+                update_progress_success(&mut progress_bar, &mut n_successful_reads, &n_failed_reads);
+            }
             Err(e) => {
-                println!("Failed to retrieve refined query map for {read_id}: {e}");
-                log::error!("Failed to retrieve refined query map for {read_id}: {e}");
+                log::error!("Failed to write alignment(s) to file for {read_id}: {e}");
+                update_progress_fail(&mut progress_bar, &n_successful_reads, &mut n_failed_reads);
                 continue;
             }
-        };
-
-        if *input.alignment_type() == WhichToAlign::Both || *input.alignment_type() == WhichToAlign::Reference {
-            let refined_ref_map = match sig_map_refiner.refined_ref_to_sig() {
-                Ok(v) => v,
-                Err(e) => {
-                    println!("Failed to retrieve refined reference map for {read_id}: {e}");
-                    log::error!("Failed to retrieve refined reference map for {read_id}: {e}");
-                    continue;
-                }
-            };
         }
-
-        println!("Successfully processed read {read_id}");
-        log::info!("Successfully processed read {read_id}");
     }
 
     Ok(())
+}
+
+
+fn update_progress_success(progress_bar: &mut ProgressBar, n_successful_reads: &mut usize, n_failed_reads: &usize) {
+    *n_successful_reads += 1;
+    progress_bar.set_message(format!("{} ✓ | {} ✗", n_successful_reads, n_failed_reads));
+    progress_bar.inc(1);
+}
+
+fn update_progress_fail(progress_bar: &mut ProgressBar, n_successful_reads: &usize, n_failed_reads: &mut usize) {
+    *n_failed_reads += 1;
+    progress_bar.set_message(format!("{} ✓ | {} ✗", n_successful_reads, n_failed_reads));
+    progress_bar.inc(1);
 }

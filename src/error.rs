@@ -6,6 +6,7 @@ pub mod loader_errors;
 pub mod alignment_errors;
 pub mod refinement_errors;
 pub mod cli_errors;
+pub mod output_errors;
 
 /// Top level error that handles all custom sub-types
 #[derive(Debug, thiserror::Error)]
