@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fs::File, io::{BufRead, BufReader}, path::{Path, PathBuf}};
+use std::{collections::HashMap, fs::File, io::{BufRead, BufReader}, path::PathBuf};
 use fishnet::error::refinement_errors::kmer_table_errors::KmerTableError;
 use fishnet::core::refinement::kmer_table::KmerTable;
 use approx::assert_relative_eq;
