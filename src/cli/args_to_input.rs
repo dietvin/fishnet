@@ -97,7 +97,7 @@ impl Config {
 
         let debug_level = match debug_level_raw.as_str() {
             "off" => LevelFilter::Off,
-            "error" => LevelFilter::Off,
+            "error" => LevelFilter::Error,
             "warn" => LevelFilter::Warn,
             "info" => LevelFilter::Info,
             "debug" => LevelFilter::Debug,
