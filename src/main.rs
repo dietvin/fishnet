@@ -3,7 +3,7 @@ pub mod core;
 pub mod error;
 pub mod logger;
 
-use cli::execute_input::execute;
+use cli::execute::execute;
 
 fn main() {
     execute();

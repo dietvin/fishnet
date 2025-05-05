@@ -1,11 +1,10 @@
 use indicatif::{ProgressBar, ProgressStyle};
-
+use log::LevelFilter;
 use crate::{
     cli::{
         args_to_input::{
             Config, WhichToAlign
         },
-        init_cli::parse_command_line,
         handle_output::BamWriter
     }, 
     core::{
@@ -22,36 +21,18 @@ use crate::{
     logger::setup_logger
 };
 
-pub fn execute() {
-    let command_line_input = parse_command_line();
-
-    let input_data = match Config::from_argmatches(command_line_input) {
-        Ok(input) => input,
-        Err(e) => {
-            println!("Failed to parse input data: {e}");
-            std::process::exit(1);
-        }
-    };
-
-    match run_alignment_single_threaded(input_data) {
-        Ok(_) => println!("Finished sucessfully"),
-        Err(e) => {
-            println!("Failed to perform alignment: {e}");
-            std::process::exit(1);
-        }
-    }
-}
-
 
 pub fn run_alignment_single_threaded(input: Config) -> Result<(), FishnetError> {
-    if let Err(e) = setup_logger(
-        input.debug_path(), 
-        *input.debug_level(), 
-        vec![], 
-        false
-    ) {
-        println!("Failed to initialize logger: {e}");
-        std::process::exit(1);
+    if *input.debug_level() != LevelFilter::Off {
+        if let Err(e) = setup_logger(
+            input.debug_path(), 
+            *input.debug_level(), 
+            vec![], 
+            false
+        ) {
+            println!("Failed to initialize logger: {e}");
+            std::process::exit(1);
+        }
     }
 
     let bam_path = input.bam_input();
