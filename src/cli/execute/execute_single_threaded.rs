@@ -75,7 +75,7 @@ pub fn run_alignment_single_threaded(input: Config) -> Result<(), FishnetError> 
         }
     }
 
-    let output_path = input.output_file();
+    let output_path = input.output_dir();
     let mut output_writer = match BamWriter::new(output_path, bam_path) {
         Ok(v) => v,
         Err(e) => {
