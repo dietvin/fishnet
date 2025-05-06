@@ -96,17 +96,25 @@ pub fn parse_command_line() -> ArgMatches {
                 .help("Path to a kmer table file")
         )
         .arg(
-            Arg::new("output-bam")
-                .long("output-bam")
+            Arg::new("output-dir")
+                .long("output-dir")
                 .short('o')
                 .required(true)
                 .value_parser(value_parser!(PathBuf))
                 .help_heading("Required input/output arguments")
-                .help("Path to the output bam file")
+                .help("Path to the output directory")
         )
 
         // General options
 
+        .arg(
+            Arg::new("output-type")
+                .long("output-type")
+                .value_parser(["bam", "json", "hdf5"])
+                .default_value("bam")
+                .help_heading("General settings")
+                .help("Output format")
+        )
         .arg(
             Arg::new("rna")
             .long("rna")

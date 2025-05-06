@@ -5,7 +5,7 @@ use log::LevelFilter;
 
 use crate::{core::refinement::settings::{RefineAlgo, RefineSettings, RescaleAlgo, RoughRescaleAlgo, WhichToRefine}, error::cli_errors::CliError};
 
-use super::helpers::{calc_quantiles, check_and_get_output_file, check_and_get_pod5_input, check_input_file};
+use super::helpers::{calc_quantiles, check_output_dir, check_and_get_pod5_input, check_input_file};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum WhichToAlign {
@@ -13,6 +13,14 @@ pub enum WhichToAlign {
     Query,
     Reference
 }
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum OutputFormat {
+    Bam,
+    Json,
+    Hdf5
+}
+
 
 impl Default for WhichToAlign {
     fn default() -> Self {
@@ -24,8 +32,10 @@ pub struct Config {
     bam_input: PathBuf,
     pod5_input: Vec<PathBuf>,
     kmer_table_input: PathBuf,
-    output_file: PathBuf,
+    output_dir: PathBuf,
 
+    output_format: OutputFormat,
+    force_overwrite: bool,
     is_drna: bool,
     alignment_type: WhichToAlign,
     n_threads: usize,
@@ -43,37 +53,43 @@ impl Config {
         let bam_input = matches.get_one::<PathBuf>("bam").ok_or(
             CliError::ArgumentNone("bam".to_string())
         )?.clone();
-
         check_input_file(&bam_input, "bam")?;
 
         let pod5_input_raw = matches.get_many::<PathBuf>("pod5").ok_or(
             CliError::ArgumentNone("pod5".to_string()) 
         )?.map(|buf| buf.clone()).collect::<Vec<PathBuf>>();
-
         let pod5_input = check_and_get_pod5_input(pod5_input_raw)?;
 
         let kmer_table_input = matches.get_one::<PathBuf>("kmer-table").ok_or(
             CliError::ArgumentNone("kmer-table".to_string())
         )?.clone();
-
         check_input_file(&kmer_table_input, "txt")?;
 
-        let output_file_raw = matches.get_one::<PathBuf>("output-bam").ok_or(
-            CliError::ArgumentNone("output-bam".to_string()) 
+        let output_dir = matches.get_one::<PathBuf>("output-dir").ok_or(
+            CliError::ArgumentNone("output-dir".to_string()) 
         )?.clone();
+        check_output_dir(&output_dir)?;
 
         let force_overwrite = matches.get_flag("force-overwrite");
-        let output_file = check_and_get_output_file(output_file_raw, "bam", force_overwrite)?;
 
 
         // Optional general arguments
+
+        let output_format_raw = matches.get_one::<String>("output-type").ok_or(
+            CliError::ArgumentNone("output-type".to_string()) 
+        )?.clone();
+        let output_format = match output_format_raw.as_str() {
+            "bam" => OutputFormat::Bam,
+            "json" => OutputFormat::Json,
+            "hdf5" => OutputFormat::Hdf5,
+            _ => unreachable!()
+        };
 
         let is_drna = matches.get_flag("rna");
 
         let alignment_type_raw = matches.get_one::<String>("alignment-type").ok_or(
             CliError::ArgumentNone("alignment-type".to_string()) 
         )?.clone();
-
         let alignment_type = match alignment_type_raw.as_str() {
             "query" => WhichToAlign::Query,
             "reference" => WhichToAlign::Reference,
@@ -81,11 +97,11 @@ impl Config {
             _ => unreachable!()
         };
 
-        let num_threads = *matches.get_one::<usize>("threads").ok_or(
+        let n_threads = *matches.get_one::<usize>("threads").ok_or(
             CliError::ArgumentNone("threads".to_string()) 
         )?;
 
-        if num_threads == 0 {
+        if n_threads == 0 {
             return Err(
                 CliError::InvalidArgument("threads".to_string(), 0.to_string())
             );
@@ -94,7 +110,6 @@ impl Config {
         let debug_level_raw = matches.get_one::<String>("debug-level").ok_or(
             CliError::ArgumentNone("debug-level".to_string()) 
         )?.clone();
-
         let debug_level = match debug_level_raw.as_str() {
             "off" => LevelFilter::Off,
             "error" => LevelFilter::Error,
@@ -309,16 +324,18 @@ impl Config {
         );
 
         Ok(Config { 
-            bam_input: bam_input, 
-            pod5_input: pod5_input, 
-            kmer_table_input: kmer_table_input, 
-            output_file: output_file, 
-            is_drna: is_drna,
-            alignment_type: alignment_type, 
-            n_threads: num_threads, 
-            debug_level: debug_level, 
-            debug_path: debug_path,
-            refine_settings: refine_settings 
+            bam_input, 
+            pod5_input, 
+            kmer_table_input, 
+            output_dir, 
+            output_format,
+            force_overwrite,
+            is_drna,
+            alignment_type, 
+            n_threads, 
+            debug_level, 
+            debug_path,
+            refine_settings 
         })
     }
 
@@ -335,8 +352,16 @@ impl Config {
         &self.kmer_table_input
     }
 
-    pub fn output_file(&self) -> &PathBuf {
-        &self.output_file
+    pub fn output_dir(&self) -> &PathBuf {
+        &self.output_dir
+    }
+
+    pub fn output_format(&self) -> &OutputFormat {
+        &self.output_format
+    }
+
+    pub fn force_overwrite(&self) -> bool {
+        self.force_overwrite
     }
 
     pub fn is_drna(&self) -> bool {
