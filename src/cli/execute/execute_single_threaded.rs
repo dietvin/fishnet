@@ -99,7 +99,7 @@ pub fn run_alignment_single_threaded(input: Config) -> Result<(), FishnetError> 
     let mut progress_bar = ProgressBar::new(total_reads as u64);
     progress_bar.set_style(
         ProgressStyle::default_bar()
-        .template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} reads ({percent}%) | Success: {msg}")
+        .template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} reads ({percent}%) | {msg}")
         .unwrap()
         .progress_chars("#>-")
     );
