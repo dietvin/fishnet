@@ -3,7 +3,7 @@ use rust_htslib::bam::{record::{Aux, AuxArray}, Header, Read, Reader, Record, Wr
 use crate::{
     core::refinement::signal_map_refiner::SigMapRefiner, 
     error::output_errors::OutputError,
-    cli::args_to_input::WhichToAlign
+    cli::parse::args_to_input::WhichToAlign
 };
 
 pub struct BamWriter {

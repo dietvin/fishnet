@@ -1,7 +1,7 @@
 use indicatif::{ProgressBar, ProgressStyle};
 use crate::{
     cli::{
-        args_to_input::{
+        parse::args_to_input::{
             Config, WhichToAlign
         },
         output::output_bam::BamWriter

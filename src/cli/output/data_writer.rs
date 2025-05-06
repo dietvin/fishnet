@@ -1,6 +1,6 @@
 use rust_htslib::bam::Record;
 
-use crate::{cli::args_to_input::WhichToAlign, core::refinement::signal_map_refiner::SigMapRefiner, error::output_errors::OutputError};
+use crate::{cli::parse::args_to_input::WhichToAlign, core::refinement::signal_map_refiner::SigMapRefiner, error::output_errors::OutputError};
 
 /// Common trait for all data writers
 pub trait DataWriter {
