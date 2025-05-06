@@ -5,7 +5,7 @@ use crate::{
         args_to_input::{
             Config, WhichToAlign
         },
-        handle_output::BamWriter
+        output::output_bam::BamWriter
     }, 
     core::{
         alignment::aligned_read::AlignedRead, 
