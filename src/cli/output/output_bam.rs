@@ -11,15 +11,32 @@ pub struct BamWriter {
 }
 
 impl BamWriter {
-    pub fn new(path: &PathBuf, source_path: &PathBuf) -> Result<Self, OutputError> {
+    pub fn new(path: &PathBuf, source_path: &PathBuf, force_overwrite: bool) -> Result<Self, OutputError> {
         let source_bam = Reader::from_path(source_path)?;
         let header = Header::from_template(source_bam.header());
+
+        let source_path_stem = match source_path.file_stem() {
+            Some(stem) => stem.to_string_lossy(),
+            None => return Err(
+                OutputError::InvalidSourcePath(source_path.clone())
+            )
+        };
+        let output_file_name = format!("{}.out.bam", source_path_stem);
+        let output_file_path = path.join(output_file_name);
+
+        if output_file_path.exists() && !force_overwrite {
+            return Err(
+                OutputError::OutFileExists(output_file_path)
+            );
+        }
+
         let writer = Writer::from_path(
-            path, 
+            &output_file_path, 
             &header, 
             rust_htslib::bam::Format::Bam
         )?;
 
+        log::info!("Writing to output bam file: {}", output_file_path.display());
         Ok(BamWriter { 
             writer: writer
         })

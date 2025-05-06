@@ -76,7 +76,7 @@ pub fn run_alignment_single_threaded(input: Config) -> Result<(), FishnetError> 
     }
 
     let output_path = input.output_dir();
-    let mut output_writer = match BamWriter::new(output_path, bam_path) {
+    let mut output_writer = match BamWriter::new(output_path, bam_path, input.force_overwrite()) {
         Ok(v) => v,
         Err(e) => {
             println!("Failed to initialize the output writer: {e}");
