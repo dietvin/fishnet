@@ -256,8 +256,8 @@ impl Pod5File {
 
             // Create an iterator for each column
             let read_id_col_iter = df
-                .column("read_id")?
-                .binary()?
+                .column("minknow.uuid")?
+                .str()?
                 .iter();
             let offset_col_iter = df
                 .column("calibration_offset")?
@@ -272,7 +272,7 @@ impl Pod5File {
             for (read_id, offset, scale) in multizip((
                 read_id_col_iter, offset_col_iter, scale_col_iter
             )) {
-                let read_id = helpers::read_id_from_binary(read_id)?;
+                let read_id = read_id.ok_or(Pod5FileError::MissingReadId)?.to_string();
 
                 let offset = offset.ok_or(Pod5FileError::ColumnDataMissingError { 
                     column: "calibration_offset".to_string(), 
@@ -298,15 +298,14 @@ impl Pod5File {
         // (i.e. columns read_id, signal and samples)
         for signal_df in pod5_reader.signal_dfs()?.flatten() {
             let df = signal_df
-                .decompress_signal("signal_decompressed")?
                 .into_inner();
             // Create an iterator for each column
             let read_id_col_iter = df
-                .column("read_id")?
-                .binary()?
+                .column("minknow.uuid")?
+                .str()?
                 .iter();
             let signal_col_iter = df
-                .column("signal_decompressed")?
+                .column("minknow.vbz")?
                 .list()?
                 .iter();
             let num_samples_col_iter = df
@@ -319,12 +318,12 @@ impl Pod5File {
             for (read_id, signal, num_samples) in multizip((
                 read_id_col_iter, signal_col_iter, num_samples_col_iter
             )) {
-                let read_id = helpers::read_id_from_binary(read_id)?;
+                let read_id = read_id.ok_or(Pod5FileError::MissingReadId)?.to_string();
                 
                 // Convert signal data to rust-native Vec<i16>
                 let mut signal = signal
                     .ok_or(Pod5FileError::ColumnDataMissingError { 
-                        column: "signal".to_string(), 
+                        column: "minknow.vbz".to_string(), 
                         read_id: read_id.clone()
                     })?
                     .as_any()

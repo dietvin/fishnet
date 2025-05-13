@@ -34,6 +34,9 @@ pub enum Pod5FileError {
     #[error("Failed to decode binary id to UUID: {0}")]
     UuidError(#[from] uuid::Error),
 
+    /// Read ID can not be found
+    #[error("Read ID is None")]
+    MissingReadId,
 
     /// Column data is null/missing
     #[error("Data is missing in column '{column}' for read ID '{read_id}'")]

@@ -208,48 +208,6 @@ pub fn reverse_signal(signal: &Vec<i16>) -> Vec<i16> {
 
 
 
-
-// ########################################################################################################################
-//                                             Helper functions for Pod5File
-// ########################################################################################################################
-
-use uuid::Uuid;
-
-/// Converts a binary read ID from a Pod5 file into a UTF-8 string
-/// 
-/// In Pod5 files, read IDs are stored as binary values. This function safely
-/// converts these binary values into standard UTF-8 strings that can be used
-/// as keys in the HashMap.
-/// 
-/// # Arguments
-/// * `binary_id` - A byte slice containing the binary representation of a read ID
-/// 
-/// # Returns
-/// * `Result<String, Pod5FileError>` - The read ID as a String on success, or an error
-/// 
-/// # Errors
-/// * `Pod5FileError::ColumnDataMissingError` - If the binary_id is None
-/// * `Pod5FileError::Utf8Error` - If the binary data cannot be converted to a valid UTF-8 string
-pub fn read_id_from_binary(binary_id: Option<&[u8]>) -> Result<String, Pod5FileError> {
-    let binary_id = binary_id.ok_or(Pod5FileError::ColumnDataMissingError { 
-        column: "read_id".to_string(), 
-        read_id: "NA".to_string()
-    })?;
-
-    let read_id = Uuid::from_slice(binary_id)?.to_string();
-    
-    Ok(read_id)
-}
-
-
-
-
-
-
-
-
-
-
 // ########################################################################################################################
 //                                             Helper functions for Pod5Index
 // ########################################################################################################################
