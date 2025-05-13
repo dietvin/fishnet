@@ -141,15 +141,13 @@ impl<'a> SigMapRefiner<'a> {
     }    
 
     /// Returns the refined query to signal alignment if already calculated. 
-    /// Returns an error otherwise.
-    pub fn refined_query_to_sig(&self) -> Result<&Vec<usize>, SigMapRefineError> {
-        self.refined_query_to_sig.as_ref().ok_or(SigMapRefineError::RefinedQueryToSigNotFound)
+    pub fn refined_query_to_sig(&self) -> Option<&Vec<usize>> {
+        self.refined_query_to_sig.as_ref()
     }
 
     /// Returns the refined reference to signal alignment if already calculated. 
-    /// Returns an error otherwise.
-    pub fn refined_ref_to_sig(&self) -> Result<&Vec<usize>, SigMapRefineError> {
-        self.refined_ref_to_sig.as_ref().ok_or(SigMapRefineError::RefinedRefToSigNotFound)
+    pub fn refined_ref_to_sig(&self) -> Option<&Vec<usize>> {
+        self.refined_ref_to_sig.as_ref()
     }
 
     pub fn bam_record_mut(&mut self) -> &mut Record {

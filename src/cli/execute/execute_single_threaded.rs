@@ -2,10 +2,12 @@ use indicatif::{ProgressBar, ProgressStyle};
 use log::LevelFilter;
 use crate::{
     cli::{
-        parse::args_to_input::{
-            Config, WhichToAlign
-        },
-        output::output_bam::BamWriter
+        output::{
+            output_arrow::OutputWriterArrow,
+            output_json::OutputWriterJson, AlignmentWriter
+        }, parse::args_to_input::{
+            Config, OutputFormat, WhichToAlign
+        }
     }, 
     core::{
         alignment::aligned_read::AlignedRead, 
@@ -30,16 +32,16 @@ pub fn run_alignment_single_threaded(input: Config) -> Result<(), FishnetError> 
             vec![], 
             false
         ) {
-            println!("Failed to initialize logger: {e}");
+            eprintln!("Failed to initialize logger: {e}");
             std::process::exit(1);
         }
     }
 
-    let bam_path = input.bam_input();
+    let bam_path: &std::path::PathBuf = input.bam_input();
     let mut bam_file = match BamFileLazy::new(bam_path) {
         Ok(v) => v,
         Err(e) => {
-            println!("Failed to read Bam file: {e}");
+            eprintln!("Failed to read Bam file: {e}");
             log::error!("Failed to read Bam file: {e}");
             std::process::exit(1);
         }
@@ -49,7 +51,7 @@ pub fn run_alignment_single_threaded(input: Config) -> Result<(), FishnetError> 
     let pod5_index = match Pod5Index::from_files(pod5_paths) {
         Ok(v) => v,
         Err(e) => {
-            println!("Failed to read pod5 files: {e}");
+            eprintln!("Failed to read pod5 files: {e}");
             log::error!("Failed to read pod5 files: {e}");
             std::process::exit(1);
         }
@@ -61,7 +63,7 @@ pub fn run_alignment_single_threaded(input: Config) -> Result<(), FishnetError> 
     let mut kmer_table = match KmerTable::new(kmer_table_path) {
         Ok(v) => v,
         Err(e) => {
-            println!("Failed to load kmer table: {e}");
+            eprintln!("Failed to load kmer table: {e}");
             log::error!("Failed to load kmer table: {e}");
             std::process::exit(1);
         }
@@ -69,27 +71,44 @@ pub fn run_alignment_single_threaded(input: Config) -> Result<(), FishnetError> 
 
     if *refine_settings.normalize_levels() {
         if let Err(e) = kmer_table.fix_gauge() {
-            println!("Failed to normalize kmer table levels: {e}");
+            eprintln!("Failed to normalize kmer table levels: {e}");
             log::error!("Failed to normalize kmer table levels: {e}");
             std::process::exit(1);
         }
     }
 
-    let output_path = input.output_dir();
-    let mut output_writer = match BamWriter::new(output_path, bam_path, input.force_overwrite()) {
+    let output_dir = input.output_dir();
+    let bam_stem = bam_path.file_stem().unwrap_or_else(|| {
+        eprintln!("BAM file has no valid file stem.");
+        std::process::exit(1);
+    });
+    let extension = match input.output_format() {
+        OutputFormat::Parquet => "arrow",
+        OutputFormat::Json => "json"
+    };
+    let output_path = output_dir.join(format!("{}.{}", bam_stem.to_string_lossy(), extension));
+
+    let output_writer_res = match input.output_format() {
+        OutputFormat::Parquet => OutputWriterArrow::new(&output_path, input.force_overwrite(), input.output_batch_size())
+            .map(|w| Box::new(w) as Box<dyn AlignmentWriter>),
+        OutputFormat::Json => OutputWriterJson::new(&output_path, input.force_overwrite(), input.output_batch_size())
+            .map(|w| Box::new(w) as Box<dyn AlignmentWriter>),
+        _ => unreachable!(),
+    };
+    
+    let mut output_writer = match output_writer_res {
         Ok(v) => v,
         Err(e) => {
-            println!("Failed to initialize the output writer: {e}");
+            eprintln!("Failed to initialize the output writer: {e}");
             log::error!("Failed to initialize the output writer: {e}");
             std::process::exit(1);
         }
     };
 
-
     let total_reads = match pod5_index.num_reads() {
         Ok(v) => v,
         Err(e) => {
-            println!("Failed to count number of reads: {e}");
+            eprintln!("Failed to count number of reads: {e}");
             log::error!("Failed to count number of reads: {e}");
             std::process::exit(1);
         }
@@ -176,9 +195,10 @@ pub fn run_alignment_single_threaded(input: Config) -> Result<(), FishnetError> 
             continue;
         }
 
-        match output_writer.write_read(
-            &mut sig_map_refiner, 
-            input.alignment_type()
+        match output_writer.write_record(
+            &read_id, 
+            sig_map_refiner.refined_query_to_sig(), 
+            sig_map_refiner.refined_ref_to_sig()
         ) {
             Ok(_) => {
                 log::info!("Successfully processed read {read_id}");
@@ -190,6 +210,11 @@ pub fn run_alignment_single_threaded(input: Config) -> Result<(), FishnetError> 
                 continue;
             }
         }
+    }
+
+    if let Err(e) = output_writer.finalize() {
+        eprintln!("Failed to write the remaining buffer to file: {e}");
+        std::process::exit(1);
     }
 
     Ok(())

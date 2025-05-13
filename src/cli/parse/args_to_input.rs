@@ -16,9 +16,8 @@ pub enum WhichToAlign {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum OutputFormat {
-    Bam,
-    Json,
-    Hdf5
+    Parquet,
+    Json
 }
 
 
@@ -35,6 +34,7 @@ pub struct Config {
     output_dir: PathBuf,
 
     output_format: OutputFormat,
+    output_batch_size: usize,
     force_overwrite: bool,
     is_drna: bool,
     alignment_type: WhichToAlign,
@@ -75,15 +75,21 @@ impl Config {
 
         // Optional general arguments
 
-        let output_format_raw = matches.get_one::<String>("output-type").ok_or(
-            CliError::ArgumentNone("output-type".to_string()) 
+        let output_format_raw = matches.get_one::<String>("output-format").ok_or(
+            CliError::ArgumentNone("output-format".to_string()) 
         )?.clone();
         let output_format = match output_format_raw.as_str() {
-            "bam" => OutputFormat::Bam,
+            "parquet" => OutputFormat::Parquet,
             "json" => OutputFormat::Json,
-            "hdf5" => OutputFormat::Hdf5,
             _ => unreachable!()
         };
+
+        let output_batch_size = matches.get_one::<usize>("output-batch-size").ok_or(
+            CliError::ArgumentNone("alignment-type".to_string()) 
+        )?.clone();
+        if output_batch_size == 0 {
+            CliError::InvalidArgument("output-batch-size".to_string(), 0.to_string());
+        }
 
         let is_drna = matches.get_flag("rna");
 
@@ -329,6 +335,7 @@ impl Config {
             kmer_table_input, 
             output_dir, 
             output_format,
+            output_batch_size,
             force_overwrite,
             is_drna,
             alignment_type, 
@@ -358,6 +365,10 @@ impl Config {
 
     pub fn output_format(&self) -> &OutputFormat {
         &self.output_format
+    }
+
+    pub fn output_batch_size(&self) -> usize {
+        self.output_batch_size
     }
 
     pub fn force_overwrite(&self) -> bool {

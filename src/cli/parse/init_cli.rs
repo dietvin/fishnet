@@ -108,27 +108,39 @@ pub fn parse_command_line() -> ArgMatches {
         // General options
 
         .arg(
-            Arg::new("output-type")
-                .long("output-type")
-                .value_parser(["bam", "json", "hdf5"])
-                .default_value("bam")
+            Arg::new("output-format")
+                .long("output-format")
+                .value_parser(["parquet", "json"])
+                .default_value("parquet")
                 .help_heading("General settings")
                 .help("Output format")
         )
         .arg(
+            Arg::new("output-batch-size")
+                .long("output-batch-size")
+                .value_parser(value_parser!(usize))
+                .default_value("4000")
+                .help_heading("General settings")
+                .long_help(
+"Output batch size. Determines the number of results that are collected before dumping
+these to file."
+                )
+        )
+        
+        .arg(
             Arg::new("rna")
-            .long("rna")
-            .action(ArgAction::SetTrue)
-            .help_heading("General settings")
-            .help("Whether direct RNA data is provided. Reverses the signal for alignment.")
+                .long("rna")
+                .action(ArgAction::SetTrue)
+                .help_heading("General settings")
+                .help("Whether direct RNA data is provided. Reverses the signal for alignment.")
         )        
         .arg(
             Arg::new("force-overwrite")
-            .long("force-overwrite")
-            .short('f')
-            .action(ArgAction::SetTrue)
-            .help_heading("General settings")
-            .help("Whether existing output files should be overwritten.")
+                .long("force-overwrite")
+                .short('f')
+                .action(ArgAction::SetTrue)
+                .help_heading("General settings")
+                .help("Whether existing output files should be overwritten.")
         )
         .arg(
             Arg::new("alignment-type")
