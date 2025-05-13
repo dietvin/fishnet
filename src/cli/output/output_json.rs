@@ -50,7 +50,7 @@ impl AlignmentWriter for OutputWriterJson {
 
         self.buffer.push(record);
 
-        if self.buffer.len() > self.batch_size {
+        if self.buffer.len() >= self.batch_size {
             self.flush()?;
         }
 
