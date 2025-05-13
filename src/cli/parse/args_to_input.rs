@@ -80,7 +80,7 @@ impl Config {
         )?.clone();
         let output_format = match output_format_raw.as_str() {
             "parquet" => OutputFormat::Parquet,
-            "json" => OutputFormat::Json,
+            "jsonl" => OutputFormat::Json,
             _ => unreachable!()
         };
 

@@ -110,10 +110,12 @@ pub fn parse_command_line() -> ArgMatches {
         .arg(
             Arg::new("output-format")
                 .long("output-format")
-                .value_parser(["parquet", "json"])
+                .value_parser(["parquet", "jsonl"])
                 .default_value("parquet")
                 .help_heading("General settings")
-                .help("Output format")
+                .long_help(
+"Output format. Available formats are Apache Parquet (.parquet) and JSON Lines (.jsonl)."
+                )
         )
         .arg(
             Arg::new("output-batch-size")
