@@ -84,7 +84,7 @@ pub fn run_alignment_single_threaded(input: Config) -> Result<(), FishnetError> 
     });
     let extension = match input.output_format() {
         OutputFormat::Parquet => "arrow",
-        OutputFormat::Json => "json"
+        OutputFormat::Json => "jsonl"
     };
     let output_path = output_dir.join(format!("{}.{}", bam_stem.to_string_lossy(), extension));
 
