@@ -3,7 +3,7 @@ use crate::error::output_errors::OutputError;
 
 use super::AlignmentWriter;
 
-pub struct OutputWriterJson {
+pub struct OutputWriterJsonl {
     file_path: PathBuf,
     writer: Option<BufWriter<File>>,
     batch_size: usize,
@@ -11,7 +11,7 @@ pub struct OutputWriterJson {
     buffer: Vec<serde_json::Value>
 }
 
-impl AlignmentWriter for OutputWriterJson {
+impl AlignmentWriter for OutputWriterJsonl {
     fn new(
         path: &PathBuf, 
         force_overwrite: bool, 
@@ -24,7 +24,7 @@ impl AlignmentWriter for OutputWriterJson {
         let file = std::fs::File::create(path)?;
         let writer = std::io::BufWriter::new(file);
         
-        Ok(OutputWriterJson {
+        Ok(OutputWriterJsonl {
             file_path: path.clone(),
             writer: Some(writer),
             batch_size,

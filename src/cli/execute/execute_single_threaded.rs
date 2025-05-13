@@ -4,7 +4,7 @@ use crate::{
     cli::{
         output::{
             output_arrow::OutputWriterArrow,
-            output_json::OutputWriterJson, AlignmentWriter
+            output_json::OutputWriterJsonl, AlignmentWriter
         }, parse::args_to_input::{
             Config, OutputFormat, WhichToAlign
         }
@@ -91,7 +91,7 @@ pub fn run_alignment_single_threaded(input: Config) -> Result<(), FishnetError> 
     let output_writer_res = match input.output_format() {
         OutputFormat::Parquet => OutputWriterArrow::new(&output_path, input.force_overwrite(), input.output_batch_size())
             .map(|w| Box::new(w) as Box<dyn AlignmentWriter>),
-        OutputFormat::Json => OutputWriterJson::new(&output_path, input.force_overwrite(), input.output_batch_size())
+        OutputFormat::Json => OutputWriterJsonl::new(&output_path, input.force_overwrite(), input.output_batch_size())
             .map(|w| Box::new(w) as Box<dyn AlignmentWriter>),
         _ => unreachable!(),
     };
