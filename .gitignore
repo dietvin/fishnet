@@ -22,3 +22,8 @@ Cargo.lock
 
 tests/full_implementation/*/*.json
 remora_step_by_step/
+
+
+*.parquet
+*.jsonl
+log.txt
