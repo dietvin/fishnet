@@ -27,6 +27,7 @@ impl Default for WhichToAlign {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct Config {
     bam_input: PathBuf,
     pod5_input: Vec<PathBuf>,
@@ -39,8 +40,9 @@ pub struct Config {
     is_drna: bool,
     alignment_type: WhichToAlign,
     n_threads: usize,
-    debug_level: LevelFilter,
-    debug_path: PathBuf,
+    queue_size: usize,
+    log_level: LevelFilter,
+    log_path: PathBuf,
 
     refine_settings: RefineSettings
 }
@@ -113,10 +115,26 @@ impl Config {
             );
         }
 
-        let debug_level_raw = matches.get_one::<String>("debug-level").ok_or(
-            CliError::ArgumentNone("debug-level".to_string()) 
+        let n_threads = if n_threads < 4 {
+            1
+        } else {
+            n_threads
+        };
+
+        let queue_size = *matches.get_one::<usize>("queue-size").ok_or(
+            CliError::ArgumentNone("queue-size".to_string()) 
+        )?;
+
+        if queue_size == 0 {
+            return Err(
+                CliError::InvalidArgument("queue-size".to_string(), 0.to_string())
+            );
+        } 
+
+        let log_level_raw = matches.get_one::<String>("log-level").ok_or(
+            CliError::ArgumentNone("log-level".to_string()) 
         )?.clone();
-        let debug_level = match debug_level_raw.as_str() {
+        let log_level = match log_level_raw.as_str() {
             "off" => LevelFilter::Off,
             "error" => LevelFilter::Error,
             "warn" => LevelFilter::Warn,
@@ -126,11 +144,11 @@ impl Config {
             _ => unreachable!()
         };
 
-        let debug_path = matches.get_one::<PathBuf>("debug-path").ok_or(
-            CliError::ArgumentNone("debug-path".to_string()) 
+        let log_path = matches.get_one::<PathBuf>("log-path").ok_or(
+            CliError::ArgumentNone("log-path".to_string()) 
         )?.clone();
 
-        // check_input_file(&debug_path, ".txt")?;
+        // check_input_file(&log_path, ".txt")?;
 
         // Optional refinement arguments
 
@@ -339,9 +357,10 @@ impl Config {
             force_overwrite,
             is_drna,
             alignment_type, 
-            n_threads, 
-            debug_level, 
-            debug_path,
+            n_threads,
+            queue_size,
+            log_level, 
+            log_path,
             refine_settings 
         })
     }
@@ -387,12 +406,16 @@ impl Config {
         self.n_threads
     }
 
-    pub fn debug_level(&self) -> &LevelFilter {
-        &self.debug_level
+    pub fn queue_size(&self) -> usize {
+        self.queue_size
     }
 
-    pub fn debug_path(&self) -> &PathBuf {
-        &self.debug_path
+    pub fn log_level(&self) -> &LevelFilter {
+        &self.log_level
+    }
+
+    pub fn log_path(&self) -> &PathBuf {
+        &self.log_path
     }
 
     pub fn refine_settings(&self) -> &RefineSettings {
