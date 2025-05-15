@@ -160,19 +160,34 @@ these to file."
                 .value_parser(value_parser!(usize))
                 .default_value("8")
                 .help_heading("General settings")
-                .help("Number of threads to use")
+                .long_help(
+"Set the number of parallel threads used during processing. Set to 1 to 
+disable multithreading. If set to 2 or 3, falls back to single-threaded
+processing (due to 3 non-worker threads)."
+                )
         )
         .arg(
-            Arg::new("debug-level")
-                .long("debug-level")
+            Arg::new("queue-size")
+                .long("queue-size")
+                .value_parser(value_parser!(usize))
+                .default_value("1000")
+                .help_heading("General settings")
+                .long_help(
+"Sets the queue size for transfering data to and from worker threads. Only regarded
+if number of threads is larger than "
+                )
+        )
+        .arg(
+            Arg::new("log-level")
+                .long("log-level")
                 .value_parser(["off", "error", "warn", "info", "debug", "trace"])
                 .default_value("off")
                 .help_heading("General settings")
-                .help("Which debug level to use")
+                .help("Which log level to use")
         )
         .arg(
-            Arg::new("debug-path")
-                .long("debug-path")
+            Arg::new("log-path")
+                .long("log-path")
                 .default_value("log.txt")
                 .value_parser(value_parser!(PathBuf))
                 .help_heading("General settings")
