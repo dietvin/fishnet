@@ -17,23 +17,19 @@ pub fn execute() {
     };
 
     if input_data.n_threads() <= 1 {
-        match run_alignment_single_threaded(input_data) {
-            Ok(_) => println!("Finished sucessfully"),
-            Err(e) => {
-                println!("Failed to perform alignment: {e}");
-                std::process::exit(1);
-            }
+        if let Err(e) = run_alignment_single_threaded(input_data) {
+            println!("Failed to perform alignment: {e}");
+            std::process::exit(1);
         }
     } else {
-        match run_alignment_multi_threaded(input_data) {
-            Ok(_) => println!("Finished sucessfully"),
-            Err(e) => {
-                println!("Failed to perform alignment: {e}");
-                std::process::exit(1);
-            }
+        if let Err(e) = run_alignment_multi_threaded(input_data) {
+            println!("Failed to perform alignment: {e}");
+            std::process::exit(1);
         }
     }
 
+    println!("Finished successfully.");
+    std::process::exit(0);
 }
 
 
