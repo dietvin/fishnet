@@ -8,11 +8,13 @@ approx = "0.5.1"
 arrow = "55.0.0"
 bitvec = "1.0.1"
 clap = "4.5.37"
+crossbeam = "0.8.4"
 indicatif = "0.17.11"
 interp = "2.0.2"
 itertools = "0.14.0"
 log = "0.4.27"
 log4rs = "1.3.0"
+parquet = "55.0.0"
 pod5 = { git = "https://github.com/bsaintjo/pod5-rs", rev = "97f987e3fe8b49dfa4e9672f35e97c9b5c8e9122" }
 polars = { version = "0.46.0", features = ["lazy", "rows"] }
 rand = "0.9.0"
