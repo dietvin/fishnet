@@ -1,4 +1,59 @@
-use std::{sync::{atomic::Ordering, Arc}, thread};
+/*! 
+# Multi-threaded Resquiggling
+
+This module implements a multi-threaded framework for processing alignments
+between POD5 nanopore signal data and BAM alignment records.
+
+## Architecture
+
+The system uses a producer-consumer architecture with four types of threads:
+
+1. **Producer Thread**: Loads reads from POD5 files and corresponding BAM entries,
+   then distributes work to worker threads through a bounded channel.
+
+2. **Worker Threads**: Perform the actual signal-to-sequence alignment and refinement 
+   for each read, then send results back through a separate channel.
+
+3. **Main Thread**: Collects results from worker threads and writes them to the output file.
+
+4. **Progress Thread**: Displays and updates a progress bar based on completed alignments.
+
+## Communication Channels
+
+The system uses three bounded crossbeam channels for thread communication:
+
+- **Data Channel**: Transfers read data from the producer to worker threads
+  (Pod5Read and BamRead objects for each read ID)
+  
+- **Result Channel**: Transfers alignment results from worker threads to the main thread
+  (read ID and alignment vectors)
+  
+- **Progress Channel**: Sends success/failure signals to update the progress display
+
+## Workflow
+
+1. The main thread initializes resources (BAM file, POD5 index, kmer table)
+2. Worker threads are spawned and wait for input data
+3. The producer thread iterates through POD5 reads, finds matching BAM entries, 
+   and sends them to workers
+4. Workers perform alignments in parallel:
+   - Create AlignedRead object
+   - Align query to signal
+   - Align reference to signal (if requested)
+   - Run signal mapping refinement
+   - Send results back to main thread
+5. The main thread writes results to the output file (Parquet or JSON)
+6. Progress is continuously updated through the progress bar
+
+## Error Handling
+
+- All threads implement comprehensive error handling
+- Failures in individual reads don't stop the entire process
+- The progress bar shows both successful and failed alignments
+- Critical errors that prevent continuing will exit the program with error code 1
+*/
+
+use std::{sync::Arc, thread};
 
 use crossbeam::channel::{bounded, SendError};
 use indicatif::{ProgressBar, ProgressStyle};
