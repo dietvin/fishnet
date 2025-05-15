@@ -25,10 +25,10 @@ use crate::{
 
 
 pub fn run_alignment_single_threaded(input: Config) -> Result<(), FishnetError> {
-    if *input.debug_level() != LevelFilter::Off {
+    if *input.log_level() != LevelFilter::Off {
         if let Err(e) = setup_logger(
-            input.debug_path(), 
-            *input.debug_level(), 
+            input.log_path(), 
+            *input.log_level(), 
             vec![], 
             false
         ) {
@@ -83,7 +83,7 @@ pub fn run_alignment_single_threaded(input: Config) -> Result<(), FishnetError> 
         std::process::exit(1);
     });
     let extension = match input.output_format() {
-        OutputFormat::Parquet => "arrow",
+        OutputFormat::Parquet => "parquet",
         OutputFormat::Json => "jsonl"
     };
     let output_path = output_dir.join(format!("{}.{}", bam_stem.to_string_lossy(), extension));
