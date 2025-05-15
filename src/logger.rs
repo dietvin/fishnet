@@ -24,9 +24,9 @@ pub fn setup_logger(
     include_function_name: bool
 ) -> Result<(), Box<dyn std::error::Error>> {
     let pattern = if include_function_name {
-        "{d(%Y-%m-%d %H:%M:%S)}\t{l}\t{M}:{L}\t{m}\n"
+        "{d(%Y-%m-%d %H:%M:%S)}\t{l}\t{M}:{L}\t{T}\t{m}\n"
     } else {
-        "{d(%Y-%m-%d %H:%M:%S)}\t{l}\t{m}\n"
+        "{d(%Y-%m-%d %H:%M:%S)}\t{l}\t{T}\t{m}\n"
     };
     
     let logfile = FileAppender::builder()
