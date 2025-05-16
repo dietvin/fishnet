@@ -53,9 +53,9 @@ The following arguments are required:
 
 | Long arg   | Short arg | Explanation                                                                                                                             | Type |
 |------------|-----------|-----------------------------------------------------------------------------------------------------------------------------------------|------|
-| bam        | b         | Path to a bam file                                                                                                                      | str  |
-| pod5       | p         | Path(s) to one or more pod5 files or directories containing pod5 files (multiple paths can be provided by separating them with a space) | (multiple) str  |
-| kmer-table | k         | Path to a kmer level table                                                                                                              | str  |
+| bam        | b         | Path to a bam file (as given by Dorado; must contain **move tables** for each read)                                                                                                                      | str  |
+| pod5       | p         | Path(s) to one or more pod5 files and/or directories containing pod5 files (separate multiple paths by space) | (multiple) str  |
+| kmer-table | k         | Path to a [kmer level table](https://github.com/nanoporetech/kmer_models)                                                                                                               | str  |
 | output-dir | o         | Path to a directory where the aligned data will be written to                                                                           | str  |
 ### Optional arguments
 
