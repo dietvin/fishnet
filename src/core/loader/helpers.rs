@@ -1,5 +1,5 @@
 use rust_htslib::bam::record::{Aux, Record};
-use crate::error::loader_errors::{bam_errors::BamReadError, pod5_errors::Pod5FileError};
+use crate::error::loader_errors::bam_errors::BamReadError;
 
 // ########################################################################################################################
 //                                             Helper functions for BamRead
