@@ -55,6 +55,7 @@ The system uses three bounded crossbeam channels for thread communication:
 
 use std::{sync::Arc, thread};
 
+use console::style;
 use crossbeam::channel::{bounded, SendError};
 use indicatif::{ProgressBar, ProgressStyle};
 use log::LevelFilter;
@@ -83,8 +84,17 @@ use crate::{
     }, error::FishnetError, logger::setup_logger
 };
 
-pub fn run_alignment_multi_threaded(input: Config) -> Result<(), FishnetError> {
+pub fn run_alignment_multi_threaded(input: Config) -> Result<(), FishnetError> {    
+    let progress_bar_init = ProgressBar::new_spinner();
+    progress_bar_init.set_style(
+        ProgressStyle::default_bar()
+            .tick_strings(&["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"])
+            .template("{spinner} [{elapsed_precise}] {msg}")                    
+            .unwrap()            
+    );
+
     if *input.log_level() != LevelFilter::Off {
+        progress_bar_init.set_message("Initializing logging...");
         if let Err(e) = setup_logger(
             input.log_path(), 
             *input.log_level(), 
@@ -96,6 +106,7 @@ pub fn run_alignment_multi_threaded(input: Config) -> Result<(), FishnetError> {
         }
     }
 
+    progress_bar_init.set_message("Loading the BAM file...");
     let bam_path: &std::path::PathBuf = input.bam_input();
     let mut bam_file = match BamFileLazy::new(bam_path) {
         Ok(v) => v,
@@ -106,6 +117,7 @@ pub fn run_alignment_multi_threaded(input: Config) -> Result<(), FishnetError> {
         }
     };
 
+    progress_bar_init.set_message("Indexing the POD5 data...");
     let pod5_paths = input.pod5_input();
     let pod5_index = match Pod5Index::from_files(pod5_paths) {
         Ok(v) => v,
@@ -118,6 +130,7 @@ pub fn run_alignment_multi_threaded(input: Config) -> Result<(), FishnetError> {
 
     let refine_settings = Arc::new(input.refine_settings().clone());
 
+    progress_bar_init.set_message("Initializing the kmer table...");
     let kmer_table_path = input.kmer_table_input();
     let mut kmer_table = match KmerTable::new(kmer_table_path) {
         Ok(v) => v,
@@ -138,9 +151,11 @@ pub fn run_alignment_multi_threaded(input: Config) -> Result<(), FishnetError> {
 
     let kmer_table = Arc::new(kmer_table);
 
+    progress_bar_init.set_message("Initializing the output writer...");
     let output_dir = input.output_dir();
     let bam_stem = bam_path.file_stem().unwrap_or_else(|| {
-        eprintln!("BAM file has no valid file stem.");
+        eprintln!("BAM file has no valid file stem");
+        log::error!("BAM file has no valid file stem");
         std::process::exit(1);
     });
     let extension = match input.output_format() {
@@ -165,6 +180,8 @@ pub fn run_alignment_multi_threaded(input: Config) -> Result<(), FishnetError> {
         }
     };
 
+    progress_bar_init.finish_with_message(format!("{}", style("Finished initialization. Starting alignment...").green()));
+
     let is_drna = input.is_drna();
     let alignment_type = input.alignment_type().clone();
 
@@ -178,26 +195,26 @@ pub fn run_alignment_multi_threaded(input: Config) -> Result<(), FishnetError> {
 
     // Initalize the progress bar thread
 
-    let total_reads = match pod5_index.num_reads() {
-        Ok(v) => v,
-        Err(e) => {
-            eprintln!("Failed to count number of reads: {e}");
-            log::error!("Failed to count number of reads: {e}");
-            std::process::exit(1);
-        }
-    };
+    // let total_reads = match pod5_index.num_reads() {
+    //     Ok(v) => v,
+    //     Err(e) => {
+    //         eprintln!("Failed to count number of reads: {e}");
+    //         log::error!("Failed to count number of reads: {e}");
+    //         std::process::exit(1);
+    //     }
+    // };
 
     let progress_handler = match thread::Builder::new()
         .name("progress".to_string())
         .spawn(move || {
             let mut n_successful_reads = 0;
             let mut n_failed_reads = 0;
-            let progress_bar = ProgressBar::new(total_reads as u64);
+            let progress_bar = ProgressBar::new_spinner();
             progress_bar.set_style(
-                ProgressStyle::default_bar()
-                .template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} reads ({percent}%) | {msg}")
-                .unwrap()
-                .progress_chars("#>-")
+                ProgressStyle::default_spinner()
+                    .tick_strings(&["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"])
+                    .template("{spinner} [{elapsed_precise}] Processed {pos} reads | {msg}")                    
+                    .unwrap()            
             );
 
             for is_success in progress_receiver {
@@ -209,7 +226,17 @@ pub fn run_alignment_multi_threaded(input: Config) -> Result<(), FishnetError> {
                 progress_bar.set_message(format!("{} ✓ | {} ✗", n_successful_reads, n_failed_reads));
                 progress_bar.inc(1);
             }
-            progress_bar.finish();
+            progress_bar.set_style(
+                ProgressStyle::default_spinner()
+                    .template("{spinner} [{elapsed_precise}] {msg}")
+                    .unwrap()            
+            );
+            progress_bar.finish_with_message(format!(
+                "{} | {} | {}",
+                style(format!("Finished. Processed {} reads", progress_bar.position())).green(),
+                style(format!("{} ✓ ", n_successful_reads)).green(),
+                style(format!("{} ✗ ", n_failed_reads)).red()
+            ));
         }) {
             Ok(v) => v,
             Err(e) => {

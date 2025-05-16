@@ -1,3 +1,4 @@
+use console::style;
 use indicatif::{ProgressBar, ProgressStyle};
 use log::LevelFilter;
 use crate::{
@@ -25,7 +26,16 @@ use crate::{
 
 
 pub fn run_alignment_single_threaded(input: Config) -> Result<(), FishnetError> {
+    let progress_bar_init = ProgressBar::new_spinner();
+    progress_bar_init.set_style(
+        ProgressStyle::default_bar()
+            .tick_strings(&["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"])
+            .template("{spinner} [{elapsed_precise}] {msg}")                    
+            .unwrap()            
+    );
+
     if *input.log_level() != LevelFilter::Off {
+        progress_bar_init.set_message("Initializing logging...");
         if let Err(e) = setup_logger(
             input.log_path(), 
             *input.log_level(), 
@@ -37,6 +47,7 @@ pub fn run_alignment_single_threaded(input: Config) -> Result<(), FishnetError> 
         }
     }
 
+    progress_bar_init.set_message("Loading the BAM file...");
     let bam_path: &std::path::PathBuf = input.bam_input();
     let mut bam_file = match BamFileLazy::new(bam_path) {
         Ok(v) => v,
@@ -47,6 +58,7 @@ pub fn run_alignment_single_threaded(input: Config) -> Result<(), FishnetError> 
         }
     };
 
+    progress_bar_init.set_message("Indexing the POD5 data...");
     let pod5_paths = input.pod5_input();
     let pod5_index = match Pod5Index::from_files(pod5_paths) {
         Ok(v) => v,
@@ -57,8 +69,10 @@ pub fn run_alignment_single_threaded(input: Config) -> Result<(), FishnetError> 
         }
     };
 
+
     let refine_settings = input.refine_settings();
 
+    progress_bar_init.set_message("Initializing the kmer table...");
     let kmer_table_path = input.kmer_table_input();
     let mut kmer_table = match KmerTable::new(kmer_table_path) {
         Ok(v) => v,
@@ -77,6 +91,7 @@ pub fn run_alignment_single_threaded(input: Config) -> Result<(), FishnetError> 
         }
     }
 
+    progress_bar_init.set_message("Initializing the output writer...");
     let output_dir = input.output_dir();
     let bam_stem = bam_path.file_stem().unwrap_or_else(|| {
         eprintln!("BAM file has no valid file stem.");
@@ -105,22 +120,16 @@ pub fn run_alignment_single_threaded(input: Config) -> Result<(), FishnetError> 
         }
     };
 
-    let total_reads = match pod5_index.num_reads() {
-        Ok(v) => v,
-        Err(e) => {
-            eprintln!("Failed to count number of reads: {e}");
-            log::error!("Failed to count number of reads: {e}");
-            std::process::exit(1);
-        }
-    };
+    progress_bar_init.finish_with_message(format!("{}", style("Finished initialization. Starting alignment...").green()));
+
     let mut n_successful_reads = 0;
     let mut n_failed_reads = 0;
-    let mut progress_bar = ProgressBar::new(total_reads as u64);
+    let mut progress_bar = ProgressBar::new_spinner();
     progress_bar.set_style(
-        ProgressStyle::default_bar()
-        .template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} reads ({percent}%) | {msg}")
-        .unwrap()
-        .progress_chars("#>-")
+        ProgressStyle::default_spinner()
+            .tick_strings(&["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"])
+            .template("{spinner} [{elapsed_precise}] Processed {pos} reads | {msg}")                    
+            .unwrap()            
     );
 
     for read in pod5_index.reads() {
@@ -216,6 +225,19 @@ pub fn run_alignment_single_threaded(input: Config) -> Result<(), FishnetError> 
         eprintln!("Failed to write the remaining buffer to file: {e}");
         std::process::exit(1);
     }
+
+    progress_bar.set_style(
+        ProgressStyle::default_spinner()
+            .template("{spinner} [{elapsed_precise}] {msg}")
+            .unwrap()            
+    );
+    progress_bar.finish_with_message(format!(
+        "{} | {} | {}",
+        style(format!("Finished. Processed {} reads", progress_bar.position())).green(),
+        style(format!("{} ✓ ", n_successful_reads)).green(),
+        style(format!("{} ✗ ", n_failed_reads)).red()
+    ));
+
 
     Ok(())
 }
