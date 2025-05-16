@@ -1,35 +1,80 @@
-# Unnamed resquiggle tool (working title: Fishnet)
+# Fishnet
 
-The goal is to provide a tool for signal-to-sequence alignment (*resquiggling*) of nanopore sequencing data. To provide fast performance the tool is written in Rust.
+<div style="font-size: 25px; font-weight: bold">Fast signal-to-sequence alignment for Nanopore sequencing data in a simple command line interface</div>
 
-## Dependencies
 
-At this point it relies on the **experimental** [pod5-rs crate](https://github.com/bsaintjo/pod5-rs) for reading POD5 files and the [rust-htslib crate](https://github.com/rust-bio/rust-htslib) for reading BAM files.
+## Table of contents
+- [Table of contents](#table-of-contents)
+- [Description](#description)
+- [Installation](#installation)
+- [Usage](#usage)
+    - [Required arguments](#required-arguments)
+    - [Optional arguments](#optional-arguments)
+- [Algorithm and backend details](#algorithm-and-backend-details)
+- [License](#license)
 
-## Approach
+## Description
 
-The approach follows the implementation found in [Remora](https://github.com/nanoporetech/remora) for the most part. The source code for this can be found here:
+Fishnet implements the signal-to-sequence alignment algorithm used in [Remora](https://github.com/nanoporetech/remora) in a Rust-based command line interface for better accessibility and improved speed.
 
-- base-called sequence to signal: [query_to_signal](https://github.com/nanoporetech/remora/blob/0787dae2da818c49a3aaade10515b1e6df88e6bd/src/remora/io.py#L2123)
-- mapped sequence to signal: [ref_to_signal](https://github.com/nanoporetech/remora/blob/0787dae2da818c49a3aaade10515b1e6df88e6bd/src/remora/io.py#L2075)
+## Installation
 
-The goal is to provide alignments that are as similar as possible to the established approach, with the added benefit that the new tool is **more accessible** and **faster**. It should work via a simple command line interface:
+No installation is required. Simply download the executable for your operating system:
+- Ubuntu: [fishnet]()
+- Windows: [fishnet.exe]()
 
+Afterwards the program can be executed from the command line:
 ```bash
-signal-to-query -t 32 <POD5 directory> <BAM file> <output directory>
-signal-to-ref -t 32 <POD5 directory> <BAM file> <output directory>
+/path/to/fishnet --help
 ```
 
-The user should have multiple options for the output file types. Most accessible would be a (tab-separated) text file like this:
+To make it more accessible add the executable to the `$PATH` environment variable. This way it can be called at any time:
+```bash
+fishnet --help
+```
 
-| read_id 	| query 	| signal 	| query_to_signal 	|
-|---------	|-------	|--------	|-----------------	|
-| ...     	| ...   	| ...    	| ...             	|  
+More information about the installation and how to build from source can be found in the [documentation](). 
 
-| read_id 	| ref_seq 	| ref_start 	| ref_end 	| signal 	| ref_to_signal 	|
-|---------	|---------	|-----------	|---------	|--------	|-----------------	|
-| ...     	| ...     	| ...       	| ...     	| ...    	| ...             	|
+## Usage
+Minimal usage:
+```bash
+fishnet -b <basecalls.bam> -p <raw-signal.pod5> -k <level-table.txt> -o <output-dir>
+```
 
-The user should be able to decide whether they want to include columns with large amounts of data (signal, query, ref_seq) to keep the file size to a minimum.
+Fishnet requires the following data:
+- **Base-called data**: A single BAM file containing the (unmapped) base-calls (including *move tables*)
+- **Raw signal data**: One or more POD5 file or directories containing POD5 files 
+- **Expected signal intensities**: A k-mer level table obtained from the [kmer_models repository](https://github.com/nanoporetech/kmer_models)
+- An output directory
 
-Alternatively the data could be written to a simple binary file of some more advanced and efficient (row-based(?)) file format. Generally an output file should be generated for each POD5 file provided. This would keep the site of the output files in check and enable more straight-forward multithreading. 
+### Required arguments
+
+The following arguments are required:
+
+| Long arg   | Short arg | Explanation                                                                                                                             | Type |
+|------------|-----------|-----------------------------------------------------------------------------------------------------------------------------------------|------|
+| bam        | b         | Path to a bam file                                                                                                                      | str  |
+| pod5       | p         | Path(s) to one or more pod5 files or directories containing pod5 files (multiple paths can be provided by separating them with a space) | (multiple) str  |
+| kmer-table | k         | Path to a kmer level table                                                                                                              | str  |
+| output-dir | o         | Path to a directory where the aligned data will be written to                                                                           | str  |
+### Optional arguments
+
+The following arguments are the most important optional arguments for most users:
+
+| Long arg        | Short arg | Explanation                                                                                                                                                                                                   | Type |
+|-----------------|-----------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------|
+| rna             | -         | Whether the provided data is direct RNA sequencing data. If set, the signal gets reversed for the alignment                                                                                                   | bool |
+| alignment-type  | a         | Which type(s) of alignment to generate. Can be '**query**' (Default) to align the signal to the base-called sequence, '**reference**' to align to the reference sequence (if mapped)or '**both**' to do both. | str  |
+| threads         | t         | Number of parallel threads to use. Default: **8**                                                                                                                                                             | int  |
+| output-format   | -         | The output format to which the aligned data will be written. Options: '**parquet**' (Default) or '**jsonl**'                                                                                                  | str  |
+| force-overwrite | f         | If set and an output file already exists, this file will be overwritten. Raises an error otherwise                                                                                                            | bool |
+
+For the sake of simplicity, the table shows only a subset of the optional arguments. An explanation for all arguments can be found in the [documentation]().
+
+## Algorithm and backend details
+
+A detailled description of the algorithm that is used and how the algorithm is implemented is provided in the [documentation]().
+
+## License
+
+This project is licensed under the GPL3.0 License. See the [LICENSE](./LICENSE) file for details.
