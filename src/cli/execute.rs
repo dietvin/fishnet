@@ -27,8 +27,6 @@ pub fn execute() {
             std::process::exit(1);
         }
     }
-
-    println!("Finished successfully.");
     std::process::exit(0);
 }
 
