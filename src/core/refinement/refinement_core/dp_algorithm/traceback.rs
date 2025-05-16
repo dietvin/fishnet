@@ -10,9 +10,9 @@ use crate::{logger::get_log_vector_sample, core::refinement::refinement_core::ba
 /// # Arguments
 ///
 /// * `path` - Mutable vector to be populated with start positions for each base. After execution:
-///   - path[0] will contain the start position of the first base (always 0)
-///   - path[1..len-1] will contain the start positions of subsequent bases
-///   - path[len-1] will contain the end position of the final base (total signal length)
+///   - path\[0\] will contain the start position of the first base (always 0)
+///   - path\[1..len-1\] will contain the start positions of subsequent bases
+///   - path\[len-1\] will contain the end position of the final base (total signal length)
 /// * `band` - The Band structure containing information about the allowed regions for each base
 ///   in the signal. This defines the search space constraints used during dynamic programming.
 /// * `base_offsets` - Vector containing offsets into the traceback array for each base's information.
