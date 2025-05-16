@@ -48,6 +48,10 @@ pub fn build_reference_sequence(
     cigar: &[Cigar],
     md_tag: &[u8]
 ) -> Result<Vec<u8>, RefSeqReconstructError> {
+    if query_sequence.len() < 1 {
+        return Err(RefSeqReconstructError::EmptyQuery);
+    }
+    
     let mut reference_idx = 0;
     let mut reference_sequence = Vec::new();
     

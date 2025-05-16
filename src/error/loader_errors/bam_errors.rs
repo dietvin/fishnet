@@ -30,6 +30,8 @@ pub enum BamFileError {
 
 #[derive(Debug, thiserror::Error, PartialEq)]
 pub enum RefSeqReconstructError {
+    #[error("Empty query sequence")]
+    EmptyQuery,
     #[error("Query sequence index out of bounds: {0} (len={1})")]
     QueryOutOfBounds(usize, usize),
     #[error("Reference sequence index out of bounds: {0} (len={1})")]
