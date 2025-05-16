@@ -1,5 +1,3 @@
-use itertools::max;
-
 use super::BinaryKmer;
 use crate::error::refinement_errors::kmer_table_errors::KmerTableError;
 use std::collections::HashMap;

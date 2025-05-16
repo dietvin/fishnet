@@ -671,8 +671,6 @@ fn get_upper_lower_quantiles(
 mod tests {
     use super::*;
     use approx::assert_relative_eq;
-    use rand::{thread_rng, Rng};
-    use std::f32::EPSILON;
 
     #[test]
     fn test_calculate_quantiles() {

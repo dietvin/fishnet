@@ -1,7 +1,4 @@
 use std::path::PathBuf;
-
-use crate::error;
-
 use super::file_handling_errors::{FileHandlingError, DirHandlingError};
 
 #[derive(Debug, thiserror::Error)]

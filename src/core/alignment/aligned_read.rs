@@ -1,5 +1,3 @@
-use log::log_enabled;
-
 use crate::error::alignment_errors::AlignedReadError;
 use crate::logger::get_log_vector_sample;
 

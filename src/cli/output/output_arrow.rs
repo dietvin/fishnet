@@ -1,5 +1,5 @@
 use std::{fs::File, path::PathBuf, sync::Arc};
-use arrow::{array::{ArrayRef, ListBuilder, RecordBatch, StringArray, StringBuilder, UInt64Builder}, datatypes::{DataType, Field, Schema}, ipc::writer::{FileWriter, IpcWriteOptions}};
+use arrow::{array::{ArrayRef, ListBuilder, RecordBatch, StringBuilder, UInt64Builder}, datatypes::{DataType, Field, Schema}};
 use parquet::{arrow::ArrowWriter, file::properties::WriterProperties};
 use crate::error::output_errors::OutputError;
 
@@ -11,7 +11,6 @@ use super::AlignmentWriter;
 /// until a specified batch size is reached, then writes the data to an Arrow file in
 /// the Parquet format with SNAPPY compression.
 pub struct OutputWriterArrow {
-    file_path: PathBuf,
     writer: Option<ArrowWriter<File>>,
     schema: Arc<Schema>,
     batch_size: usize,
@@ -71,7 +70,6 @@ impl AlignmentWriter for OutputWriterArrow {
         let writer = ArrowWriter::try_new(file, schema.clone(), Some(props))?;
 
         Ok(OutputWriterArrow { 
-            file_path: path.clone(), 
             writer: Some(writer),
             schema,
             batch_size, 

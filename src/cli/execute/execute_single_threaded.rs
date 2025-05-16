@@ -108,7 +108,6 @@ pub fn run_alignment_single_threaded(input: Config) -> Result<(), FishnetError> 
             .map(|w| Box::new(w) as Box<dyn AlignmentWriter>),
         OutputFormat::Json => OutputWriterJsonl::new(&output_path, input.force_overwrite(), input.output_batch_size())
             .map(|w| Box::new(w) as Box<dyn AlignmentWriter>),
-        _ => unreachable!(),
     };
     
     let mut output_writer = match output_writer_res {

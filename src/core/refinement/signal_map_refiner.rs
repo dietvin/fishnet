@@ -100,7 +100,6 @@ impl<'a> SigMapRefiner<'a> {
             self.scale_dacs_to_norm, 
             self.shift_dacs_to_norm, 
             seq_to_signal_map, 
-            sequence, 
             &signal, 
             &levels,
             &self.settings
@@ -129,7 +128,6 @@ impl<'a> SigMapRefiner<'a> {
             self.scale_dacs_to_norm, 
             self.shift_dacs_to_norm, 
             reference_to_signal_map, 
-            sequence, 
             &signal, 
             &levels,
             &self.settings
@@ -185,7 +183,6 @@ fn sequence_to_signal_refinement(
     scale_measurements_to_norm: f32,
     shift_measurements_to_norm: f32,
     seqence_to_signal_map: &Vec<usize>,
-    sequence: &Vec<u8>,
     signal: &Vec<f32>,
     expected_levels: &Vec<f32>,
     settings: &RefineSettings

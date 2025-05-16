@@ -4,7 +4,6 @@ use crate::error::output_errors::OutputError;
 use super::AlignmentWriter;
 
 pub struct OutputWriterJsonl {
-    file_path: PathBuf,
     writer: Option<BufWriter<File>>,
     batch_size: usize,
 
@@ -25,7 +24,6 @@ impl AlignmentWriter for OutputWriterJsonl {
         let writer = std::io::BufWriter::new(file);
         
         Ok(OutputWriterJsonl {
-            file_path: path.clone(),
             writer: Some(writer),
             batch_size,
             buffer: Vec::with_capacity(batch_size),
