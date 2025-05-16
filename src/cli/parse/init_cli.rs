@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 use clap::{value_parser, Arg, ArgAction, ArgMatches, Command};
+use console::style;
 
 /// Sets up the following command line interface:
 /// 
@@ -64,7 +65,7 @@ pub fn parse_command_line() -> ArgMatches {
     let matches = Command::new("fishnet")
         .version("0.1.0")
         .author("Vincent Dietrich")
-        .about("Fast signal-to-sequence alignment!")
+        .about(format!("{}", style("Fishnet - Fast signal-to-sequence alignment!").bold().green()))
         // Required arguments
 
         .arg(
