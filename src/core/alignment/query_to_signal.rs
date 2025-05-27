@@ -34,7 +34,7 @@ pub fn align_query_to_signal(
     reverse_signal: bool,
     query_length: usize
 ) -> Result<Vec<usize>, QueryToSignalError> {
-    let mut query_to_signal = Vec::with_capacity(signal_len+1);
+    let mut query_to_signal = Vec::with_capacity(query_length+1);
     for (i, step_forward) in move_table.iter().enumerate() {
         if *step_forward {
             query_to_signal.push(i * stride);
