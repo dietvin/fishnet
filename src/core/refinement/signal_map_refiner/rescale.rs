@@ -567,7 +567,7 @@ pub fn rescale(
     let (start_base_idx, end_base_idx) = if n_bases_truncate == 0 {
         (0, n_bases)
     } else {
-        (n_bases_truncate + 1, n_bases - n_bases_truncate)
+        (n_bases_truncate, n_bases - n_bases_truncate)
     };
     
     // Iterate over all bases, filtering out bases that are not fitting bases on the given parameters
