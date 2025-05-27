@@ -97,27 +97,20 @@ pub fn parse_command_line() -> ArgMatches {
                 .help("Path to a kmer table file")
         )
         .arg(
-            Arg::new("output-dir")
-                .long("output-dir")
+            Arg::new("out")
+                .long("out")
                 .short('o')
                 .required(true)
                 .value_parser(value_parser!(PathBuf))
                 .help_heading("Required input/output arguments")
-                .help("Path to the output directory")
+                .long_help(
+"Path to the output file. File extension determines the output format.
+Must '.parquet' for Parquet output or '.jsonl' for JSONL output."
+                )
         )
 
         // General options
 
-        .arg(
-            Arg::new("output-format")
-                .long("output-format")
-                .value_parser(["parquet", "jsonl"])
-                .default_value("parquet")
-                .help_heading("General settings")
-                .long_help(
-"Output format. Available formats are Apache Parquet (.parquet) and JSON Lines (.jsonl)."
-                )
-        )
         .arg(
             Arg::new("output-batch-size")
                 .long("output-batch-size")

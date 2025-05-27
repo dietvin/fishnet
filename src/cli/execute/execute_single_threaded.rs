@@ -92,16 +92,8 @@ pub fn run_alignment_single_threaded(input: Config) -> Result<(), FishnetError> 
     }
 
     progress_bar_init.set_message("Initializing the output writer...");
-    let output_dir = input.output_dir();
-    let bam_stem = bam_path.file_stem().unwrap_or_else(|| {
-        eprintln!("BAM file has no valid file stem.");
-        std::process::exit(1);
-    });
-    let extension = match input.output_format() {
-        OutputFormat::Parquet => "parquet",
-        OutputFormat::Json => "jsonl"
-    };
-    let output_path = output_dir.join(format!("{}.{}", bam_stem.to_string_lossy(), extension));
+
+    let output_path = input.output_file();
 
     let output_writer_res = match input.output_format() {
         OutputFormat::Parquet => OutputWriterArrow::new(&output_path, input.force_overwrite(), input.output_batch_size())

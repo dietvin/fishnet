@@ -9,8 +9,8 @@ pub enum PathError {
     DoesNotExist(PathBuf),
     #[error("Provided path '{0}' has an invalid extension (expected '{1}')")]
     InvalidExtension(PathBuf, String),
-    #[error("Provided path '{0}' is not a directory")]
-    IsNotDir(PathBuf),
+    #[error("Provided path '{0}' is a directory")]
+    IsDir(PathBuf),
     #[error("Failed to create directory '{0}'")]
     FailedToCreateDir(PathBuf),
     #[error("Base directory does not exist for '{0}'")]

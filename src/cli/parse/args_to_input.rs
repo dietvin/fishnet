@@ -5,7 +5,7 @@ use log::LevelFilter;
 
 use crate::{core::refinement::settings::{RefineAlgo, RefineSettings, RescaleAlgo, RoughRescaleAlgo, WhichToRefine}, error::cli_errors::CliError};
 
-use super::helpers::{calc_quantiles, check_output_dir, check_and_get_pod5_input, check_input_file};
+use super::helpers::{calc_quantiles, check_output_file, check_and_get_pod5_input, check_input_file};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum WhichToAlign {
@@ -32,7 +32,7 @@ pub struct Config {
     bam_input: PathBuf,
     pod5_input: Vec<PathBuf>,
     kmer_table_input: PathBuf,
-    output_dir: PathBuf,
+    output_file: PathBuf,
 
     output_format: OutputFormat,
     output_batch_size: usize,
@@ -67,24 +67,16 @@ impl Config {
         )?.clone();
         check_input_file(&kmer_table_input, "txt")?;
 
-        let output_dir = matches.get_one::<PathBuf>("output-dir").ok_or(
+        let force_overwrite = matches.get_flag("force-overwrite");
+
+        let output_file_raw = matches.get_one::<PathBuf>("out").ok_or(
             CliError::ArgumentNone("output-dir".to_string()) 
         )?.clone();
-        check_output_dir(&output_dir)?;
+        let (output_file, output_format)  = check_output_file(&output_file_raw, force_overwrite)?;
 
-        let force_overwrite = matches.get_flag("force-overwrite");
 
 
         // Optional general arguments
-
-        let output_format_raw = matches.get_one::<String>("output-format").ok_or(
-            CliError::ArgumentNone("output-format".to_string()) 
-        )?.clone();
-        let output_format = match output_format_raw.as_str() {
-            "parquet" => OutputFormat::Parquet,
-            "jsonl" => OutputFormat::Json,
-            _ => unreachable!()
-        };
 
         let output_batch_size = matches.get_one::<usize>("output-batch-size").ok_or(
             CliError::ArgumentNone("alignment-type".to_string()) 
@@ -354,7 +346,7 @@ impl Config {
             bam_input, 
             pod5_input, 
             kmer_table_input, 
-            output_dir, 
+            output_file, 
             output_format,
             output_batch_size,
             force_overwrite,
@@ -381,8 +373,8 @@ impl Config {
         &self.kmer_table_input
     }
 
-    pub fn output_dir(&self) -> &PathBuf {
-        &self.output_dir
+    pub fn output_file(&self) -> &PathBuf {
+        &self.output_file
     }
 
     pub fn output_format(&self) -> &OutputFormat {

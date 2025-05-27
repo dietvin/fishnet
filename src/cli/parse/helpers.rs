@@ -1,6 +1,8 @@
 use std::{env, fs, path::PathBuf};
 use crate::error::cli_errors::{PathError, Pod5PathError};
 
+use super::args_to_input::OutputFormat;
+
 
 /// Checks if an input file exists, if it is a file and if the extension is as expected.
 pub fn check_input_file(input: &PathBuf, expected_ext: &str) -> Result<(), PathError> {
@@ -135,36 +137,49 @@ fn valid_extention(path: &PathBuf) -> bool {
     false
 }
 
-/// Checks whether the output path appears to be a directory and tries to create it
-/// if it does not exist.
-pub fn check_output_dir(output_dir: &PathBuf) -> Result<(), PathError> {
-    let output_dir = if output_dir.is_absolute() {
-        output_dir.clone()
+
+/// Checks whether the output file is a file, has the correct 
+pub fn check_output_file(output_file: &PathBuf, force_overwrite: bool) -> Result<(PathBuf, OutputFormat), PathError> {
+    // Make path absolute
+    let absolute_path  = if output_file.is_absolute() {
+        output_file.clone()
     } else {
         let pwd = env::current_dir()?;
-        pwd.join(output_dir)
+        pwd.join(output_file)
     };
 
-    if !looks_like_directory(&output_dir) {
-        return Err(PathError::IsNotDir(output_dir));
+    // Check if path ends with '/' or points to a directory
+    if absolute_path
+        .metadata()
+        .map(|meta| meta.is_dir())
+        .unwrap_or(false) 
+    {
+        return Err(PathError::IsDir(absolute_path))
     }
 
-    if !output_dir.exists() {
-        log::info!("Directory '{}' does not exist. Attempting to create directory.", output_dir.display());
-        if let Err(_) = fs::create_dir_all(&output_dir) {
-            return Err(
-                PathError::FailedToCreateDir(output_dir.clone())
-            );
+    // Check base directory exists
+    if let Some(parent) = absolute_path.parent() {
+        if !parent.exists() {
+            return Err(PathError::BaseDirNotExist(absolute_path));
         }
+    } else {
+        return Err(PathError::BaseDirNotExist(absolute_path));
     }
 
-    Ok(())
-}
+    // Check file extension
+    let file_format = match absolute_path.extension().and_then(|ext| ext.to_str()) {
+        Some("parquet") => OutputFormat::Parquet,
+        Some("jsonl") => OutputFormat::Json,
+        _ => return Err(PathError::InvalidExtension(absolute_path, "parquet/jsonl".to_string()))
+    };
+ 
+    // Check if file exists and overwrite is not allowed
+    if absolute_path.exists() && !force_overwrite {
+        return Err(PathError::FileExists(absolute_path));
+    }
 
-fn looks_like_directory(path: &PathBuf) -> bool {
-    path.to_string_lossy().ends_with(std::path::MAIN_SEPARATOR) || path.extension().is_none()
+    Ok((absolute_path, file_format))
 }
-
 
 
 pub fn calc_quantiles(min: f32, max: f32, steps: usize) -> Vec<f32> {
