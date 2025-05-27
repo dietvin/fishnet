@@ -250,21 +250,24 @@ impl Config {
                 CliError::ArgumentNone("rough-rescale-clip-bases".to_string())
             )?;
     
-            let rough_rescale_use_all_signal = matches.get_flag("rough-rescale-use-all-signal");
+            // Flag is not set by default 
+            // -> rough-rescale-use-all-signal flag gives false by default 
+            // -> use_base_center true by default by negating
+            let rough_rescale_use_center_only = !matches.get_flag("rough-rescale-use-all-signal");
 
             match rough_rescale_algo_str.as_str() {
                 "least-squares" => {
                     RoughRescaleAlgo::LeastSquares { 
                         quantiles: quantiles, 
                         clip_bases: rough_rescale_clip_bases, 
-                        use_base_center: rough_rescale_use_all_signal
+                        use_base_center: rough_rescale_use_center_only
                     }
                 }
                 "theil-sen" => {
                     RoughRescaleAlgo::TheilSen { 
                         quantiles: quantiles, 
                         clip_bases: rough_rescale_clip_bases, 
-                        use_base_center: rough_rescale_use_all_signal
+                        use_base_center: rough_rescale_use_center_only
                     }
                 }
                 _ => unreachable!()         
