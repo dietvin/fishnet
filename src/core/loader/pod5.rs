@@ -193,7 +193,6 @@ impl Pod5Read {
         
                 let mut signal = self.signal.clone();
                 if reverse_signal {
-                    signal = helpers::reverse_signal(&signal);
                     signal = signal[start..end].to_vec();
                     signal = helpers::reverse_signal(&signal);
                 } else {
