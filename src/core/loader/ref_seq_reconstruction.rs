@@ -67,7 +67,7 @@ pub fn build_reference_sequence(
     // - Diff (mismatched base; correct base must be extracted from MD)
     // - Del ('-' as placeholder; deleted base from the reference must be extracted from MD)
     let mut query_idx = 0;
-    for (i, op) in cigar.iter().enumerate() {
+    for op in cigar {
         match op {
             // Match / Equal / Diff => All present in reference sequence
             // (Mismatches will be corrected in the second iteration)
