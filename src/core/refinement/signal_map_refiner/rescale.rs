@@ -551,6 +551,28 @@ pub fn rescale(
         .map(|window| (window[1] - window[0]) as f32)
         .collect::<Vec<f32>>();
 
+    // Make sure that the sequence is long enough considering the
+    // minimum number of needed levels and the number of bases to
+    // truncate
+    let n_bases = dwells.len();
+    if n_bases < min_num_filtered_levels {
+        return Err(RescaleError::BelowMinNumFiltered(
+            n_bases,
+            min_num_filtered_levels 
+        ));
+    } else if 2 * n_bases_truncate > n_bases {
+        // Added check so the next else if can not be <0
+        return Err(RescaleError::TooShortForTruncation(
+            n_bases,
+            n_bases_truncate 
+        ));
+    } else if n_bases - 2*n_bases_truncate < min_num_filtered_levels {
+        return Err(RescaleError::TooShortAfterTruncation(
+            n_bases - 2*n_bases_truncate,
+            min_num_filtered_levels 
+        ));
+    }
+
     // Calculate the upper and lower percentile values of the dwells
     let (dwell_lower_percentile_value, dwell_upper_percentile_value) = get_upper_lower_quantiles(
         &dwells, 

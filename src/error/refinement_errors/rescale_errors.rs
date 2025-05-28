@@ -44,7 +44,13 @@ pub enum RescaleError {
     TheilSenFailed(#[from] TheilSenError),
 
     #[error("Not enough bases for rescaling: {0} (need >{1})")]
-    BelowMinNumFiltered(usize, usize)
+    BelowMinNumFiltered(usize, usize),
+
+    #[error("Sequence is too short for truncation: {0} (2*{1} would be truncated)")]
+    TooShortForTruncation(usize, usize),
+
+    #[error("Sequence is too short after truncation: {0} remaining after trimming (need >{1})")]
+    TooShortAfterTruncation(usize, usize)
 }
 
 #[derive(Debug, thiserror::Error)]
