@@ -42,7 +42,10 @@ pub fn run_alignment_single_threaded(input: Config) -> Result<(), FishnetError> 
             vec![], 
             false
         ) {
-            eprintln!("Failed to initialize logger: {e}");
+            eprintln!(
+                "Failed to initialize logger: {}",
+                format!("{}", style(e).red())
+            );
             std::process::exit(1);
         }
     }
@@ -52,8 +55,11 @@ pub fn run_alignment_single_threaded(input: Config) -> Result<(), FishnetError> 
     let mut bam_file = match BamFileLazy::new(bam_path) {
         Ok(v) => v,
         Err(e) => {
-            eprintln!("Failed to read Bam file: {e}");
             log::error!("Failed to read Bam file: {e}");
+            eprintln!(
+                "Failed to read Bam file: {}",
+                format!("{}", style(e).red())
+            );
             std::process::exit(1);
         }
     };
@@ -63,8 +69,11 @@ pub fn run_alignment_single_threaded(input: Config) -> Result<(), FishnetError> 
     let pod5_index = match Pod5Index::from_files(pod5_paths) {
         Ok(v) => v,
         Err(e) => {
-            eprintln!("Failed to read pod5 files: {e}");
             log::error!("Failed to read pod5 files: {e}");
+            eprintln!(
+                "Failed to read pod5 files: {}",
+                format!("{}", style(e).red())
+            );
             std::process::exit(1);
         }
     };
@@ -77,16 +86,22 @@ pub fn run_alignment_single_threaded(input: Config) -> Result<(), FishnetError> 
     let mut kmer_table = match KmerTable::new(kmer_table_path) {
         Ok(v) => v,
         Err(e) => {
-            eprintln!("Failed to load kmer table: {e}");
             log::error!("Failed to load kmer table: {e}");
+            eprintln!(
+                "Failed to load kmer table: {}",
+                format!("{}", style(e).red())
+            );
             std::process::exit(1);
         }
     };
 
     if *refine_settings.normalize_levels() {
         if let Err(e) = kmer_table.fix_gauge() {
-            eprintln!("Failed to normalize kmer table levels: {e}");
             log::error!("Failed to normalize kmer table levels: {e}");
+            eprintln!(
+                "Failed to normalize kmer table levels: {}",
+                format!("{}", style(e).red())
+            );
             std::process::exit(1);
         }
     }
@@ -105,8 +120,11 @@ pub fn run_alignment_single_threaded(input: Config) -> Result<(), FishnetError> 
     let mut output_writer = match output_writer_res {
         Ok(v) => v,
         Err(e) => {
-            eprintln!("Failed to initialize the output writer: {e}");
             log::error!("Failed to initialize the output writer: {e}");
+            eprintln!(
+                "Failed to initialize the output writer: {}",
+                format!("{}", style(e).red())
+            );
             std::process::exit(1);
         }
     };
@@ -213,7 +231,11 @@ pub fn run_alignment_single_threaded(input: Config) -> Result<(), FishnetError> 
     }
 
     if let Err(e) = output_writer.finalize() {
-        eprintln!("Failed to write the remaining buffer to file: {e}");
+        log::error!("Failed to write the remaining buffer to file: {e}");
+        eprintln!(
+            "Failed to write the remaining buffer to file: {}",
+            format!("{}", style(e).red())
+        );
         std::process::exit(1);
     }
 
