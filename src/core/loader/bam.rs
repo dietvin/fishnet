@@ -204,7 +204,7 @@ impl BamRead {
     ///
     /// * `usize` - The length of the query sequence
     pub fn query_length(&self) -> usize {
-        self.query.len()
+        self.query_length
     }
 
 
