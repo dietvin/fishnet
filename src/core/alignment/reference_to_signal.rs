@@ -37,14 +37,9 @@ use super::helpers::{is_match_ops, calculate_knots, interpolate};
 pub fn align_reference_to_signal(
     cigar: &Vec<Cigar>,
     query_to_signal: &Vec<usize>,
-    reverse_mapped: bool,
     reference_len: usize
 ) -> Result<Vec<usize>, RefToSignalError>{
     let mut cigar = cigar.clone();
-
-    // if reverse_mapped {
-    //     cigar = cigar.iter().rev().map(|el| *el).collect();
-    // }
 
     // Non-match operations at the end of the cigar strings must be cut off
     // Determine the number of these operations and remove them from the cigar vector. 
