@@ -139,7 +139,7 @@ in 5'->3' orientation to match the base-called/mapped data."
                 .short('f')
                 .action(ArgAction::SetTrue)
                 .help_heading("General settings")
-                .help("Whether existing output files should be overwritten.")
+                .help("Whether an existing output file should be overwritten.")
                 .long_help(
 "Whether existing output files should be overwritten. If the provided output path 
 already exists and the flag is set the existing file is overwritten. Otherwise an 
@@ -404,7 +404,7 @@ filtered out before rescaling."
                 .value_parser(value_parser!(usize))
                 .default_value("10")
                 .help_heading("Refinement settings (Rescaling)")
-                .help("Minimum number of bases after rescaling")
+                .help("Minimum number of bases needed for rescaling")
                 .long_help(
 "The minimum number of bases that must remain after filtering to be considered valid for rescaling."
                 )
