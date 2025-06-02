@@ -123,17 +123,15 @@ impl<'a> AlignedRead<'a> {
             // No else here because these can not be None if the is_mapped check passes 
             if let (
                 Some(cigar), 
-                Some(rev_mapped), 
-                ref_len) = (
+                ref_len
+            ) = (
                     self.bam_read.get_cigar()?, 
-                    self.bam_read.is_reverse_mapped(), 
                     self.bam_read.get_reference_len()?
                 ) {
                 self.reference_to_signal = Some(
                     reference_to_signal::align_reference_to_signal(
                         cigar, 
                         query_to_signal, 
-                        *rev_mapped, 
                         *ref_len
                     )?
                 );
