@@ -75,7 +75,10 @@ pub fn parse_command_line() -> ArgMatches {
                 .required(true)
                 .value_parser(value_parser!(PathBuf))
                 .help_heading("Required input/output arguments")
-                .help("Path to a single BAM file")
+                .help("Path to the BAM input")
+                .long_help(
+"Path to a BAM input file. Only a single file must be provided."
+                )
         )
         .arg(
             Arg::new("pod5")
@@ -85,7 +88,13 @@ pub fn parse_command_line() -> ArgMatches {
                 .num_args(1..)
                 .value_parser(value_parser!(PathBuf))
                 .help_heading("Required input/output arguments")
-                .help("Path to one or multiple pod5 files or directories")
+                .help("Path to the POD5 input")
+                .long_help(
+"Path to the POD5 input. Multiple paths can be provided space separated.
+A path can point to a POD5 file or a directory. If a directory is given 
+all POD5 files in the directory are processed. File and directory paths 
+can be combined."
+                )
         )
         .arg(
             Arg::new("kmer-table")
@@ -103,32 +112,26 @@ pub fn parse_command_line() -> ArgMatches {
                 .required(true)
                 .value_parser(value_parser!(PathBuf))
                 .help_heading("Required input/output arguments")
+                .help("Path to the output file")
                 .long_help(
 "Path to the output file. File extension determines the output format.
-Must '.parquet' for Parquet output or '.jsonl' for JSONL output."
+Must be '.parquet' for Parquet output or '.jsonl' for JSONL output."
                 )
         )
 
         // General options
-
-        .arg(
-            Arg::new("output-batch-size")
-                .long("output-batch-size")
-                .value_parser(value_parser!(usize))
-                .default_value("4000")
-                .help_heading("General settings")
-                .long_help(
-"Output batch size. Determines the number of results that are collected before dumping
-these to file."
-                )
-        )
         
         .arg(
             Arg::new("rna")
                 .long("rna")
+                .short('r')
                 .action(ArgAction::SetTrue)
                 .help_heading("General settings")
-                .help("Whether direct RNA data is provided. Reverses the signal for alignment.")
+                .help("Whether direct RNA data is provided")
+                .long_help(
+"Whether direct RNA data is provided. If set, reverses the raw sigal (3'->5') to be 
+in 5'->3' orientation to match the base-called/mapped data."
+                )
         )        
         .arg(
             Arg::new("force-overwrite")
@@ -137,6 +140,11 @@ these to file."
                 .action(ArgAction::SetTrue)
                 .help_heading("General settings")
                 .help("Whether existing output files should be overwritten.")
+                .long_help(
+"Whether existing output files should be overwritten. If the provided output path 
+already exists and the flag is set the existing file is overwritten. Otherwise an 
+error is raised."
+                )
         )
         .arg(
             Arg::new("alignment-type")
@@ -146,6 +154,11 @@ these to file."
                 .default_value("query")
                 .help_heading("General settings")
                 .help("Type of alignment to perform")
+                .long_help(
+"Determines the type of alignment that is performed. If set to 'query' the signal 
+is aligned to the base-called query sequence. If set to 'reference' and a given read 
+is mapped to a reference, the signal is aligned to that reference sequence."
+                )
         )
         .arg(
             Arg::new("threads")
@@ -154,6 +167,7 @@ these to file."
                 .value_parser(value_parser!(usize))
                 .default_value("8")
                 .help_heading("General settings")
+                .help("Number of parallel threads")
                 .long_help(
 "Set the number of parallel threads used during processing. Set to 1 to 
 disable multithreading. If set to 2 or 3, falls back to single-threaded
@@ -166,9 +180,11 @@ processing (due to 3 non-worker threads)."
                 .value_parser(value_parser!(usize))
                 .default_value("1000")
                 .help_heading("General settings")
+                .help("Multi-threading queue size")
                 .long_help(
 "Sets the queue size for transfering data to and from worker threads. Only regarded
-if number of threads is larger than "
+if number of threads is larger than 3. Decrease queue size for a reduced memory 
+footprint."
                 )
         )
         .arg(
@@ -178,6 +194,11 @@ if number of threads is larger than "
                 .default_value("off")
                 .help_heading("General settings")
                 .help("Which log level to use")
+                .long_help(
+"Sets the logging level. The amount of intermediated information written to the log 
+increases from 'error' to 'trace'. Set to error to get an overview of the reasons why
+the alignment failed for (some) given reads. Logging is disabled by default."
+                )
         )
         .arg(
             Arg::new("log-path")
@@ -185,18 +206,43 @@ if number of threads is larger than "
                 .default_value("log.txt")
                 .value_parser(value_parser!(PathBuf))
                 .help_heading("General settings")
-                .help("Path to the log file. Only regarded if debug-level is other than off.")
+                .help("Path to the log file")
+                .long_help(
+"Path to the log file. Only regarded if debug-level is other than 'off'. If the log 
+file exists already new logging output gets appended to the file."
+                )
         )
+        .arg(
+            Arg::new("output-batch-size")
+                .long("output-batch-size")
+                .value_parser(value_parser!(usize))
+                .default_value("4000")
+                .help_heading("General settings")
+                .help("Output batch size")
+                .long_help(
+"Output batch size. Determines the number of alignments that are collected 
+before dumping these to file. Higher values reduce the I/O overhead, 
+potentially increasing speed, while requiring more memory."
+                )
+        )
+
 
         // Refinement general options
 
         .arg(
             Arg::new("refine-iters")
                 .long("refine-iters")
+                .short('i')
                 .value_parser(value_parser!(usize))
                 .default_value("2")
                 .help_heading("Refinement settings (dynamic programming refinement)")
-                .help("Number of refinement iterations. If set to 0 the refinement is skipped.")
+                .help("Number of refinement iterations")
+                .long_help(
+"Sets the number of refinement iterations. In each iteration the alignment boundaries 
+are shifed to minimize the difference between the expected and observed signal, followed 
+by a calculation of rescaling parameters based on the shifed alignment. If set to 0 the 
+refinement is skipped."
+                )
         )
         .arg(
             Arg::new("refine-algo")
@@ -204,6 +250,7 @@ if number of threads is larger than "
                 .value_parser(["viterbi", "dwell-penalty"])
                 .default_value("dwell-penalty")
                 .help_heading("Refinement settings (dynamic programming refinement)")
+                .help("Which refinement algorithm to use")
                 .long_help(
 "Refinement algorithm. Viterbi and dwell penalty approaches are available. 
 The dwell penalty approach also performs the viterbi approach internally,
@@ -217,9 +264,10 @@ dwell times at a given base."
                 .value_parser(value_parser!(f32))
                 .default_value("4.0")
                 .help_heading("Refinement settings (dynamic programming refinement)")
+                .help("Preferred dwell time")
                 .long_help(
-"Dwell penalty settings. Only considered if refine-algo is dwell-penalty. 
-Preferred dwell time."
+"Preferred dwell time used in dwell penalty refinement. Only considered if refine-algo 
+is 'dwell-penalty'."
                 )
         )
         .arg(
@@ -228,9 +276,10 @@ Preferred dwell time."
                 .value_parser(value_parser!(f32))
                 .default_value("3.0")
                 .help_heading("Refinement settings (dynamic programming refinement)")
+                .help("Maximum penalized dwell time")
                 .long_help(
-"Dwell penalty settings. Only considered if refine-algo is dwell-penalty.
-Maximum dwell time that is penalized."
+"Maximum dwell time that is penalized in dwell penalty algorithm. Only considered if 
+refine-algo is 'dwell-penalty'."
                 )
         )
         .arg(
@@ -239,9 +288,10 @@ Maximum dwell time that is penalized."
                 .value_parser(value_parser!(f32))
                 .default_value("0.5")
                 .help_heading("Refinement settings (dynamic programming refinement)")
-                .help(
-"Dwell penalty settings. Only considered if refine-algo is dwell-penalty. 
-Strength of the penalty applied to short dwell times."
+                .help("Short dwell time penalty weight")
+                .long_help(
+"Strength of the penalty applied to short dwell times in dwell penalty algorithm. Only 
+considered if refine-algo is 'dwell-penalty'."
                 )
         )
         .arg(
@@ -250,6 +300,7 @@ Strength of the penalty applied to short dwell times."
                 .value_parser(value_parser!(usize))
                 .default_value("5")
                 .help_heading("Refinement settings (dynamic programming refinement)")
+                .help("Dynamic programming half bandwidth")
                 .long_help(
 "Half-width of the signal band, meaning that for each signal measurement 
 bases half-bandwidth up- and downstream from the currently assigned one 
@@ -262,16 +313,22 @@ can be considered."
                 .value_parser(value_parser!(usize))
                 .default_value("2")
                 .help_heading("Refinement settings (dynamic programming refinement)")
-                .help("The minimum band size when adjusting the sequence band.")
+                .help("Minimum sequence band size")
+                .long_help(
+"The minimum sequence band size that is forced when adjusting the sequence band. 
+This means that a given signal measurement can potentially be assigned to min-band-size 
+number of bases."
+                    )
         )
         .arg(
             Arg::new("normalize-levels")
                 .long("normalize-levels")
                 .action(ArgAction::SetTrue)
                 .help_heading("Refinement settings (dynamic programming refinement)")
+                .help("Normalize levels in kmer table")
                 .long_help(
-"Normalize the levels given in the kmer-table. Equivalent to `do_fix_gauge` setting
-in Remora."
+"Whether to normalize the expected levels given in the kmer-table. This is equivalent to 
+the `do_fix_gauge` setting in Remora."
                 )
         )
 
@@ -283,10 +340,11 @@ in Remora."
                 .value_parser(["least-squares", "theil-sen"])
                 .default_value("theil-sen")
                 .help_heading("Refinement settings (Rescaling)")
-                .help(
-"Rescaling algorithm. Calculates shift and scale parameters to normalize
-the signal measurement (norm_signal = (signal - shift) / scale). Other than
-the rough rescaling, here the entire signal is used for the estimation.
+                .help("Which rescaling algorithm to use")
+                .long_help(
+"Which rescaling algorithm to use to calculate shift and scale parameters 
+to normalize the signal measurement (norm_signal = (signal - shift) / scale). 
+Other than the rough rescaling, here the entire signal is used for the estimation.
 Available algorithms are least-squares and theil-sen. Note that least-squares
 is not available and tested in Remora."
                 )
@@ -297,8 +355,9 @@ is not available and tested in Remora."
                 .value_parser(value_parser!(f32))
                 .default_value("0.1")
                 .help_heading("Refinement settings (Rescaling)")
+                .help("Lower dwell quantile filter threshold")
                 .long_help(
-"Lower dwell filter quantile. Signal data for bases with dwell times below this quantile 
+"Lower filtering threshold for dwell times. Signal data for bases with dwell times below this quantile 
 value are filtered out before rescaling."
                 )
         )
@@ -308,8 +367,9 @@ value are filtered out before rescaling."
                 .value_parser(value_parser!(f32))
                 .default_value("0.9")
                 .help_heading("Refinement settings (Rescaling)")
+                .help("Upper dwell quantile filter threshold")
                 .long_help(
-"Upper dwell filter quantile. Signal data for bases with dwell times above this quantile 
+"Upper filtering threshold for dwell times. Signal data for bases with dwell times above this quantile 
 value are filtered out before rescaling."
                 )
         )
@@ -319,9 +379,10 @@ value are filtered out before rescaling."
                 .value_parser(value_parser!(f32))
                 .default_value("0.2")
                 .help_heading("Refinement settings (Rescaling)")
-                .help(
-"Minimum absolute (normalized) signal intensity. Signal data from bases, where the mean signal 
-itensity deviates less than the given value from the expected intensity, is filtered out before 
+                .help("Minimum absolute (normalized) signal intensity filter threshold")
+                .long_help(
+"Minimum absolute (normalized) signal intensity filter threshold. Signal data from bases where the 
+mean signal itensity deviates less than the given value from the expected intensity, is filtered out before 
 rescaling."
                 )
         )
@@ -331,8 +392,9 @@ rescaling."
                 .value_parser(value_parser!(usize))
                 .default_value("10")
                 .help_heading("Refinement settings (Rescaling)")
+                .help("Number of bases to truncate for rescaling")
                 .long_help(
-"Number of bases to truncate. Signal data from the first and last given number of bases are
+"Number of bases to truncate before rescaling. Signal data from the first and last given number of bases are
 filtered out before rescaling."
                 )
         )
@@ -342,8 +404,9 @@ filtered out before rescaling."
                 .value_parser(value_parser!(usize))
                 .default_value("10")
                 .help_heading("Refinement settings (Rescaling)")
+                .help("Minimum number of bases after rescaling")
                 .long_help(
-"Minimum number of bases that must remain after filtering to be considered valid for rescaling."
+"The minimum number of bases that must remain after filtering to be considered valid for rescaling."
                 )
         )
         .arg(
@@ -352,10 +415,10 @@ filtered out before rescaling."
                 .value_parser(value_parser!(usize))
                 .default_value("1000")
                 .help_heading("Refinement settings (Rescaling)")
+                .help("Maximum number of bases to use for rescaling")
                 .long_help(
-"Maximum number of data points (signal data for given bases) to use. If the sequence
-contains more bases than the given number, the data is randomly subset to contain the
-given number of data points. 
+"Maximum number of bases to use for rescaling. If the sequence contains more bases than 
+the given number, the data is randomly subset to contain the given number of data points. 
 Only regarded when rescale-algo is theil-sen. If set to 0 no subsetting is performed."
                 )
         )
@@ -368,12 +431,12 @@ Only regarded when rescale-algo is theil-sen. If set to 0 no subsetting is perfo
                 .value_parser(["none", "least-squares", "theil-sen"])
                 .default_value("theil-sen")
                 .help_heading("Refinement settings (rough rescaling)")
+                .help("Which rough rescaling algorithm to use")
                 .long_help(
-"Rough rescaling algorithm. Calculates shift and scale parameters to normalize
-the signal measurement (norm_signal = (signal - shift) / scale).
-Rough rescaling, because only given percentile values are used instead of all
-measurements. Available algorithms are least-squares and theil-sen. Theil-sen
-is considered to be more robust against outliers."
+"Which rough rescaling algorithm to use. Calculates shift and scale parameters to normalize
+the signal measurement (norm_signal = (signal - shift) / scale). Rough rescaling, because 
+only given percentile values are used instead of all measurements. Available algorithms are 
+least-squares and theil-sen. Theil-sen is considered to be more robust against outliers."
                 )
         )
         .arg(
@@ -382,7 +445,8 @@ is considered to be more robust against outliers."
                 .value_parser(value_parser!(f32))
                 .default_value("0.05")
                 .help_heading("Refinement settings (rough rescaling)")
-                .help("Lowest percentile to calculate from the signal data during rough rescaling.")
+                .help("Lowest percentile used for rough rescaling")
+                .long_help("Lowest percentile to calculate from the signal data during rough rescaling.")
         )
         .arg(
             Arg::new("rough-rescale-quants-max")
@@ -390,7 +454,8 @@ is considered to be more robust against outliers."
                 .value_parser(value_parser!(f32))
                 .default_value("0.95")
                 .help_heading("Refinement settings (rough rescaling)")
-                .help("Highest percentile to calculate from the signal data during rough rescaling.")
+                .help("Highest percentile used for rough rescaling")
+                .long_help("Highest percentile to calculate from the signal data during rough rescaling.")
         )
         .arg(
             Arg::new("rough-rescale-quants-steps")
@@ -398,9 +463,11 @@ is considered to be more robust against outliers."
                 .value_parser(value_parser!(usize))
                 .default_value("19")
                 .help_heading("Refinement settings (rough rescaling)")
+                .help("Number of steps between lowest and highest quantile for rough rescaling")
                 .long_help(
-"Number of percentile values to consider during rough rescaling. This includes the 
-lowest and highest values."
+"Number of percentile values to consider during rough rescaling. rough-rescale-quants-steps number of 
+quantiles are considered, increasing evenly from the lowest to the highest quantile. The lowest and 
+highest values are included. Default quantiles are 0.05, 0.10, 0.15, ..., 0.90, 0.95."
                 )
         )
         .arg(
@@ -409,13 +476,18 @@ lowest and highest values."
                 .value_parser(value_parser!(usize))
                 .default_value("10")
                 .help_heading("Refinement settings (rough rescaling)")
-                .help("Number of bases to ignore at the start and end during rough rescaling.")
+                .help("Number of bases to truncate for rough rescaling")
+                .long_help(
+"Number of bases to truncate before rough rescaling. Signal data from the first and last given number of bases are
+filtered out before rough rescaling."
+                )
         )
         .arg(
             Arg::new("rough-rescale-use-all-signal")
                 .long("rough-rescale-use-all-signal")
                 .action(ArgAction::SetTrue)
                 .help_heading("Refinement settings (rough rescaling)")
+                .help("Wether to use the entire signal for quantile calculation during rough rescaling")
                 .long_help(
 "Whether to use the entire signal for quantile calculation during rough rescaling. 
 If set, the quantile values are calculated from all measurements. Otherwise the 
