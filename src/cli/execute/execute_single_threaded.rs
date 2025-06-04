@@ -213,10 +213,29 @@ pub fn run_alignment_single_threaded(input: Config) -> Result<(), FishnetError> 
             continue;
         }
 
+        let query_to_signal = match sig_map_refiner.refined_query_to_sig_offset_adjusted() {
+            Ok(v) => v,
+            Err(e) => {
+                log::error!("Failed to adjust the signal offset for {read_id}: {e}");
+                update_progress_fail(&mut progress_bar, &n_successful_reads, &mut n_failed_reads);
+                continue;
+            }
+        };
+
+        let ref_to_signal = match sig_map_refiner.refined_ref_to_sig_offset_adjusted() {
+            Ok(v) => v,
+            Err(e) => {
+                log::error!("Failed to adjust the signal offset for {read_id}: {e}");
+                update_progress_fail(&mut progress_bar, &n_successful_reads, &mut n_failed_reads);
+                continue;
+            }
+        };
+
+
         match output_writer.write_record(
             &read_id, 
-            sig_map_refiner.refined_query_to_sig(), 
-            sig_map_refiner.refined_ref_to_sig()
+            query_to_signal.as_ref(), 
+            ref_to_signal.as_ref()
         ) {
             Ok(_) => {
                 log::info!("Successfully processed read {read_id}");

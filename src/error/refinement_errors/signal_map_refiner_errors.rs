@@ -1,4 +1,5 @@
 use crate::error::alignment_errors::AlignedReadError;
+use crate::error::loader_errors::pod5_errors::Pod5ReadError;
 
 use super::kmer_table_errors::KmerTableError;
 use super::refine_errors::RefineError;
@@ -23,4 +24,6 @@ pub enum SigMapRefineError {
     RefinedQueryToSigNotFound,
     #[error("Refined reference-to-signal alignment not present")]
     RefinedRefToSigNotFound,
+    #[error("Pod5Read error: {0}")]
+    Pod5ReadError(#[from] Pod5ReadError)
 }

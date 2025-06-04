@@ -16,7 +16,8 @@ pub struct Pod5Read {
     signal: Vec<i16>,
     num_samples: usize,
     signal_trimmed: Option<Vec<i16>>,
-    num_samples_trimmed: Option<usize>
+    num_samples_trimmed: Option<usize>,
+    signal_offset: Option<usize>
 }
 
 /// A container for Pod5 file data that provides access to reads using a HashMap
@@ -48,6 +49,13 @@ impl Pod5Read {
     /// Creates a new Pod5Read instance with basic read information. Initializes the
     /// signal as an empty Vector and the num_samples count as 0.
     /// 
+    /// The signal chunks are added iteratively while parsing the overarching pod5
+    /// file.
+    /// 
+    /// Member variables that correspond to the trimmed signal (signal_trimmed, 
+    /// num_samples_trimmed, signal_offset) are intitialized with None. The values 
+    /// are fileld in the `update_signal` function.
+    /// 
     /// # Arguments
     /// * `read_id` - Unique identifier for the read
     /// * `signal` - Vector of signal intensity values
@@ -60,7 +68,8 @@ impl Pod5Read {
             signal: Vec::new(),
             num_samples: 0,
             signal_trimmed: None,
-            num_samples_trimmed: None
+            num_samples_trimmed: None,
+            signal_offset: None
         }
     }
 
@@ -71,9 +80,9 @@ impl Pod5Read {
     /// * `scale` - The calibration scale factor for signal normalization
     /// 
     /// # Note
-    /// Some signals seem to be split into multiple chunks where each chunk is stored in a 
-    /// row of the signal dataframe in the pod5 file. The length of these subsets taken together results in 
-    /// the number of samples stored in the Reads dataframe. 
+    /// Signals can be split into multiple chunks where each chunk is stored in a row of the signal 
+    /// dataframe in the pod5 file. The length of these subsets taken together results in the number 
+    /// of samples stored in the Reads dataframe. 
     /// 
     /// The method handles these chunks by simply appending the latest chunk (in order of the rows in the df)
     /// to the signal already stored in the Pod5Read. This is assuming that the original order is retained in
@@ -108,6 +117,19 @@ impl Pod5Read {
     /// Returns the number of samples in the trimmed signal
     pub fn num_samples_trimmed(&self) -> Result<&usize, Pod5ReadError> {
         self.num_samples_trimmed
+            .as_ref()
+            .ok_or(Pod5ReadError::TrimmedSignalNotFound)
+    }
+
+    /// Returns the offset from which the alignment starts 
+    /// Corresponds to either *sp* + *ts* or signal_len - *ns*
+    /// for reversed signal.
+    /// 
+    /// The offset is used to adjust the final alignment so it 
+    /// can be used directly with the (untrimmed) signal found 
+    /// in a pod5 read. 
+    pub fn trimmed_signal_offset(&self) -> Result<&usize, Pod5ReadError> {
+        self.signal_offset
             .as_ref()
             .ok_or(Pod5ReadError::TrimmedSignalNotFound)
     }
@@ -149,6 +171,8 @@ impl Pod5Read {
     ///     ----------------------
     ///     |    |          |    |
     ///     s_o  ts         ns
+    ///          -----------
+    ///         trimmed signal
     /// ```
     pub fn update_signal(
         &mut self,
@@ -206,6 +230,15 @@ impl Pod5Read {
 
                 self.num_samples_trimmed = Some(signal.len());
                 self.signal_trimmed = Some(signal);
+
+                // This offset will be added to the alignment(s) in the end so the alignment can be used 
+                // with the signal untrimmed signal stored in the pod5 file without the tag information
+                self.signal_offset = if reverse_signal {
+                    Some(self.num_samples - end)
+                } else {
+                    Some(start)
+                };
+
                 Ok(())
             }
             // If the trimming was performed before, no update is needed

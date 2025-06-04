@@ -148,6 +148,36 @@ impl<'a> SigMapRefiner<'a> {
         self.refined_ref_to_sig.as_ref()
     }
 
+    /// Returns the refined query to signal alignment if already calculated.
+    /// Adjusts the boundaries by the offset given by the *sp*, *ts* and *ns* tags in 
+    /// the BAM record.
+    pub fn refined_query_to_sig_offset_adjusted(&self) -> Result<Option<Vec<usize>>, SigMapRefineError> {
+        match &self.refined_query_to_sig {
+            Some(qts) => {
+                let offset = self.aligned_read.pod5_read().trimmed_signal_offset()?;
+                Ok(Some(
+                    qts.iter().map(|el| el + offset).collect::<Vec<usize>>()
+                ))
+            }
+            None => Ok(None)
+        }
+    }
+
+    /// Returns the refined reference to signal alignment if already calculated. 
+    /// Adjusts the boundaries by the offset given by the *sp*, *ts* and *ns* tags in 
+    /// the BAM record.
+    pub fn refined_ref_to_sig_offset_adjusted(&self) -> Result<Option<Vec<usize>>, SigMapRefineError> {
+        match &self.refined_ref_to_sig {
+            Some(rts) => {
+                let offset = self.aligned_read.pod5_read().trimmed_signal_offset()?;
+                Ok(Some(
+                    rts.iter().map(|el| el + offset).collect::<Vec<usize>>()
+                ))
+            }
+            None => Ok(None)
+        }
+    }
+
     pub fn bam_record_mut(&mut self) -> &mut Record {
         self.aligned_read.bam_read_mut().get_record_mut()
     }

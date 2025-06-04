@@ -341,8 +341,27 @@ pub fn run_alignment_multi_threaded(input: Config) -> Result<(), FishnetError> {
                         continue;
                     }
 
-                    let query_to_signal = sig_map_refiner.refined_query_to_sig().cloned();
-                    let ref_to_signal = sig_map_refiner.refined_ref_to_sig().cloned();
+                    let query_to_signal = match sig_map_refiner.refined_query_to_sig_offset_adjusted() {
+                        Ok(v) => v,
+                        Err(e) => {
+                            log::error!("Failed to adjust the signal offset for {read_id}: {e}");
+                            if let Err(e) = progress_tx.send(false) {
+                                handle_channels_error(e);
+                            }
+                            continue;
+                        }
+                    };
+
+                    let ref_to_signal = match sig_map_refiner.refined_ref_to_sig_offset_adjusted() {
+                        Ok(v) => v,
+                        Err(e) => {
+                            log::error!("Failed to adjust the signal offset for {read_id}: {e}");
+                            if let Err(e) = progress_tx.send(false) {
+                                handle_channels_error(e);
+                            }
+                            continue;
+                        }
+                    };
                     
                     if let Err(e) = result_tx.send((read_id, query_to_signal, ref_to_signal)) {
                         handle_channels_error(e);
