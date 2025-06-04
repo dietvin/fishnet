@@ -382,7 +382,11 @@ impl BamFileLazy {
         while let Some(read) = bam.records().next() {
             let read = read?;
             let id = std::str::from_utf8(read.qname())?;
-            index.insert(String::from(id), offset);
+
+            // Insert if not already present
+            if !index.contains_key(id) {
+                index.insert(String::from(id), offset);
+            }
 
             offset = bam.tell();
         }
