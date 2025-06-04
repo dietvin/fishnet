@@ -33,19 +33,17 @@ To make it more accessible add the executable to the `$PATH` environment variabl
 fishnet --help
 ```
 
-More information about the installation and how to build from source can be found in the [documentation](). 
+More information about the installation and how to build from source can be found in the [installation documentation](./docs/installation.md). 
 
 ## Usage
 Minimal usage:
 ```bash
 fishnet -b <basecalls.bam> -p <raw-signal.pod5> -k <level-table.txt> -o <output-dir>
 ```
-
-Fishnet requires the following data:
-- **Base-called data**: A single BAM file containing the (unmapped) base-calls (including *move tables*)
-- **Raw signal data**: One or more POD5 file or directories containing POD5 files 
-- **Expected signal intensities**: A k-mer level table obtained from the [kmer_models repository](https://github.com/nanoporetech/kmer_models)
-- An output directory
+More examples are provided in the [usage documentation](./docs/usage.md). Fishnet requires the following input data:
+1. **Raw sequencing data**. Must be stored in **POD5** format.
+2. **Basecalled data**. Must be stored in a single **BAM** file, as produced by Dorado (Note that it must contain the move-table, so base-call with the `--emit-moves` flag!)
+3. **Expected current intensities**. Must be stored in a **kmer level table**, as [provided by ONT](https://github.com/nanoporetech/kmer_models)
 
 ### Required arguments
 
@@ -57,23 +55,23 @@ The following arguments are required:
 | pod5       | p         | Path(s) to one or more pod5 files and/or directories containing pod5 files (separate multiple paths by space) | (multiple) str  |
 | kmer-table | k         | Path to a [kmer level table](https://github.com/nanoporetech/kmer_models)                                                                                                               | str  |
 | output-dir | o         | Path to a directory where the aligned data will be written to                                                                           | str  |
+
 ### Optional arguments
 
-The following arguments are the most important optional arguments for most users:
+The following arguments are the most relevant optional arguments for most users:
 
 | Long arg        | Short arg | Explanation                                                                                                                                                                                                   | Type |
 |-----------------|-----------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------|
 | rna             | -         | Whether the provided data is direct RNA sequencing data. If set, the signal gets reversed for the alignment                                                                                                   | bool |
 | alignment-type  | a         | Which type(s) of alignment to generate. Can be '**query**' (Default) to align the signal to the base-called sequence, '**reference**' to align to the reference sequence (if mapped)or '**both**' to do both. | str  |
 | threads         | t         | Number of parallel threads to use. Default: **8**                                                                                                                                                             | int  |
-| output-format   | -         | The output format to which the aligned data will be written. Options: '**parquet**' (Default) or '**jsonl**'                                                                                                  | str  |
 | force-overwrite | f         | If set and an output file already exists, this file will be overwritten. Raises an error otherwise                                                                                                            | bool |
 
-For the sake of simplicity, the table shows only a subset of the optional arguments. An explanation for all arguments can be found in the [documentation]().
+For the sake of simplicity, the table shows only a subset of the optional arguments. An explanation for all arguments can be found in the [usage documentation](./docs/usage.md).
 
 ## Algorithm and backend details
 
-A detailled description of the algorithm that is used and how the algorithm is implemented is provided in the [documentation]().
+A detailled description of the algorithm that is used and how the algorithm is implemented is provided in the [implementation documentation](./docs/implementation_details.md).
 
 ## License
 
