@@ -340,7 +340,7 @@ impl Band {
         }
 
         log::debug!(
-            "adjust_sequence_band input: self.start = {}, self.end = {}, min_step = {}",
+            "adjust_sequence_band output: self.start = {}, self.end = {}, min_step = {}",
             get_log_vector_sample(self.start(), 10),
             get_log_vector_sample(self.end(), 10),
             min_step
