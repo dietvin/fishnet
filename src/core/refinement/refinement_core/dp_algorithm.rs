@@ -17,7 +17,7 @@ pub fn banded_dp(
     band: &Band,
     method: &RefineAlgo
 ) -> Vec<usize> {
-    log::trace!(
+    log::debug!(
         "banded_dp input: signal = {}, levels = {}, band start = {}, band end = {}, method = {:?}",
         get_log_vector_sample(signal, 10), 
         get_log_vector_sample(levels, 10), 
@@ -33,7 +33,7 @@ pub fn banded_dp(
         base_offsets.push(offset_cumsum);
     }
 
-    log::trace!(
+    log::debug!(
         "banded_dp base offsets: base_offsets = {}",
         get_log_vector_sample(&base_offsets, 10)
     );
@@ -56,7 +56,7 @@ pub fn banded_dp(
         method
     );
 
-    log::trace!(
+    log::debug!(
         "banded_dp after forward pass: all_scores = {}, traceback = {}",
         get_log_vector_sample(&all_scores, 20),
         get_log_vector_sample(&traceback, 20)
