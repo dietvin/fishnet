@@ -93,7 +93,7 @@ pub fn forward_pass (
     let mut previous_scores = vec![f32::INFINITY; current_bandwidth];
     previous_scores[0] = 0.0;
 
-    log::trace!("forward_pass: processing base 0 of {}", expected_levels.len());
+    log::trace!("forward_pass: processing base 0 of {}", expected_levels.len()-1);
 
     if use_dwell_penalty_alg {
         forward_step_dwell_penalty(
