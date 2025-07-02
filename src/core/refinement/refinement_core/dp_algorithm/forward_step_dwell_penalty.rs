@@ -1,4 +1,6 @@
-use crate::logger::get_log_vector_sample;
+use std::io::Write;
+
+use crate::{core::refinement::refinement_core::dp_algorithm::forward_pass::get_log_writer, logger::get_log_vector_sample};
 
 use super::forward_step::{forward_step_viterbi, score};
 
@@ -56,6 +58,13 @@ pub fn forward_step_dwell_penalty(
         "forward_step_dwell_penalty input: redirecting to forward_step_viterbi, dwell_penalty = {}",
         get_log_vector_sample(dwell_penalty, 10)
     );
+
+    {
+        let mut log_writer = get_log_writer().lock().unwrap();
+        let _ = writeln!(log_writer, "# viterbi");
+        let _ = log_writer.flush(); // Ensure it's written immediately
+    }
+
     // Compute un-penalized band position scores for lookup after dwell_penalty range is searched
     let mut unpen_scores = vec![0.0f32; current_scores.len()];
     let mut unpen_tb = vec![0i32; current_traceback.len()];
@@ -68,6 +77,13 @@ pub fn forward_step_dwell_penalty(
         current_signal, 
         band_start_diff
     );
+
+    {
+        let mut log_writer = get_log_writer().lock().unwrap();
+        let _ = writeln!(log_writer, "# viterbi_finished");
+        let _ = log_writer.flush();
+    }
+
 
     let max_penalized_len = dwell_penalty.len();
 
@@ -119,12 +135,24 @@ pub fn forward_step_dwell_penalty(
                 current_traceback[band_pos] = unpen_tb[band_pos - max_penalized_len] + max_penalized_len as i32;
             }
         }
+
+        {
+            let mut log_writer = get_log_writer().lock().unwrap();
+            let _ = writeln!(
+                log_writer, "{:.16}\t{:.16}\t{:.16}\t{:.16}\t{:.16}",
+                band_pos, unpen_scores[band_pos], unpen_tb[band_pos], 
+                current_scores[band_pos], current_traceback[band_pos]
+            );
+            let _ = log_writer.flush();
+        }
+
     }
     log::trace!(
         "forward_step_dwell_penalty updated and penalized: current_scores = {}, current_traceback = {}",
         get_log_vector_sample(current_scores, 10),
         get_log_vector_sample(current_traceback, 10)
     );
+
 }
 
 

@@ -1,9 +1,29 @@
+use std::{fs::OpenOptions, io::{BufWriter, Write}, sync::{Mutex, OnceLock}};
+
 use crate::logger::get_log_vector_sample;
 use crate::core::refinement::refinement_core::bands::Band;
 use crate::core::refinement::settings::RefineAlgo;
 
 use super::forward_step::forward_step_viterbi;
 use super::forward_step_dwell_penalty::forward_step_dwell_penalty;
+
+// Global log writer
+static LOG_WRITER: OnceLock<Mutex<BufWriter<std::fs::File>>> = OnceLock::new();
+
+pub fn get_log_writer() -> &'static Mutex<BufWriter<std::fs::File>> {
+    let path = "/home/vincent/projects/resquiggle_tool/investigating_steep_start_in_remora/output/dataset2/running_viterbi_one_iter/fishnet_log.txt";
+
+    LOG_WRITER.get_or_init(|| {
+        let file = OpenOptions::new()
+            .create(true)
+            .write(true)
+            .truncate(true)
+            .open(path)
+            .expect("Failed to open log file");
+        Mutex::new(BufWriter::new(file))
+    })
+}
+
 
 /// Performs the forward pass of dynamic programming for signal refinement
 ///
@@ -63,6 +83,11 @@ pub fn forward_pass (
         method
     );
 
+    {
+        let mut writer = get_log_writer().lock().unwrap();
+        let _ = writeln!(writer, "band_pos\tbase_score\tmove_score\tstay_score\taction\ttb_value");
+    }
+
     let mut short_dwell_penalty_vec = Vec::new();
     let use_dwell_penalty_alg = match method {
         RefineAlgo::DwellPenalty { 
@@ -94,6 +119,14 @@ pub fn forward_pass (
     previous_scores[0] = 0.0;
 
     log::trace!("forward_pass: processing base 0 of {}", expected_levels.len()-1);
+
+    {
+        let mut writer = get_log_writer().lock().unwrap();
+        let _ = writeln!(
+            writer, "# base=0 from=0 to={} band_start=0 band_end={}", 
+            current_bandwidth, current_bandwidth
+        );
+    }
 
     if use_dwell_penalty_alg {
         forward_step_dwell_penalty(
@@ -128,6 +161,15 @@ pub fn forward_pass (
         
         let current_offset = base_offsets[base_idx];
         let current_slice_end = current_offset + current_bandwidth;
+
+        {
+            let mut writer = get_log_writer().lock().unwrap();
+            let _ = writeln!(
+                writer, "# base={} from={} to={} band_start={} band_end={}", 
+                base_idx, current_offset, current_offset + current_bandwidth,
+                current_band_start, current_band_end
+            );
+        }
 
         // Two references to slices on the same vector is not allowed
         // [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]

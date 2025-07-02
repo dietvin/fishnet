@@ -1,3 +1,5 @@
+use std::io::Write;
+
 pub mod forward_pass;
 pub mod traceback;
 pub mod forward_step;
@@ -7,7 +9,7 @@ use forward_pass::forward_pass;
 use traceback::banded_traceback;
 
 
-use crate::{logger::get_log_vector_sample, core::refinement::settings::RefineAlgo};
+use crate::{core::refinement::{refinement_core::dp_algorithm::forward_pass::get_log_writer, settings::RefineAlgo}, logger::get_log_vector_sample};
 
 use super::bands::Band;
 
@@ -70,6 +72,18 @@ pub fn banded_dp(
         &base_offsets, 
         &traceback
     );
+
+    let path_str = path
+    .iter()
+    .map(|n| n.to_string())
+    .collect::<Vec<_>>()
+    .join(",");
+
+    {
+        let mut writer = get_log_writer().lock().unwrap();
+        let _ = writeln!(writer, "# path={}", path_str);
+        let _ = writer.flush();
+    }
 
     path    
 }

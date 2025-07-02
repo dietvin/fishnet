@@ -1,4 +1,5 @@
-use crate::logger::get_log_vector_sample;
+use std::io::{Write, BufWriter};
+use crate::{core::refinement::refinement_core::dp_algorithm::forward_pass::get_log_writer, logger::get_log_vector_sample};
 
 const LARGE_SCORE: f32 = 100.0;
 
@@ -66,6 +67,10 @@ pub fn forward_step_viterbi(
         band_start_diff
     );
 
+
+    let mut log_writer = get_log_writer().lock().unwrap();
+    let _ = writeln!(log_writer, "# start");
+
     // Handle start position in band
     if band_start_diff == 0 {
         // If this is a "stay" band start, set invalid score and traceback
@@ -76,6 +81,9 @@ pub fn forward_step_viterbi(
         let base_score = score(current_level, current_signal[0]);
         current_scores[0] = previous_scores[band_start_diff-1] + base_score;
         current_traceback[0] = 0;
+
+        let _ = writeln!(log_writer, "0\t{:.16}\t{:.16}\tNA\tmove\t0", 
+        base_score, current_scores[0]);
     }
 
     // Create slice of previous_scores starting at the same position as current_scores
@@ -88,6 +96,8 @@ pub fn forward_step_viterbi(
         previous_scores_slice.len()
     };
 
+    let _ = writeln!(log_writer, "# overlap");
+
     // Compute scores where current and previous base overlap
     for band_pos in 1..=process_len {
         let base_score = score(current_level, current_signal[band_pos]);
@@ -97,11 +107,24 @@ pub fn forward_step_viterbi(
         if move_score < stay_score {
             current_scores[band_pos] = move_score;
             current_traceback[band_pos] = 0;
+
+            let _ = writeln!(
+                log_writer, "{}\t{:.16}\t{:.16}\t{:.16}\tmove\t0", 
+                band_pos, base_score, move_score, stay_score
+            );
         } else {
             current_scores[band_pos] = stay_score;
             current_traceback[band_pos] = current_traceback[band_pos - 1] + 1;
+
+            let _ = writeln!(
+                log_writer, "{}\t{:.16}\t{:.16}\t{:.16}\tstay\t{}", 
+                band_pos, base_score, move_score, stay_score, 
+                current_traceback[band_pos]
+            );
         }
     }
+
+    let _ = writeln!(log_writer, "# rest");
 
     // Stay through rest of the band
     for band_pos in (process_len + 1)..current_scores.len() {
@@ -109,8 +132,14 @@ pub fn forward_step_viterbi(
         let stay_score = current_scores[band_pos - 1] + base_score;
         current_scores[band_pos] = stay_score;
         current_traceback[band_pos] = current_traceback[band_pos - 1] + 1;
+
+        let _ = writeln!(
+            log_writer, "{}\t{:.16}\tNA\t{:.16}\tstay\t{}", 
+            band_pos, base_score, stay_score, 
+            current_traceback[band_pos]
+        );
     }
-    
+        
     log::trace!(
         "forward_step_viterbi updated: current_scores = {}, current_traceback = {}",
         get_log_vector_sample(current_scores, 10),
