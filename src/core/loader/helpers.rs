@@ -148,7 +148,7 @@ fn handle_unexpected_type<V>(value: Aux<'_>, tag: &str, exp_type: &str) -> Resul
 /// 
 /// # Returns
 /// The reverse complement if the input sequence contained only
-/// A, C, G and T. An error otherwise.
+/// A, C, G, T and N. An error otherwise.
 pub fn reverse_complement(seq: &Vec<u8>) -> Result<Vec<u8>, BamReadError> {
     let mut rev_comp = Vec::with_capacity(seq.len());
     
@@ -158,10 +158,12 @@ pub fn reverse_complement(seq: &Vec<u8>) -> Result<Vec<u8>, BamReadError> {
             67 => 71, // C to G
             71 => 67, // G to C
             84 => 65, // T to A
+            78 => 78,  // N to N (ambiguous base stays ambiguous)
             97 => 84, // a to T
             99 => 71, // c to G
             103 => 67, // g to C
             116 => 65, // t to A
+            110 => 78, // n to N (lowercase ambiguous base)
 
             _ => return Err(BamReadError::ReverseComplement(*base))
         };

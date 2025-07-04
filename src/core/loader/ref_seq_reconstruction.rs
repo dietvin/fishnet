@@ -12,6 +12,7 @@ const A: u8 = 65;
 const C: u8 = 67;
 const G: u8 = 71;
 const T: u8 = 84;
+const N: u8 = 78;
 const CIRCUMFLEX: u8 = 94;
 const HYPHEN: u8 = 45;
 const ZERO: u8 = 48;
@@ -158,7 +159,7 @@ pub fn build_reference_sequence(
                     md_idx += 1;
                 }
             }
-            // Handle the mismatch case ('A'/'C'/'G'/'T')
+            // Handle the mismatch case ('A'/'C'/'G'/'T'/'N')
             else {
                 if reference_idx >= reference_sequence.len() {
                     return Err(RefSeqReconstructError::ReferenceOutOfBounds(
@@ -195,8 +196,8 @@ pub fn build_reference_sequence(
 }
 
 /// Determine if a byte is a valid element of a MD String. 
-/// Valid elements are: Digits (0 to 9), 'A', 'C', 'G', 'T', '^'
-/// 
+/// Valid elements are: Digits (0 to 9), 'A', 'C', 'G', 'T', 'N', '^'
+///  
 /// # Arguments
 /// 
 /// * `c` - The byte to check
@@ -249,7 +250,7 @@ fn decode_ascii_digit(d: &u8) -> Result<u32, RefSeqReconstructError> {
     }
 }
 
-/// Checks if a byte represents an uppercase nucleotide base (A, C, G, T).
+/// Checks if a byte represents an uppercase nucleotide base (A, C, G, T, N).
 ///
 /// # Arguments
 ///
@@ -260,7 +261,7 @@ fn decode_ascii_digit(d: &u8) -> Result<u32, RefSeqReconstructError> {
 /// * `true` if the byte is an uppercase base
 /// * `false` otherwise
 fn is_base(c: &u8) -> bool {
-    if c == &A || c == &C || c == &G || c == &T {
+    if c == &A || c == &C || c == &G || c == &T || c == &N {
         true
     } else {
         false
