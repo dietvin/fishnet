@@ -36,8 +36,8 @@ fishnet \
 
 | Long flag | Short flag | Description |
 |---|---|---|
-| help | h | Prints the help message explaining all flags (-h shows a more compact message) |
-| version | v | Prints the version |
+| --help | -h | Prints the help message explaining all flags (-h shows a more compact message) |
+| --version | -v | Prints the version |
 
 ### Required arguments
 
@@ -45,10 +45,10 @@ The following arguments set the central input and output parameters and are requ
 
 | Long flag | Short flag | Type | Description |
 |---|---|---|---|
-| bam | b | string | Path to a BAM input file. Only a single file must be provided. |
-| pod5 | p | string(s) | Path to the POD5 input. Multiple paths can be provided space separated. A path can point to a POD5 file or a directory. If a directory is given all POD5 files in the directory are processed. File and directory paths can be combined. |
-| kmer-table | k | string | Path to a kmer table file. Kmer tables are provided by ONT in this repository. |
-| out | o | string | Path to the output file. File extension determines the output format. Must be '.parquet' for Parquet output or '.jsonl' for JSONL output. |
+| --bam | -b | string | Path to a BAM input file. Only a single file must be provided. |
+| --pod5 | -p | string(s) | Path to the POD5 input. Multiple paths can be provided space separated. A path can point to a POD5 file or a directory. If a directory is given all POD5 files in the directory are processed. File and directory paths can be combined. |
+| --kmer-table | -k | string | Path to a kmer table file. Kmer tables are provided by ONT in this repository. |
+| --out | -o | string | Path to the output file. File extension determines the output format. Must be '.parquet' for Parquet output or '.jsonl' for JSONL output. |
 
 ### Optional arguments
 
@@ -60,14 +60,14 @@ These arguments control overall program behaviour, resource usage, logging and o
 
 | Long flag | Short flag | Type (possible values) | Default | Description |
 |---|---|---|---|---|
-| rna | r | bool | false | Whether direct RNA data is provided. If set, reverses the raw sigal (3'->5') to be in 5'->3' orientation to match the base-called/mapped data. |
-| force-overwrite | f | bool | false | Whether existing output files should be overwritten. If the provided output path already exists and the flag is set the existing file is overwritten. Otherwise an error is raised. |
-| alignment-type | a | string (query \| reference \| both) | query | Determines the type of alignment that is performed. If set to 'query' the signal is aligned to the base-called query sequence. If set to 'reference' and a given read is mapped to a reference, the signal is aligned to that reference sequence. |
-| threads | t | int | 8 | Set the number of parallel threads used during processing. Set to 1 to disable multithreading. If set to 2 or 3, falls back to single-threaded processing (due to 3 non-worker threads). |
-| queue-size |  | int | 1000 | Sets the queue size for transfering data to and from worker threads. Only regarded if number of threads is larger than 3. Decrease queue size for a reduced memory footprint. |
-| log-level |  | string (off \| error \| warn \| info \| debug \| trace) | off | Sets the logging level. The amount of intermediated information written to the log increases from 'error' to 'trace'. Set to error to get an overview of the reasons why the alignment failed for (some) given reads. Logging is disabled by default. |
-| log-path |  | string | log.txt | Path to the log file. Only regarded if debug-level is other than 'off'. If the log file exists already new logging output gets appended to the file. |
-| output-batch-size |  | int | 1000 | Output batch size. Determines the number of alignments that are collected before dumping these to file. Higher values reduce the I/O overhead, potentially increasing speed, while requiring more memory. |
+| --rna | -r | bool | false | Whether direct RNA data is provided. If set, reverses the raw sigal (3'->5') to be in 5'->3' orientation to match the base-called/mapped data. |
+| --force-overwrite | -f | bool | false | Whether existing output files should be overwritten. If the provided output path already exists and the flag is set the existing file is overwritten. Otherwise an error is raised. |
+| --alignment-type | -a | string (query \| reference \| both) | query | Determines the type of alignment that is performed. If set to 'query' the signal is aligned to the base-called query sequence. If set to 'reference' and a given read is mapped to a reference, the signal is aligned to that reference sequence. |
+| --threads | -t | int | 8 | Set the number of parallel threads used during processing. Set to 1 to disable multithreading. If set to 2 or 3, falls back to single-threaded processing (due to 3 non-worker threads). |
+| --queue-size |  | int | 1000 | Sets the queue size for transfering data to and from worker threads. Only regarded if number of threads is larger than 3. Decrease queue size for a reduced memory footprint. |
+| --log-level |  | string (off \| error \| warn \| info \| debug \| trace) | off | Sets the logging level. The amount of intermediated information written to the log increases from 'error' to 'trace'. Set to error to get an overview of the reasons why the alignment failed for (some) given reads. Logging is disabled by default. |
+| --log-path |  | string | log.txt | Path to the log file. Only regarded if debug-level is other than 'off'. If the log file exists already new logging output gets appended to the file. |
+| --output-batch-size |  | int | 1000 | Output batch size. Determines the number of alignments that are collected before dumping these to file. Higher values reduce the I/O overhead, potentially increasing speed, while requiring more memory. |
 
 #### Refinement - Dynamic programming
 
@@ -75,14 +75,14 @@ These arguments allow fine-tuning of the refinement process. In practice, the mo
 
 | Long flag | Short flag | Type (possible values) | Default | Description |
 |---|---|---|---|---|
-| refine-iters | i | int | 2 | Sets the number of refinement iterations. In each iteration the alignment boundaries are shifed to minimize the difference between the expected and observed signal, followed by a calculation of rescaling parameters based on the shifed alignment. If set to 0 the refinement is skipped. |
-| refine-algo |  | string (viterbi \| dwell-penalty) | dwell-penalty | Refinement algorithm. Viterbi and dwell penalty approaches are available. The dwell penalty approach also performs the viterbi approach internally,while additionally penalizing adjustments in the mapping that result in short dwell times at a given base. |
-| dwell-penalty-target |  | float | 4.0 | Preferred dwell time used in dwell penalty refinement. Only considered if refine-algo is 'dwell-penalty'. |
-| dwell-penalty-limit |  | float | 3.0 | Maximum dwell time that is penalized in dwell penalty algorithm. Only considered if refine-algo is 'dwell-penalty'. |
-| dwell-penalty-weight |  | float | 0.5 | Strength of the penalty applied to short dwell times in dwell penalty algorithm. Only considered if refine-algo is 'dwell-penalty'. |
-| half-bandwidth |  | int | 5 | Half-width of the signal band, meaning that for each signal measurement bases half-bandwidth up- and downstream from the currently assigned one can be considered. |
-| min-band-size |  | int | 2 | The minimum sequence band size that is forced when adjusting the sequence band. This means that a given signal measurement can potentially be assigned to min-band size number of bases. |
-| normalize-levels |  | bool | false | Whether to normalize the expected levels given in the kmer-table. This is equivalent to the `do_fix_gauge` setting in Remora. |
+| --refine-iters | -i | int | 2 | Sets the number of refinement iterations. In each iteration the alignment boundaries are shifed to minimize the difference between the expected and observed signal, followed by a calculation of rescaling parameters based on the shifed alignment. If set to 0 the refinement is skipped. |
+| --refine-algo |  | string (viterbi \| dwell-penalty) | dwell-penalty | Refinement algorithm. Viterbi and dwell penalty approaches are available. The dwell penalty approach also performs the viterbi approach internally,while additionally penalizing adjustments in the mapping that result in short dwell times at a given base. |
+| --dwell-penalty-target |  | float | 4.0 | Preferred dwell time used in dwell penalty refinement. Only considered if refine-algo is 'dwell-penalty'. |
+| --dwell-penalty-limit |  | float | 3.0 | Maximum dwell time that is penalized in dwell penalty algorithm. Only considered if refine-algo is 'dwell-penalty'. |
+| --dwell-penalty-weight |  | float | 0.5 | Strength of the penalty applied to short dwell times in dwell penalty algorithm. Only considered if refine-algo is 'dwell-penalty'. |
+| --half-bandwidth |  | int | 5 | Half-width of the signal band, meaning that for each signal measurement bases half-bandwidth up- and downstream from the currently assigned one can be considered. |
+| --min-band-size |  | int | 2 | The minimum sequence band size that is forced when adjusting the sequence band. This means that a given signal measurement can potentially be assigned to min-band size number of bases. |
+| --normalize-levels |  | bool | false | Whether to normalize the expected levels given in the kmer-table. This is equivalent to the `do_fix_gauge` setting in Remora. |
 
 #### Refinement - Rescaling
 
@@ -90,13 +90,13 @@ These arguments allow fine-tuning of the rescaling process, which is performed a
 
 | Long flag | Short flag | Type (possible values) | Default | Description |
 |---|---|---|---|---|
-| rescale-algo |  | string (theil-sen \| least-squares) | theil-sen | Which rescaling algorithm to use to calculate shift and scale parameters to normalize the signal measurement (norm_signal = (signal - shift) / scale). Other than the rough rescaling, here the entire signal is used for the estimation. Available algorithms are least-squares and theil-sen. Note that least-squares is not available and tested in Remora. |
-| rescale-dwell-filter-lower-quant |  | float | 0.1 | Lower filtering threshold for dwell times. Signal data for bases with dwell times below this quantile value are filtered out before rescaling. |
-| rescale-dwell-filter-upper-quant |  | float | 0.9 | Upper filtering threshold for dwell times. Signal data for bases with dwell times above this quantile value are filtered out before rescaling. |
-| rescale-min-abs-level |  | float | 0.2 | Minimum absolute (normalized) signal intensity filter threshold. Signal data from bases where the mean signal itensity deviates less than the given value from the expected intensity, is filtered out before rescaling. |
-| rescale-num-bases-truncate |  | int | 10 | Number of bases to truncate before rescaling. Signal data from the first and last given number of bases are filtered out before rescaling. |
-| rescale-min-num-filtered-levels |  | int | 10 | The minimum number of bases that must remain after filtering to be considered valid for rescaling. |
-| rescale-max-len |  | int | 1000 | Maximum number of bases to use for rescaling. If the sequence contains more bases than the given number, the data is randomly subset to contain the given number of data points. Only regarded when rescale-algo is theil-sen. If set to 0 no subsetting is performed. |
+| --rescale-algo |  | string (theil-sen \| least-squares) | theil-sen | Which rescaling algorithm to use to calculate shift and scale parameters to normalize the signal measurement (norm_signal = (signal - shift) / scale). Other than the rough rescaling, here the entire signal is used for the estimation. Available algorithms are least-squares and theil-sen. Note that least-squares is not available and tested in Remora. |
+| --rescale-dwell-filter-lower-quant |  | float | 0.1 | Lower filtering threshold for dwell times. Signal data for bases with dwell times below this quantile value are filtered out before rescaling. |
+| --rescale-dwell-filter-upper-quant |  | float | 0.9 | Upper filtering threshold for dwell times. Signal data for bases with dwell times above this quantile value are filtered out before rescaling. |
+| --rescale-min-abs-level |  | float | 0.2 | Minimum absolute (normalized) signal intensity filter threshold. Signal data from bases where the mean signal itensity deviates less than the given value from the expected intensity, is filtered out before rescaling. |
+| --rescale-num-bases-truncate |  | int | 10 | Number of bases to truncate before rescaling. Signal data from the first and last given number of bases are filtered out before rescaling. |
+| --rescale-min-num-filtered-levels |  | int | 10 | The minimum number of bases that must remain after filtering to be considered valid for rescaling. |
+| --rescale-max-len |  | int | 1000 | Maximum number of bases to use for rescaling. If the sequence contains more bases than the given number, the data is randomly subset to contain the given number of data points. Only regarded when rescale-algo is theil-sen. If set to 0 no subsetting is performed. |
 
 #### Refinement - Rough rescaling
 
@@ -104,9 +104,9 @@ These arguments allow fine-tuning of the rough rescaling process, which is perfo
 
 | Long flag | Short flag | Type (possible values) | Default | Description |
 |---|---|---|---|---|
-| rough-rescale-algo |  | string (none \| least-squares \| theil-sen) | theil-sen | Which rough rescaling algorithm to use. Calculates shift and scale parameters to normalize the signal measurement (norm_signal = (signal - shift) / scale). Rough rescaling, because only given percentile values are used instead of all measurements. Available algorithms are least-squares and theil-sen. Theil-sen is considered to be more robust against outliers. |
-| rough-rescale-quants-min |  | float | 0.05 | Lowest percentile to calculate from the signal data during rough rescaling. |
-| rough-rescale-quants-max |  | float | 0.95 | Highest percentile to calculate from the signal data during rough rescaling. |
-| rough-rescale-quants-steps |  | int | 19 | Number of percentile values to consider during rough rescaling. rough-rescale-quants steps number of quantiles are considered, increasing evenly from the lowest to the highest quantile. The lowest and highest values are included. Default quantiles are 0.05, 0.10, 0.15, ..., 0.90, 0.95. |
-| rough-rescale-clip-bases |  | int | 10 | Number of bases to truncate before rough rescaling. Signal data from the first and last given number of bases are filtered out before rough rescaling. |
-| rough-rescale-use-all-signal |  | bool | false | Whether to use the entire signal for quantile calculation during rough rescaling. If set, the quantile values are calculated from all measurements. Otherwise the signal is subset to contain only a single measurement for each base, reducing the computational load. This measurement is taken from the center of the signal assigned to a given base. |
+| --rough-rescale-algo |  | string (none \| least-squares \| theil-sen) | theil-sen | Which rough rescaling algorithm to use. Calculates shift and scale parameters to normalize the signal measurement (norm_signal = (signal - shift) / scale). Rough rescaling, because only given percentile values are used instead of all measurements. Available algorithms are least-squares and theil-sen. Theil-sen is considered to be more robust against outliers. |
+| --rough-rescale-quants-min |  | float | 0.05 | Lowest percentile to calculate from the signal data during rough rescaling. |
+| --rough-rescale-quants-max |  | float | 0.95 | Highest percentile to calculate from the signal data during rough rescaling. |
+| --rough-rescale-quants-steps |  | int | 19 | Number of percentile values to consider during rough rescaling. rough-rescale-quants steps number of quantiles are considered, increasing evenly from the lowest to the highest quantile. The lowest and highest values are included. Default quantiles are 0.05, 0.10, 0.15, ..., 0.90, 0.95. |
+| --rough-rescale-clip-bases |  | int | 10 | Number of bases to truncate before rough rescaling. Signal data from the first and last given number of bases are filtered out before rough rescaling. |
+| --rough-rescale-use-all-signal |  | bool | false | Whether to use the entire signal for quantile calculation during rough rescaling. If set, the quantile values are calculated from all measurements. Otherwise the signal is subset to contain only a single measurement for each base, reducing the computational load. This measurement is taken from the center of the signal assigned to a given base. |
