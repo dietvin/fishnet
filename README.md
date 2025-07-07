@@ -49,23 +49,23 @@ More examples are provided in the [usage documentation](./docs/usage.md). Fishne
 
 The following arguments are required:
 
-| Long arg   | Short arg | Explanation                                                                                                                             | Type |
+| Long flag   | Short flag | Explanation                                                                                                                             | Type |
 |------------|-----------|-----------------------------------------------------------------------------------------------------------------------------------------|------|
-| bam        | b         | Path to a bam file (as given by Dorado; must contain **move tables** for each read)                                                                                                                      | str  |
-| pod5       | p         | Path(s) to one or more pod5 files and/or directories containing pod5 files (separate multiple paths by space) | (multiple) str  |
-| kmer-table | k         | Path to a [kmer level table](https://github.com/nanoporetech/kmer_models)                                                                                                               | str  |
-| output-dir | o         | Path to a directory where the aligned data will be written to                                                                           | str  |
+| --bam        | -b         | Path to a bam file (as given by Dorado; must contain **move tables** for each read)                                                                                                                      | str  |
+| --pod5       | -p         | Path(s) to one or more pod5 files and/or directories containing pod5 files (separate multiple paths by space) | (multiple) str  |
+| --kmer-table | -k         | Path to a [kmer level table](https://github.com/nanoporetech/kmer_models)                                                                                                               | str  |
+| --out        | -o         | Path to a directory where the aligned data will be written to                                                                           | str  |
 
 ### Optional arguments
 
 The following arguments are the most relevant optional arguments for most users:
 
-| Long arg        | Short arg | Explanation                                                                                                                                                                                                   | Type |
+| Long flag        | Short flag | Explanation                                                                                                                                                                                                   | Type |
 |-----------------|-----------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------|
-| rna             | -         | Whether the provided data is direct RNA sequencing data. If set, the signal gets reversed for the alignment                                                                                                   | bool |
-| alignment-type  | a         | Which type(s) of alignment to generate. Can be '**query**' (Default) to align the signal to the base-called sequence, '**reference**' to align to the reference sequence (if mapped)or '**both**' to do both. | str  |
-| threads         | t         | Number of parallel threads to use. Default: **8**                                                                                                                                                             | int  |
-| force-overwrite | f         | If set and an output file already exists, this file will be overwritten. Raises an error otherwise                                                                                                            | bool |
+| --rna             |          | Whether the provided data is direct RNA sequencing data. If set, the signal gets reversed for the alignment                                                                                                   | bool |
+| --alignment-type  | -a         | Which type(s) of alignment to generate. Can be '**query**' (Default) to align the signal to the base-called sequence, '**reference**' to align to the reference sequence (if mapped)or '**both**' to do both. | str  |
+| --threads         | -t         | Number of parallel threads to use. Default: **8**                                                                                                                                                             | int  |
+| --force-overwrite | -f         | If set and an output file already exists, this file will be overwritten. Raises an error otherwise                                                                                                            | bool |
 
 For the sake of simplicity, the table shows only a subset of the optional arguments. An explanation for all arguments can be found in the [usage documentation](./docs/usage.md).
 
