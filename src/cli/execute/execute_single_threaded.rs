@@ -1,3 +1,30 @@
+/*!
+ * # Single-Threaded Alignment Module
+ * 
+ * This module implements a single-threaded framework for processing alignments
+ * between POD5 nanopore signal data and BAM alignment records.
+ * 
+ * ## Workflow
+ * 
+ * 1. Initialize logging and progress tracking
+ * 2. Load BAM file containing sequence alignment data
+ * 3. Index POD5 files containing raw nanopore signals
+ * 4. Initialize kmer table for signal refinement
+ * 5. Set up output writer for results
+ * 6. Process each read:
+ * - Load POD5 read data and corresponding BAM alignment
+ * - Perform query-to-signal alignment
+ * - Optionally perform reference-to-signal alignment
+ * - Refine alignments using kmer table
+ * - Write results to output file
+ * 7. Finalize output and display summary statistics
+ * 
+ * ## Usage
+ * 
+ * The main entry point is `run_alignment_single_threaded()` which takes a `Config`
+ * struct containing all necessary parameters for the alignment process.
+ */
+
 use console::style;
 use indicatif::{ProgressBar, ProgressStyle};
 use log::LevelFilter;

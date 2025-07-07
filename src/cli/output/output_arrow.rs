@@ -1,3 +1,35 @@
+/*! 
+ * # Arrow Output Writer Module
+ * This module provides functionality for writing alignment data to Arrow/Parquet files
+ * with efficient batching and compression. It implements the `AlignmentWriter` trait
+ * to output alignments in a columnar format optimized for analytical workloads.
+ * 
+ * ## Features
+ * 
+ * - **Batched Writing**: Buffers alignment records in memory before writing to disk
+ * for improved I/O performance
+ * - **Parquet Format**: Outputs data in Apache Parquet format with SNAPPY compression
+ * for efficient storage and fast query performance
+ * - **Columnar Schema**: Stores read IDs, query-to-signal alignments, and reference-to-signal
+ * alignments in separate columns for optimal analytics
+ * - **Optional Data Handling**: Properly handles cases where alignment data may be missing
+ * (e.g., unmapped reads)
+ * - **Error Handling**: Comprehensive error handling for file operations and data serialization
+ * 
+ * ## Data Schema
+ * 
+ * The output Parquet file contains three columns:
+ * - `read_id` (String): Unique identifier for each sequencing read
+ * - `query_to_signal` (List<UInt64>): Optional array of query-to-signal alignment positions
+ * - `ref_to_signal` (List<UInt64>): Optional array of reference-to-signal alignment positions
+ * 
+ * ## Performance Considerations
+ * 
+ * - Larger batch sizes reduce I/O overhead but increase memory usage
+ * - SNAPPY compression provides good balance between compression ratio and speed
+ * - Arrow format enables efficient columnar analytics on the output data
+ */
+
 use std::{fs::File, path::PathBuf, sync::Arc};
 use arrow::{array::{ArrayRef, ListBuilder, RecordBatch, StringBuilder, UInt64Builder}, datatypes::{DataType, Field, Schema}};
 use parquet::{arrow::ArrowWriter, file::properties::WriterProperties};
