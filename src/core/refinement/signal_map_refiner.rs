@@ -1,6 +1,4 @@
 /*!
- * Signal-to-sequence alignment refinement module for nanopore sequencing data.
- * 
  * This module provides functionality for refining the alignment between raw nanopore
  * signal data and DNA/RNA sequences. It handles the complex process of improving
  * initial alignments through iterative refinement and rescaling operations.
