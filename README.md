@@ -69,9 +69,16 @@ The following arguments are the most relevant optional arguments for most users:
 
 For the sake of simplicity, the table shows only a subset of the optional arguments. An explanation for all arguments can be found in the [usage documentation](./docs/usage.md).
 
-## Algorithm and backend details
+## Algorithm details
 
-A detailled description of the algorithm that is used and how the algorithm is implemented is provided in the [implementation documentation](./docs/implementation_details.md).
+The sequence-to-signal alignment is calculated in a two step process. An initial alignment is set up from the move table generated during base-calling. Afterwards, the alignment can be refined in an iterative approach where the signal boundaries are shifted to minimize the distance between the observed and expected signal intensities.
+
+A detailed description of all steps in is provided in the [algorithm documentation](./docs/algorithm_details.md).
+
+## Code structure
+
+A detailed overview of the code structure is provided in the [implementation documentation](./docs/implementation_details.md). More detailed explanations are given directly in the scripts.
+
 
 ## License
 
