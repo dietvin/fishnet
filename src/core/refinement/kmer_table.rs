@@ -1,3 +1,43 @@
+/*!
+ * This module provides functionality for loading, storing, and querying k-mers with their
+ * associated level values. 
+ * 
+ * # Key Features
+ * 
+ * - **File-based loading**: Reads k-mers and levels from tab-delimited files
+ * - **Binary representation**: Uses efficient binary encoding for k-mer storage and comparison
+ * - **Sorted indexing**: Maintains k-mers sorted by their level values for efficient access
+ * - **Level normalization**: Supports median absolute deviation (MAD) normalization
+ * - **Dominant base analysis**: Identifies the most influential position within k-mers
+ * - **Sequence-level extraction**: Extracts expected levels for entire DNA sequences
+ * 
+ * # Data Structure
+ * 
+ * The `KmerTable` struct stores:
+ * - A hash map index for O(1) k-mer lookups
+ * - Vectors of k-mers and their levels, sorted by level values
+ * - Metadata including k-mer length and dominant base position
+ * 
+ * # File Format
+ * 
+ * Expected input files should be tab-delimited with two columns:
+ * - Column 1: K-mer sequence (DNA string)
+ * - Column 2: Level value (floating-point number)
+ * 
+ * # Usage Example
+ * 
+ * ```rust
+ * use std::path::PathBuf;
+ * 
+ * let path = PathBuf::from("levels.txt");
+ * let mut table = KmerTable::new(&path)?;
+ * table.fix_gauge()?;  // Normalize levels
+ * 
+ * let level = table.get("ATCGN")?;  // Look up k-mer level
+ * let levels = table.extract_levels(b"ATCGATCG")?;  // Extract levels for sequence
+ * ```
+ */
+
 mod helpers;
 mod binary_kmer;
 

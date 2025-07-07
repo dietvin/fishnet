@@ -1,3 +1,8 @@
+/*!
+ * This module contains custom error types for different aspects of the signal-to-sequence
+ * alignment process.
+ */
+
 use alignment_errors::AlignmentError;
 use loader_errors::LoaderError;
 use refinement_errors::RefinementError;

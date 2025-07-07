@@ -1,3 +1,45 @@
+/*!
+ * This module provides robust signal rescaling functionality. It implements multiple 
+ * algorithms to recalibrate signal normalization parameters (shift and scale) by 
+ * comparing observed signal measurements to expected reference levels.
+ *
+ * ## Core Functionality
+ *
+ * The module offers two main rescaling approaches:
+ * - **Rough Rescaling**: Quick parameter adjustment using signal quantiles
+ * - **Precise Rescaling**: Detailed recalibration using filtered base-level statistics
+ *
+ * ## Algorithms
+ *
+ * ### Least Squares Regression
+ * Standard linear regression for finding optimal shift and scale parameters when data
+ * is relatively clean and follows normal distribution assumptions.
+ *
+ * ### Theil-Sen Estimation
+ * Robust regression method that is less sensitive to outliers than least squares.
+ * Particularly useful when signal data contains noise or measurement artifacts.
+ *
+ * ## Key Features
+ *
+ * - **Quantile-based preprocessing**: Uses signal quantiles for initial parameter estimation
+ * - **Adaptive filtering**: Filters bases by dwell time and signal deviation for robust estimation
+ * - **Outlier resistance**: Theil-Sen algorithm provides robustness against measurement outliers
+ * - **Configurable parameters**: Supports various filtering and algorithm configuration options
+ * - **Comprehensive error handling**: Detailed error types for different failure modes
+ *
+ * ## Usage Patterns
+ *
+ * 1. **Rough Rescaling**: Use `rough_rescale_lstsq()` or `rough_rescale_theil_sen()` for
+ *    quick parameter adjustment based on signal quantiles
+ * 2. **Precise Rescaling**: Use `rescale()` with appropriate `RescaleAlgo` configuration
+ *    for detailed recalibration using filtered base statistics
+ *
+ * ## Signal Normalization
+ *
+ * The normalized signal is calculated as: `normalized = (raw_signal - shift) / scale`
+ * where `shift` and `scale` are the parameters optimized by this module's functions.
+ */
+
 use rand::seq::IteratorRandom;
 use rand::rng;
 

@@ -1,3 +1,7 @@
+/*!
+ * This module contains logic to set up valid parameter combinations for the refinement.
+ */
+
 /// Provides settings for signal mapping refinement.
 /// 
 /// This struct defines configurable parameters used in the refinement

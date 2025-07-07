@@ -1,3 +1,16 @@
+/*!
+ * This module implements scoring and dynamic programming logic for signal alignment using 
+ * the Viterbi algorithm.
+ * 
+ * The core components include:
+ * - A `score` function that calculates squared error between expected and measured signals.
+ * - A `forward_step_viterbi` function that performs a single step of the Viterbi forward pass 
+ *   for one base, computing optimal alignment scores and traceback paths across signal bands.
+ * 
+ * The implementation is adapted from the Nanopore Remora project and is optimized for handling
+ * "stay" and "move" transitions within a constrained banded dynamic programming framework.
+ */
+
 use crate::logger::get_log_vector_sample;
 
 const LARGE_SCORE: f32 = 100.0;

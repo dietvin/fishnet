@@ -1,3 +1,7 @@
+/*!
+ * Helper functions used when transforming the CLI flags into a Config struct.
+ */
+
 use std::{env, fs, path::PathBuf};
 use crate::error::cli_errors::{PathError, Pod5PathError};
 

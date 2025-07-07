@@ -1,3 +1,19 @@
+/*!
+ * This module implements the core logic for computing optimal paths through nanopore sequencing
+ * signal data using either the standard Viterbi algorithm or a dwell-penalty-enhanced variant.
+ * It supports banded dynamic programming to efficiently process only relevant regions of the 
+ * signal for each base, which is critical for high-throughput signal refinement.
+ * 
+ * The module's main responsibilities include:
+ * - Forward pass computation using band constraints
+ * - Traceback path preparation for later reconstruction
+ * - Optional application of dwell time penalties
+ * - Calculation of penalty vectors for dwell time deviation
+ * 
+ * This functionality is central to refining raw nanopore signal alignments against expected levels
+ * in applications such as basecalling, signal segmentation, or modification detection.
+*/
+
 use crate::logger::get_log_vector_sample;
 use crate::core::refinement::refinement_core::bands::Band;
 use crate::core::refinement::settings::RefineAlgo;

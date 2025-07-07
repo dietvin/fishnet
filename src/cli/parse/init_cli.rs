@@ -1,3 +1,7 @@
+/*!
+ * Initializes the command line interface.
+ */
+
 use std::path::PathBuf;
 use clap::{value_parser, Arg, ArgAction, ArgMatches, Command};
 use console::style;

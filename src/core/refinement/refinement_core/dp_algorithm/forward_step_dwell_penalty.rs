@@ -1,3 +1,17 @@
+/*!
+ * This module provides an enhanced Viterbi alignment step, introducing dwell time penalties 
+ * to account for variable durations that a signal may spend at a specific base position.
+ * 
+ * In addition to standard squared error scoring between expected and measured signal levels,
+ * the module incorporates dwell-time-aware dynamic programming to better model realistic
+ * signal behaviors. It achieves this by:
+ * 
+ * - Reusing the basic Viterbi forward step as a reference path.
+ * - Exploring multiple dwell durations at each signal position.
+ * - Applying dwell-specific penalties to guide optimal alignment.
+ * - Choosing the most probable alignment path based on signal error and dwell time cost.
+ */
+
 use crate::logger::get_log_vector_sample;
 
 use super::forward_step::{forward_step_viterbi, score};

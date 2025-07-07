@@ -1,3 +1,7 @@
+/*!
+ * This module handles writing the alignments to file.
+ */
+
 use std::path::PathBuf;
 
 use crate::error::output_errors::OutputError;

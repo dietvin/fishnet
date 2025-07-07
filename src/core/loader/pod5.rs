@@ -1,11 +1,48 @@
+/*!
+ * Pod5 file parsing and signal data management module.
+ * 
+ * This module provides functionality for reading and processing Pod5 files. 
+ * It offers three main components:
+ * 
+ * - `Pod5Read`: Represents individual reads with signal data, calibration parameters, and
+ *   support for signal trimming based on alignment tags (sp, ts, ns).
+ * 
+ * - `Pod5File`: Container for loading and accessing all reads from a single Pod5 file,
+ *   providing HashMap-based access by read ID.
+ * 
+ * - `Pod5Index`: Collection manager for multiple Pod5 files that supports lazy loading
+ *   and provides iterators for processing files and reads across multiple files.
+ * 
+ * The module handles the complexity of Pod5 file structure, including signal chunks,
+ * calibration data extraction, and signal trimming for alignment purposes. It supports
+ * both forward and reverse signal processing for direct RNA sequencing workflows.
+ * 
+ * # Example Usage
+ * ```rust
+ * // Load a single Pod5 file
+ * let file = Pod5File::new(&path_to_file)?;
+ * 
+ * // Access a specific read
+ * if let Some(read) = file.get("read_id") {
+ *     println!("Signal length: {}", read.num_samples());
+ * }
+ * 
+ * // Create an index for multiple files
+ * let index = Pod5Index::from_dir(&directory_path, true)?;
+ * 
+ * // Process all reads across all files
+ * for result in index.reads() {
+ *     let (file_path, read_id, read) = result?;
+ *     // Process read...
+ * }
+ * ```
+ */
+
 use std::{collections::HashMap, fs::File, path::PathBuf};
 use itertools::multizip;
 use pod5::{polars_arrow::array::Int16Array, reader};
 use crate::{error::loader_errors::pod5_errors::{Pod5FileError, Pod5IndexError, Pod5ReadError}, core::loader::helpers};
 
-// ##################################################################################################
-// #                                            Structs                                             #
-// ##################################################################################################
 
 /// Represents a single read from a Pod5 file containing signal data and metadata
 #[derive(Debug, Clone)]
@@ -20,30 +57,6 @@ pub struct Pod5Read {
     signal_offset: Option<usize>
 }
 
-/// A container for Pod5 file data that provides access to reads using a HashMap
-/// 
-/// This struct loads and parses Pod5 files, exposing the reads and their associated
-/// signal data through a HashMap interface.
-#[derive(Debug, Clone)]
-pub struct Pod5File {
-    path: PathBuf,
-    reads: HashMap<String, Pod5Read>
-}
-
-/// A collection of Pod5File paths that loads files when explicitly requested
-/// 
-/// This struct manages multiple Pod5 file paths and loads Pod5File
-/// objects only when they are explicitly requested through the load_file method.
-#[derive(Debug)]
-pub struct Pod5Index {
-    // Stores the Pod5File object with the path to the file
-    file_paths: Vec<PathBuf>,
-}
-
-
-// ##################################################################################################
-// #                                        Implementations                                         #
-// ##################################################################################################
 
 impl Pod5Read {
     /// Creates a new Pod5Read instance with basic read information. Initializes the
@@ -245,6 +258,18 @@ impl Pod5Read {
             Some(_) => Ok(())
         }
     }
+}
+
+
+
+/// A container for Pod5 file data that provides access to reads using a HashMap
+/// 
+/// This struct loads and parses Pod5 files, exposing the reads and their associated
+/// signal data through a HashMap interface.
+#[derive(Debug, Clone)]
+pub struct Pod5File {
+    path: PathBuf,
+    reads: HashMap<String, Pod5Read>
 }
 
 
@@ -465,6 +490,19 @@ impl<'a> IntoIterator for &'a mut Pod5File {
 //     "signal" -> 1
 //     "samples" -> 2
 //     "signal_decompressed" -> 3
+
+
+
+/// A collection of Pod5File paths that loads files when explicitly requested
+/// 
+/// This struct manages multiple Pod5 file paths and loads Pod5File
+/// objects only when they are explicitly requested through the load_file method.
+#[derive(Debug)]
+pub struct Pod5Index {
+    // Stores the Pod5File object with the path to the file
+    file_paths: Vec<PathBuf>,
+}
+
 
 impl Pod5Index {
     /// Initializes a Pod5Index from a directory path

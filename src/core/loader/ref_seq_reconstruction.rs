@@ -1,5 +1,11 @@
-// Implementation is based on the Pysam implementation:
-// https://github.com/pysam-developers/pysam/blob/3e3c8b0b5ac066d692e5c720a85d293efc825200/pysam/libcalignedsegment.pyx#L1971
+/*!
+ * This module contains logic to reconstruct the reference sequence of a given read without
+ * a reference fasta file present. For this it parses the query sequence, the cigar elements
+ * and the MD tag. 
+ * 
+ * It is adapted from the Pysam implementation:
+ * https://github.com/pysam-developers/pysam/blob/3e3c8b0b5ac066d692e5c720a85d293efc825200/pysam/libcalignedsegment.pyx#L1971
+ */
 
 use rust_htslib::bam::record::Cigar::{
     self, Match, Equal, Diff, Del, Ins, SoftClip, HardClip, RefSkip, Pad

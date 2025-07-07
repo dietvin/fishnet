@@ -1,6 +1,7 @@
-// ########################################################################################################################
-// #                                    Helper functions reference to signal alignment                                    #
-// ########################################################################################################################
+/*!
+ * This module contains helper functions used during the intial alignment process.
+ */
+
 use rust_htslib::bam::record::Cigar;
 
 use crate::error::alignment_errors::RefToSignalError;

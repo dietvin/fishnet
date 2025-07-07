@@ -1,3 +1,7 @@
+/*!
+ * This module contains the function that starts the query to signal alignment.
+ */
+
 use crate::error::alignment_errors::QueryToSignalError;
 
 /// Aligns the query (base-called) sequence to raw signal measurements.

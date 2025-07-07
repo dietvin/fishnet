@@ -1,3 +1,19 @@
+/*!
+ * Aligned read processing module.
+ * 
+ * This module provides the core `AlignedRead` struct that combines raw signal data from
+ * POD5 files with alignment information from BAM files. It enables mapping between two
+ * coordinate systems: query sequence positions, and reference sequence positions.
+ * 
+ * Key functionality:
+ * - Combines POD5 and BAM read data with ID validation
+ * - Computes query-to-signal position mappings using move tables
+ * - Computes reference-to-signal position mappings using CIGAR strings
+ * - Supports both DNA and direct RNA (dRNA) processing with signal reversal
+ * - Provides unified access to signal data, calibration parameters, and alignment metadata
+ * - Handles trimmed signal processing and coordinate transformations
+ */
+
 use crate::error::alignment_errors::AlignedReadError;
 use crate::logger::get_log_vector_sample;
 

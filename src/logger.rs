@@ -1,3 +1,23 @@
+/*!
+ * This module provides logging utilities using the `log4rs` crate to configure flexible,
+ * file-based logging for Rust applications.
+ * 
+ * Included are:
+ * 
+ * - [`setup_logger`] — Initializes a logger that writes log messages to a file with configurable:
+ *   - log level filtering for individual modules
+ *   - optional inclusion of function names in log output
+ *   - timestamped and formatted output
+ * 
+ * - [`get_log_vector_sample`] — Helper function to generate a concise string representation
+ *   of a vector by logging its first and last `n` elements, useful for debug-level inspection
+ *   of large data structures.
+ * 
+ * This logging setup is designed for detailed debug tracing in scientific or high-performance
+ * applications, such as signal processing or model alignment, where selectively inspecting data
+ * from different modules is essential.
+ */
+
 use std::path::PathBuf;
 
 use log::LevelFilter;

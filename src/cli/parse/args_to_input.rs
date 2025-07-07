@@ -1,3 +1,13 @@
+/*!
+ * Setting up a valid configuration from the CLI arguments.
+ * 
+ * This module provides configuration management to transform the input given in the CLI to 
+ * a valid combination of parameters.
+ * 
+ * The main `Config` struct encapsulates all runtime parameters and provides accessor methods
+ * for safe configuration access throughout the application.
+ */
+
 use std::path::PathBuf;
 
 use clap::ArgMatches;

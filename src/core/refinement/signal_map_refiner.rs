@@ -1,3 +1,53 @@
+/*!
+ * Signal-to-sequence alignment refinement module for nanopore sequencing data.
+ * 
+ * This module provides functionality for refining the alignment between raw nanopore
+ * signal data and DNA/RNA sequences. It handles the complex process of improving
+ * initial alignments through iterative refinement and rescaling operations.
+ * 
+ * The main component is `SigMapRefiner`, which manages the refinement process for
+ * both query-to-signal and reference-to-signal alignments. The refinement process
+ * involves:
+ * 
+ * - **Initial scaling calculation**: Transforms raw signal measurements to normalized
+ *   values using calibration parameters and signal statistics.
+ * 
+ * - **Rough rescaling**: (Optional) Applies coarse-grained scaling adjustments using 
+ *   either least squares or Theil-Sen estimation to improve signal-sequence 
+ *   correspondence.
+ * 
+ * - **Iterative refinement**: Performs multiple rounds of alignment refinement
+ *   with optional rescaling between iterations to progressively improve accuracy.
+ * 
+ * - **Offset adjustment**: Handles signal trimming offsets from BAM record tags
+ *   (sp, ts, ns) to ensure alignments correspond to the correct signal regions.
+ * 
+ * The module supports flexible refinement strategies through configurable settings,
+ * allowing users to choose between different rescaling algorithms, iteration counts,
+ * and which alignments to refine (query, reference, or both).
+ * 
+ * # Example Usage
+ * ```rust
+ * // Create a refiner instance
+ * let mut refiner = SigMapRefiner::new(
+ *     &kmer_table,
+ *     &mut aligned_read,
+ *     &settings
+ * )?;
+ * 
+ * // Start the refinement process
+ * refiner.start()?;
+ * 
+ * // Access refined alignments
+ * if let Some(refined_alignment) = refiner.refined_query_to_sig() {
+ *     // Process refined query-to-signal alignment
+ * }
+ * 
+ * // Get offset-adjusted alignments for use with original signal
+ * let adjusted_alignment = refiner.refined_query_to_sig_offset_adjusted()?;
+ * ```
+ */
+
 pub mod rescale;
 
 use rust_htslib::bam::Record;

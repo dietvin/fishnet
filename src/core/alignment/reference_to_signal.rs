@@ -1,3 +1,7 @@
+/*!
+ * This module contains the function that starts the reference to signal alignment.
+ */
+
 use rust_htslib::bam::record::Cigar;
 use crate::error::alignment_errors::RefToSignalError;
 

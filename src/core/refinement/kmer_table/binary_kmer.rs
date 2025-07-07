@@ -1,3 +1,63 @@
+/*!
+ * This module provides a compact binary representation for DNA k-mers (short DNA sequences
+ * of length k). The binary encoding significantly reduces memory usage and improves
+ * performance for k-mer comparisons and hash table operations.
+ * 
+ * # Binary Encoding Scheme
+ * 
+ * Each nucleotide is encoded using 2 bits:
+ * - A: 00 (0)
+ * - C: 01 (1)
+ * - G: 10 (2)
+ * - T: 11 (3)
+ * - U: 11 (3) - treated as T
+ * 
+ * # Storage Capacity
+ * 
+ * The current implementation uses a single u64 (64 bits) to store the binary representation,
+ * which allows for k-mers up to 32 nucleotides in length (32 × 2 bits = 64 bits).
+ * 
+ * # Key Features
+ * 
+ * - **Memory efficient**: Uses only 8 bytes per k-mer regardless of length (up to 32 bases)
+ * - **Fast comparisons**: Binary representation enables efficient equality checks and hashing
+ * - **Case insensitive**: Accepts both uppercase and lowercase nucleotides
+ * - **RNA support**: Handles both DNA (T) and RNA (U) nucleotides
+ * - **Position extraction**: Allows extraction of nucleotides at specific positions
+ * - **Bidirectional conversion**: Supports conversion from/to string representations
+ * 
+ * # Input Formats
+ * 
+ * The module supports two input formats:
+ * - String slices (`&str`) via `from_string()`
+ * - Byte slices (`&[u8]`) via `from_ascii()` for ASCII-encoded sequences
+ * 
+ * # Usage Example
+ * 
+ * ```rust
+ * use binary_kmer::BinaryKmer;
+ * 
+ * // Create from string
+ * let kmer = BinaryKmer::from_string("ACGT")?;
+ * 
+ * // Create from ASCII bytes
+ * let kmer_bytes = BinaryKmer::from_ascii(b"ACGT")?;
+ * 
+ * // Extract nucleotide at position
+ * let nucleotide = kmer.nucleotide_at(1)?; // Returns 'C'
+ * 
+ * // Convert back to string
+ * let sequence = kmer.to_string(); // Returns "ACGT"
+ * ```
+ * 
+ * # Error Handling
+ * 
+ * The module provides comprehensive error handling for:
+ * - Invalid nucleotide characters
+ * - K-mer length exceeding capacity
+ * - Out-of-bounds position access
+ */
+
 use crate::error::refinement_errors::kmer_table_errors::BinaryKmerError;
 
 /// Represents a k-mer using a compact binary encoding

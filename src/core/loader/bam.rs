@@ -1,3 +1,25 @@
+/*!
+ * BAM file processing and lazy-loading module for nanopore sequencing data.
+ * 
+ * This module provides efficient handling of BAM files containing nanopore sequencing 
+ * alignments with specialized signal-level information. It extracts essential alignment 
+ * data while maintaining access to nanopore-specific tags and metadata.
+ * 
+ * Key components:
+ * - `BamRead`: Streamlined BAM record representation optimized for signal-sequence alignment
+ * - `BamFileLazy`: Indexed BAM file reader with random access by read ID
+ * - Support for nanopore-specific tags (move tables, signal scaling, parent read info)
+ * - Efficient reference sequence reconstruction from CIGAR and MD strings
+ * - Lazy-loading architecture to minimize memory usage for large BAM files
+ * 
+ * Features:
+ * - Extracts move tables and stride information for signal-to-base mapping
+ * - Handles both forward and reverse complement alignments
+ * - Processes signal scaling parameters (sm/sd tags) for normalization
+ * - Manages parent read relationships and signal offsets for subreads
+ * - Provides O(1) random access to BAM records after initial indexing
+ */
+
 use std::collections::HashMap;
 use std::path::PathBuf;
 use rust_htslib::bam::ext::BamRecordExtensions;
@@ -6,11 +28,6 @@ use rust_htslib::bam::{record::Cigar, Record, Reader, Read};
 use crate::error::loader_errors::bam_errors::{BamFileError, BamReadError};
 use crate::core::loader::helpers::{self, reverse_complement};
 use crate::core::loader::ref_seq_reconstruction::build_reference_sequence;
-
-// ##################################################################################################
-// #                                            Structs                                             #
-// ##################################################################################################
-
 
 /// Represents a BAM record with specialized fields for sequencing data.
 /// The BAM record is stripped down to only the information that is needed
@@ -43,22 +60,6 @@ pub struct BamRead {
     record: Record
 }
 
-
-/// A lazy-loading BAM file reader with random access by read ID
-///
-/// This struct provides indexed access to BAM records, building an in-memory
-/// index mapping read IDs to file offsets for efficient retrieval.
-#[derive(Debug)]
-pub struct BamFileLazy {
-    path: PathBuf,
-    bam_reader: Reader,
-    index: HashMap<String, i64>
-}
-
-
-// ##################################################################################################
-// #                                        Implementations                                         #
-// ##################################################################################################
 
 impl BamRead {
     /// Creates a new BamRead from a BAM record
@@ -352,6 +353,20 @@ impl BamRead {
     pub fn get_record_mut(&mut self) -> &mut Record {
         &mut self.record
     }
+}
+
+
+
+
+/// A lazy-loading BAM file reader with random access by read ID
+///
+/// This struct provides indexed access to BAM records, building an in-memory
+/// index mapping read IDs to file offsets for efficient retrieval.
+#[derive(Debug)]
+pub struct BamFileLazy {
+    path: PathBuf,
+    bam_reader: Reader,
+    index: HashMap<String, i64>
 }
 
 

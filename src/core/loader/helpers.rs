@@ -1,3 +1,7 @@
+/*!
+ * This module contains helper functions used during bam and pod5 file loading.
+ */
+
 use rust_htslib::bam::record::{Aux, Record};
 use crate::error::loader_errors::bam_errors::BamReadError;
 

@@ -1,3 +1,7 @@
+/*!
+ * Main entry point to the alignment process.
+ */
+
 pub mod execute_multi_threaded;
 pub mod execute_single_threaded;
 
@@ -6,6 +10,10 @@ use execute_single_threaded::run_alignment_single_threaded;
 use execute_multi_threaded::run_alignment_multi_threaded;
 use crate::cli::parse::{args_to_input::Config, init_cli::parse_command_line};
 
+/// Entry point to the signal to sequence alignment.
+/// 
+/// Parses the given command, transforms it into a valid configuration and
+/// executes it single- or multithreaded.
 pub fn execute() {
     let command_line_input = parse_command_line();
 

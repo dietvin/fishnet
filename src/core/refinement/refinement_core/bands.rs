@@ -1,3 +1,33 @@
+/*!
+ * This module provides structures and algorithms for creating and managing bands that 
+ * constrain the search space during dynamic programming operations. Bands are used to 
+ * reduce computational complexity by limiting the range of valid alignments between 
+ * signal measurements and sequence bases.
+ * 
+ * # Band Types
+ * 
+ * The module supports two types of bands:
+ * 
+ * - **Signal Band**: For each signal measurement i, defines the range of sequence bases 
+ *   [start[i], end[i]) that the measurement may potentially align to.
+ * 
+ * - **Sequence Band**: For each sequence base i, defines the range of signal measurements 
+ *   [start[i], end[i]) that the base may potentially align to.
+ * 
+ * # Key Features
+ * 
+ * - Band computation from sequence-to-signal mappings with configurable bandwidth
+ * - Conversion between signal and sequence band representations
+ * - Monotonicity enforcement and band adjustment with minimum step constraints
+ * - Comprehensive validation for both band types
+ * - Iterator support for traversing band positions
+ * 
+ * # Usage
+ * 
+ * Bands are typically created using `Band::compute_signal_band()` from a sequence-to-signal 
+ * mapping, then converted to sequence bands using `convert_to_sequence_band()`.
+ */
+
 use crate::{error::refinement_errors::band_errors::{BandValidationError, SequenceBandError, SignalBandError}, logger::get_log_vector_sample};
 use std::fmt;
 

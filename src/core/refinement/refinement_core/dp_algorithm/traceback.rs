@@ -1,3 +1,19 @@
+/*!
+This module provides the traceback functionality for reconstructing the optimal base-to-signal
+alignment path after a forward dynamic programming pass in a banded Viterbi algorithm.
+
+It defines the `banded_traceback` function, which:
+
+- Traverses the alignment path in reverse from the end of the signal.
+- Uses a flattened traceback array, combined with per-base band information and offsets,
+  to determine how many signal points each base spans.
+- Fills a `path` vector with the exact start and end positions for each base in the signal.
+
+The implementation is tailored for efficient processing of nanopore sequencing data,
+where banded alignment and variable dwell times are typical. This module assumes
+a forward pass has already computed the necessary traceback information.
+*/
+
 use crate::{logger::get_log_vector_sample, core::refinement::refinement_core::bands::Band};
 
 /// Performs traceback to reconstruct the optimal path (i.e. where each base starts)
