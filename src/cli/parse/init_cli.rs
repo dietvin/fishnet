@@ -1,5 +1,5 @@
 /*!
- * Initializes the command line interface.
+ * This module initializes the command line interface.
  */
 
 use std::path::PathBuf;

@@ -1,6 +1,4 @@
 /*! 
- * # Multi-threaded Resquiggling
- * 
  * This module implements a multi-threaded framework for processing alignments
  * between POD5 nanopore signal data and BAM alignment records.
  * 

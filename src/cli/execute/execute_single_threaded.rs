@@ -1,6 +1,4 @@
 /*!
- * # Single-Threaded Alignment Module
- * 
  * This module implements a single-threaded framework for processing alignments
  * between POD5 nanopore signal data and BAM alignment records.
  * 

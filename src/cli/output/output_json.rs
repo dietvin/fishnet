@@ -1,6 +1,4 @@
 /*!
- * # JSONL Output Writer Module
- *
  * This module provides functionality for writing alignment data to JSONL (JSON Lines)
  * files with efficient batching and buffering. It implements the `AlignmentWriter` trait
  * to output alignments in a text-based format that is both human-readable and machine-

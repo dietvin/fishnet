@@ -1,6 +1,4 @@
 /*!
- * Aligned read processing module.
- * 
  * This module provides the core `AlignedRead` struct that combines raw signal data from
  * POD5 files with alignment information from BAM files. It enables mapping between two
  * coordinate systems: query sequence positions, and reference sequence positions.

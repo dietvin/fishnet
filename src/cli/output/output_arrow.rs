@@ -1,5 +1,4 @@
 /*! 
- * # Arrow Output Writer Module
  * This module provides functionality for writing alignment data to Arrow/Parquet files
  * with efficient batching and compression. It implements the `AlignmentWriter` trait
  * to output alignments in a columnar format optimized for analytical workloads.

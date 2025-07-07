@@ -1,6 +1,4 @@
 /*!
- * Setting up a valid configuration from the CLI arguments.
- * 
  * This module provides configuration management to transform the input given in the CLI to 
  * a valid combination of parameters.
  * 

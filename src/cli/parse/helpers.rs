@@ -1,5 +1,6 @@
 /*!
- * Helper functions used when transforming the CLI flags into a Config struct.
+ * This module contains helper functions used when transforming the CLI flags 
+ * into a Config struct.
  */
 
 use std::{env, fs, path::PathBuf};
