@@ -88,14 +88,6 @@ impl OutputData {
         }
     }
 
-    pub fn read_id(&self) -> &str {
-        match self {
-            OutputData::Basic { read_id, .. } => read_id,
-            OutputData::WithSequences { read_id, .. } => read_id,
-            OutputData::WithSequencesAndSignal { read_id, .. } => read_id
-        }
-    }
-
     /// Checks if a given output schema corresponds to the output data at hand.
     pub fn matches(&self, output_schema: &OutputSchema) -> bool {
         match (self, output_schema) {
