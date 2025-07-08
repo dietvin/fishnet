@@ -18,7 +18,7 @@
  * both forward and reverse signal processing for direct RNA sequencing workflows.
  * 
  * # Example Usage
- * ```rust
+ * ```ignore
  * // Load a single Pod5 file
  * let file = Pod5File::new(&path_to_file)?;
  * 

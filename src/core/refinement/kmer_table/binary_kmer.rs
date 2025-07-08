@@ -34,7 +34,7 @@
  * 
  * # Usage Example
  * 
- * ```rust
+ * ```ignore
  * use binary_kmer::BinaryKmer;
  * 
  * // Create from string

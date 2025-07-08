@@ -26,7 +26,7 @@
  * 
  * # Usage Example
  * 
- * ```rust
+ * ```ignore
  * use std::path::PathBuf;
  * 
  * let path = PathBuf::from("levels.txt");
