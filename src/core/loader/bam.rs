@@ -345,11 +345,20 @@ impl BamRead {
         &self.subread_signal_length
     }
 
-    /// Gets the underlying read record
+    /// Gets a reference to the underlying read record
     ///
     /// # Returns
     ///
     /// * `&Record` - The original record from which the BamRead was constructed
+    pub fn get_record(&self) -> &Record {
+        &self.record
+    }
+
+    /// Gets a mutable reference tothe underlying read record
+    ///
+    /// # Returns
+    ///
+    /// * `&mut Record` - The original record from which the BamRead was constructed
     pub fn get_record_mut(&mut self) -> &mut Record {
         &mut self.record
     }

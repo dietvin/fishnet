@@ -24,7 +24,7 @@
  *   (Pod5Read and BamRead objects for each read ID)
  *   
  * - **Result Channel**: Transfers alignment results from worker threads to the main thread
- *   (read ID and alignment vectors)
+ *   (read ID and output data)
  *   
  * - **Progress Channel**: Sends success/failure signals to update the progress display
  * 
@@ -62,7 +62,9 @@ use crate::{
         output::{
             output_arrow::OutputWriterArrow, 
             output_json::OutputWriterJsonl, 
-            AlignmentWriter
+            AlignmentWriter, 
+            OutputData, 
+            OutputSchema
         }, 
         parse::args_to_input::{
             Config, 
@@ -82,7 +84,10 @@ use crate::{
     }, error::FishnetError, logger::setup_logger
 };
 
+/// Perform the signal to sequence alignment concurrently with a given configuration 
+/// set by the user through the command line interface.
 pub fn run_alignment_multi_threaded(input: Config) -> Result<(), FishnetError> {    
+    // Initialize the progress bar for the initialization steps
     let progress_bar_init = ProgressBar::new_spinner();
     progress_bar_init.set_style(
         ProgressStyle::default_bar()
@@ -91,6 +96,7 @@ pub fn run_alignment_multi_threaded(input: Config) -> Result<(), FishnetError> {
             .unwrap()            
     );
 
+    // Initialize the logger
     if *input.log_level() != LevelFilter::Off {
         progress_bar_init.set_message("Initializing logging...");
         if let Err(e) = setup_logger(
@@ -107,6 +113,7 @@ pub fn run_alignment_multi_threaded(input: Config) -> Result<(), FishnetError> {
         }
     }
 
+    // Initialize and load the BAM file
     progress_bar_init.set_message("Loading the BAM file...");
     let bam_path: &std::path::PathBuf = input.bam_input();
     let mut bam_file = match BamFileLazy::new(bam_path) {
@@ -121,6 +128,7 @@ pub fn run_alignment_multi_threaded(input: Config) -> Result<(), FishnetError> {
         }
     };
 
+    // Initialize and load the POD5 file
     progress_bar_init.set_message("Indexing the POD5 data...");
     let pod5_paths = input.pod5_input();
     let pod5_index = match Pod5Index::from_files(pod5_paths) {
@@ -135,8 +143,10 @@ pub fn run_alignment_multi_threaded(input: Config) -> Result<(), FishnetError> {
         }
     };
 
+    // Initialze the refinement settings from the input settings
     let refine_settings = Arc::new(input.refine_settings().clone());
 
+    // Initialize the kmer table
     progress_bar_init.set_message("Initializing the kmer table...");
     let kmer_table_path = input.kmer_table_input();
     let mut kmer_table = match KmerTable::new(kmer_table_path) {
@@ -164,14 +174,13 @@ pub fn run_alignment_multi_threaded(input: Config) -> Result<(), FishnetError> {
 
     let kmer_table = Arc::new(kmer_table);
 
+    // Initialize the output writer
     progress_bar_init.set_message("Initializing the output writer...");
-
     let output_path = input.output_file();
-
     let output_writer_res = match input.output_format() {
-        OutputFormat::Parquet => OutputWriterArrow::new(&output_path, input.force_overwrite(), input.output_batch_size())
+        OutputFormat::Parquet => OutputWriterArrow::new(&output_path, input.force_overwrite(), input.output_batch_size(), input.output_schema().clone())
             .map(|w| Box::new(w) as Box<dyn AlignmentWriter>),
-        OutputFormat::Json => OutputWriterJsonl::new(&output_path, input.force_overwrite(), input.output_batch_size())
+        OutputFormat::Json => OutputWriterJsonl::new(&output_path, input.force_overwrite(), input.output_batch_size(), input.output_schema().clone())
             .map(|w| Box::new(w) as Box<dyn AlignmentWriter>)
     };
     
@@ -191,26 +200,17 @@ pub fn run_alignment_multi_threaded(input: Config) -> Result<(), FishnetError> {
 
     let is_drna = input.is_drna();
     let alignment_type = input.alignment_type().clone();
+    let output_schema = input.output_schema().clone();
 
     // Handles data transfer from the producer thread to the worker threads
     let (data_sender, data_receiver) = bounded::<(String, Pod5Read, BamRead)>(input.queue_size());
     // Handles data transfer from the worker threads to the main thread for output writing
-    let (result_sender, result_receiver) = bounded::<(String, Option<Vec<usize>>, Option<Vec<usize>>)>(input.queue_size());
+    let (result_sender, result_receiver) = bounded::<(String, OutputData)>(input.queue_size());
     // Handles update signals for the progress bar
     let (progress_sender, progress_receiver) = bounded::<bool>(input.queue_size());
 
 
     // Initalize the progress bar thread
-
-    // let total_reads = match pod5_index.num_reads() {
-    //     Ok(v) => v,
-    //     Err(e) => {
-    //         eprintln!("Failed to count number of reads: {e}");
-    //         log::error!("Failed to count number of reads: {e}");
-    //         std::process::exit(1);
-    //     }
-    // };
-
     let progress_handler = match thread::Builder::new()
         .name("progress".to_string())
         .spawn(move || {
@@ -258,7 +258,6 @@ pub fn run_alignment_multi_threaded(input: Config) -> Result<(), FishnetError> {
 
 
     // Initialize the worker threads
-
     let num_workers = input.n_threads();
     let mut worker_handles = Vec::with_capacity(num_workers);
     for thread_id in 0..num_workers {
@@ -271,10 +270,13 @@ pub fn run_alignment_multi_threaded(input: Config) -> Result<(), FishnetError> {
         let is_drna = is_drna.clone();
         let alignment_type = alignment_type.clone();
 
+        let output_schema = output_schema.clone();
+
         let handle = match thread::Builder::new()
             .name(format!("worker{thread_id}"))
             .spawn(move || {
                 for (read_id, mut pod5_read, mut bam_read) in data_rx {
+                    // Initialize the aligned read
                     let mut aligned_read = match AlignedRead::new(
                         &mut pod5_read, 
                         &mut bam_read,
@@ -290,6 +292,7 @@ pub fn run_alignment_multi_threaded(input: Config) -> Result<(), FishnetError> {
                         }
                     };
 
+                    // Perform the query to signal alignment (always done)
                     if let Err(e) = aligned_read.align_query_to_signal() {
                         log::error!("Query to sequence alignment failed for {read_id}: {e}");
                         if let Err(e) = progress_tx.send(false) {
@@ -298,6 +301,7 @@ pub fn run_alignment_multi_threaded(input: Config) -> Result<(), FishnetError> {
                         continue;
                     };
 
+                    // If specified by the user, perform the reference to signal alignment
                     if alignment_type == WhichToAlign::Both || alignment_type == WhichToAlign::Reference {
                         if aligned_read.is_mapped() {
                             if let Err(e) = aligned_read.align_reference_to_signal() {
@@ -316,6 +320,7 @@ pub fn run_alignment_multi_threaded(input: Config) -> Result<(), FishnetError> {
                         }
                     }
 
+                    // Initialize the signal mapping refiner
                     let mut sig_map_refiner = match SigMapRefiner::new(
                         &kmer_table, 
                         &mut aligned_read, 
@@ -331,6 +336,7 @@ pub fn run_alignment_multi_threaded(input: Config) -> Result<(), FishnetError> {
                         }
                     };
                     
+                    // Start the refinement process
                     if let Err(e) = sig_map_refiner.start() {
                         log::error!("Mapping refinement failed for {read_id}: {e}");
                         if let Err(e) = progress_tx.send(false) {
@@ -339,6 +345,7 @@ pub fn run_alignment_multi_threaded(input: Config) -> Result<(), FishnetError> {
                         continue;
                     }
 
+                    // Extract the refined query to signal alignment
                     let query_to_signal = match sig_map_refiner.refined_query_to_sig_offset_adjusted() {
                         Ok(v) => v,
                         Err(e) => {
@@ -350,6 +357,7 @@ pub fn run_alignment_multi_threaded(input: Config) -> Result<(), FishnetError> {
                         }
                     };
 
+                    // Extract the refined reference to signal alignment
                     let ref_to_signal = match sig_map_refiner.refined_ref_to_sig_offset_adjusted() {
                         Ok(v) => v,
                         Err(e) => {
@@ -361,7 +369,53 @@ pub fn run_alignment_multi_threaded(input: Config) -> Result<(), FishnetError> {
                         }
                     };
                     
-                    if let Err(e) = result_tx.send((read_id, query_to_signal, ref_to_signal)) {
+                    // Collect the output data requested by the user
+                    let output_data = match output_schema {
+                        OutputSchema::Basic => OutputData::basic(
+                            read_id.clone(), 
+                            query_to_signal,
+                            ref_to_signal
+                        ), 
+                        OutputSchema::WithSequences | OutputSchema::WithSequencesAndSignal => {
+                            let query_sequence = query_to_signal.as_ref().and_then(|_| {
+                                String::from_utf8(sig_map_refiner.bam_read().query().to_vec()).ok()
+                            });
+
+                            let ref_sequence = ref_to_signal.as_ref().and_then(|_| {
+                                sig_map_refiner
+                                    .bam_read()
+                                    .get_reference()
+                                    .ok()
+                                    .and_then(|s_u8| String::from_utf8(s_u8.clone()).ok())
+                            });
+
+                            if matches!(output_schema, OutputSchema::WithSequences) {
+                                OutputData::with_seq(
+                                    read_id.clone(), 
+                                    query_to_signal, 
+                                    ref_to_signal, 
+                                    query_sequence, 
+                                    ref_sequence
+                                )
+                            } else {
+                                let signal = match ref_to_signal.is_some() || query_to_signal.is_some() {
+                                    true => Some(sig_map_refiner.pod5_read().signal().clone()),
+                                    false => None
+                                };
+                                OutputData::with_seq_and_signal(
+                                    read_id.clone(),
+                                    query_to_signal,
+                                    ref_to_signal,
+                                    query_sequence,
+                                    ref_sequence,
+                                    signal
+                                )
+                            }
+                        }
+                    };
+
+                    // Send the output data to the main thread for actually writing it to file
+                    if let Err(e) = result_tx.send((read_id, output_data)) {
                         handle_channels_error(e);
                     }
                 }
@@ -384,7 +438,6 @@ pub fn run_alignment_multi_threaded(input: Config) -> Result<(), FishnetError> {
 
 
     // Initialize the producer thread
-
     let progress_tx = progress_sender.clone();
     let producer_handle = match thread::Builder::new()
         .name("producer".to_string())
@@ -433,12 +486,9 @@ pub fn run_alignment_multi_threaded(input: Config) -> Result<(), FishnetError> {
 
 
     // Write the results in the main thread
-
-    for (read_id, query_to_signal, ref_to_signal) in result_receiver {
+    for (read_id, output_data) in result_receiver {
         match output_writer.write_record(
-            &read_id, 
-            query_to_signal.as_ref(), 
-            ref_to_signal.as_ref()
+            output_data
         ) {
             Ok(_) => {
                 log::info!("Successfully processed read {read_id}");
@@ -467,7 +517,6 @@ pub fn run_alignment_multi_threaded(input: Config) -> Result<(), FishnetError> {
 
 
     // Join all threads
-
     if let Err(e) = producer_handle.join() {
         log::error!("Failed to join threads: {:?}", e);
         eprintln!("Failed to join threads: {:?}", e);

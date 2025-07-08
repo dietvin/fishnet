@@ -11,7 +11,7 @@ use std::path::PathBuf;
 use clap::ArgMatches;
 use log::LevelFilter;
 
-use crate::{core::refinement::settings::{RefineAlgo, RefineSettings, RescaleAlgo, RoughRescaleAlgo, WhichToRefine}, error::cli_errors::CliError};
+use crate::{cli::output::OutputSchema, core::refinement::settings::{RefineAlgo, RefineSettings, RescaleAlgo, RoughRescaleAlgo, WhichToRefine}, error::cli_errors::CliError};
 
 use super::helpers::{calc_quantiles, check_output_file, check_and_get_pod5_input, check_input_file};
 
@@ -42,13 +42,17 @@ pub struct Config {
     kmer_table_input: PathBuf,
     output_file: PathBuf,
 
-    output_format: OutputFormat,
-    output_batch_size: usize,
-    force_overwrite: bool,
     is_drna: bool,
     alignment_type: WhichToAlign,
+
+    output_format: OutputFormat,
+    output_schema: OutputSchema,
+    output_batch_size: usize,
+    force_overwrite: bool,
+    
     n_threads: usize,
     queue_size: usize,
+
     log_level: LevelFilter,
     log_path: PathBuf,
 
@@ -83,15 +87,7 @@ impl Config {
         let (output_file, output_format)  = check_output_file(&output_file_raw, force_overwrite)?;
 
 
-
         // Optional general arguments
-
-        let output_batch_size = matches.get_one::<usize>("output-batch-size").ok_or(
-            CliError::ArgumentNone("alignment-type".to_string()) 
-        )?.clone();
-        if output_batch_size == 0 {
-            CliError::InvalidArgument("output-batch-size".to_string(), 0.to_string());
-        }
 
         let is_drna = matches.get_flag("rna");
 
@@ -104,6 +100,28 @@ impl Config {
             "both" => WhichToAlign::Both,
             _ => unreachable!()
         };
+
+
+        // Optional output arguments
+        let output_level_raw = matches.get_one::<String>("output-level").ok_or(
+            CliError::ArgumentNone("output-level".to_string()) 
+        )?.clone();
+        let output_schema = match output_level_raw.as_str() {
+            "1" => OutputSchema::Basic,
+            "2" => OutputSchema::WithSequences,
+            "3" => OutputSchema::WithSequencesAndSignal,
+            _ => unreachable!()
+        };
+
+        let output_batch_size = matches.get_one::<usize>("output-batch-size").ok_or(
+            CliError::ArgumentNone("alignment-type".to_string()) 
+        )?.clone();
+        if output_batch_size == 0 {
+            CliError::InvalidArgument("output-batch-size".to_string(), 0.to_string());
+        }
+
+
+        // Optional threading arguments 
 
         let n_threads = *matches.get_one::<usize>("threads").ok_or(
             CliError::ArgumentNone("threads".to_string()) 
@@ -129,7 +147,10 @@ impl Config {
             return Err(
                 CliError::InvalidArgument("queue-size".to_string(), 0.to_string())
             );
-        } 
+        }
+
+
+        // Optional logging arguments    
 
         let log_level_raw = matches.get_one::<String>("log-level").ok_or(
             CliError::ArgumentNone("log-level".to_string()) 
@@ -148,7 +169,6 @@ impl Config {
             CliError::ArgumentNone("log-path".to_string()) 
         )?.clone();
 
-        // check_input_file(&log_path, ".txt")?;
 
         // Optional refinement arguments
 
@@ -355,11 +375,12 @@ impl Config {
             pod5_input, 
             kmer_table_input, 
             output_file, 
+            is_drna,
+            alignment_type, 
+            output_schema,
             output_format,
             output_batch_size,
             force_overwrite,
-            is_drna,
-            alignment_type, 
             n_threads,
             queue_size,
             log_level, 
@@ -383,6 +404,10 @@ impl Config {
 
     pub fn output_file(&self) -> &PathBuf {
         &self.output_file
+    }
+
+    pub fn output_schema(&self) -> &OutputSchema {
+        &self.output_schema
     }
 
     pub fn output_format(&self) -> &OutputFormat {

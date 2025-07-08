@@ -25,7 +25,7 @@
  * and which alignments to refine (query, reference, or both).
  * 
  * # Example Usage
- * ```rust
+ * ```ignore
  * // Create a refiner instance
  * let mut refiner = SigMapRefiner::new(
  *     &kmer_table,
@@ -51,6 +51,8 @@ pub mod rescale;
 use rust_htslib::bam::Record;
 
 use crate::core::alignment::aligned_read::AlignedRead;
+use crate::core::loader::bam::BamRead;
+use crate::core::loader::pod5::Pod5Read;
 use crate::logger::get_log_vector_sample;
 use super::kmer_table::KmerTable;
 use super::settings::{RefineSettings, RoughRescaleAlgo, WhichToRefine};
@@ -224,6 +226,18 @@ impl<'a> SigMapRefiner<'a> {
             }
             None => Ok(None)
         }
+    }
+
+    pub fn bam_read(&self) -> &BamRead {
+        self.aligned_read.bam_read()
+    }
+
+    pub fn pod5_read(&self) -> &Pod5Read {
+        self.aligned_read.pod5_read()
+    }
+
+    pub fn bam_record(&self) -> &Record {
+        self.aligned_read.bam_read().get_record()
     }
 
     pub fn bam_record_mut(&mut self) -> &mut Record {

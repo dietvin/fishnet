@@ -59,14 +59,14 @@
  */
 
 use std::{fs::File, io::{BufWriter, Write}, path::PathBuf};
-use crate::error::output_errors::OutputError;
+use crate::{cli::output::{OutputData, OutputSchema}, error::output_errors::OutputError};
 
 use super::AlignmentWriter;
 
 pub struct OutputWriterJsonl {
     writer: Option<BufWriter<File>>,
     batch_size: usize,
-
+    output_schema: OutputSchema,
     buffer: Vec<serde_json::Value>
 }
 
@@ -74,7 +74,8 @@ impl AlignmentWriter for OutputWriterJsonl {
     fn new(
         path: &PathBuf, 
         force_overwrite: bool, 
-        batch_size: usize
+        batch_size: usize,
+        output_schema: OutputSchema
     ) -> Result<Self, crate::error::output_errors::OutputError> {
         if path.exists() && !force_overwrite {
             return Err(OutputError::FileExists(path.clone()));
@@ -86,25 +87,75 @@ impl AlignmentWriter for OutputWriterJsonl {
         Ok(OutputWriterJsonl {
             writer: Some(writer),
             batch_size,
+            output_schema,
             buffer: Vec::with_capacity(batch_size),
         })
     }
 
     fn write_record(
         &mut self,
-        read_id: &str,
-        query_to_signal: Option<&Vec<usize>>,
-        ref_to_signal: Option<&Vec<usize>>
+        data: OutputData
     ) -> Result<(), OutputError> {
         if self.writer.is_none() {
             return Err(OutputError::AlreadyFinalized);
         }
 
-        let record = serde_json::json!({
-            "read_id": read_id,
-            "query_to_signal": query_to_signal,
-            "ref_to_signal": ref_to_signal,
-        });
+        // Check if the provided data matches the expected output schema
+        if !data.matches(&self.output_schema) {
+            return Err(OutputError::InvalidOutputSchema(
+                format!(
+                    "OutputData type {:?} does not match writer OutputSchema {:?}",
+                    std::mem::discriminant(&data),
+                    self.output_schema
+                )
+            ));
+        }
+
+        let record = match data {
+            OutputData::Basic { 
+                read_id, 
+                query_to_signal, 
+                ref_to_signal 
+            } => {
+                serde_json::json!({
+                    "read_id": read_id,
+                    "query_to_signal": query_to_signal,
+                    "ref_to_signal": ref_to_signal,
+                })
+            }
+            OutputData::WithSequences { 
+                read_id, 
+                query_to_signal, 
+                ref_to_signal, 
+                query_sequence, 
+                ref_sequence 
+            } => {
+                serde_json::json!({
+                    "read_id": read_id,
+                    "query_to_signal": query_to_signal,
+                    "ref_to_signal": ref_to_signal,
+                    "query_sequence": query_sequence,
+                    "ref_sequence": ref_sequence
+                })
+            }
+            OutputData::WithSequencesAndSignal { 
+                read_id, 
+                query_to_signal, 
+                ref_to_signal, 
+                query_sequence, 
+                ref_sequence, 
+                signal 
+            } => {
+                serde_json::json!({
+                    "read_id": read_id,
+                    "query_to_signal": query_to_signal,
+                    "ref_to_signal": ref_to_signal,
+                    "query_sequence": query_sequence,
+                    "ref_sequence": ref_sequence,
+                    "signal": signal
+                })
+            }
+        };
 
         self.buffer.push(record);
 

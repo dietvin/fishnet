@@ -14,6 +14,9 @@ pub enum OutputError {
     #[error("Writer already finalized")]
     AlreadyFinalized,
 
+    #[error("Invalid output schema: {0}")]
+    InvalidOutputSchema(String),
+
     // Errors specific to Arrow output format
 
     /// Error from underlying Parquet library operations

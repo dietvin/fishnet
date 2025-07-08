@@ -17,10 +17,26 @@ use console::style;
 /// # Optional arguments:
 /// 
 /// ## General options
+/// * `rna` - Whether direct RNA sequencing data is used (with 3'->5' orientation of the signal)
 /// * `alignment-type` - Whether to perform query (base-called sequence) to signal alignment, reference to
 ///                      signal alignment, or both (valid options: `query`, `reference`, `both`; default: `query`)
-/// * `threads` - Number of threads to use during calculation (default: 8)
+/// 
+/// ## Output options
+/// * `output-level` - Sets which information gets written to the output file (valid options: 1, 2, 3; default: 1)
+/// * `force-overwrite` - If set, existing output files get overwritten. Otherwise an error gets throws.
+/// * `output-batch-size` - The number of rows that get written to file at a time. 
+/// 
+/// ## Threading options
+/// * `threads` - The number of parallel threads used. Setting to 1 to disables multithreading. 
+///               If set to 2 or 3, falls back to single-threaded processing (due to 3 non-
+///               worker threads)  (default: 8)
+/// * `queue-size` - Sets the queue size for transfering data to and from worker threads. Only regarded if number of threads 
+///                  is larger than 3. Decrease queue size for a reduced memory footprint
+/// 
+/// ## Logging options
 /// * `debug-level` - Which debug level to use (valid options: `off`, `error`, `warn`, `info`, `debug`, `trace`; default: `off`)
+/// * `log-path` - Path to the log file. Only processed if debug-level is other than off.
+/// 
 /// 
 /// ## Refinement options
 /// * `refine-iters` - Number of refinement iterations (valid options: uint >= 0; set to 0 to skip refinement; default: 2)
@@ -138,19 +154,6 @@ in 5'->3' orientation to match the base-called/mapped data."
                 )
         )        
         .arg(
-            Arg::new("force-overwrite")
-                .long("force-overwrite")
-                .short('f')
-                .action(ArgAction::SetTrue)
-                .help_heading("General settings")
-                .help("Whether an existing output file should be overwritten.")
-                .long_help(
-"Whether existing output files should be overwritten. If the provided output path 
-already exists and the flag is set the existing file is overwritten. Otherwise an 
-error is raised."
-                )
-        )
-        .arg(
             Arg::new("alignment-type")
                 .long("alignment-type")
                 .short('a')
@@ -164,13 +167,63 @@ is aligned to the base-called query sequence. If set to 'reference' and a given 
 is mapped to a reference, the signal is aligned to that reference sequence."
                 )
         )
+
+        // Output options
+
+        .arg(
+            Arg::new("output-level")
+                .long("output-level")
+                .short('l')
+                .value_parser(["1", "2", "3"])
+                .default_value("1")
+                .help_heading("Output settings")
+                .help("Output level")
+                .long_help(
+"Output level. Determines which data gets written to the output file.
+With level 1, only the read id and the alignment(s) get written to file.
+With level 2, the read id, alignment(s) and sequence(s) get written to file.
+With level 3, the read id, alignment(s), sequence(s) and the signal get written to file.
+Note that especially when exporting the signal, the file size can get a lot larger. It is
+recommended to extract the signal separately in subsequent steps and not store it in the
+output."
+                )
+        )
+        .arg(
+            Arg::new("force-overwrite")
+                .long("force-overwrite")
+                .short('f')
+                .action(ArgAction::SetTrue)
+                .help_heading("Output settings")
+                .help("Whether an existing output file should be overwritten.")
+                .long_help(
+"Whether existing output files should be overwritten. If the provided output path 
+already exists and the flag is set the existing file is overwritten. Otherwise an 
+error is raised."
+                )
+        )
+        .arg(
+            Arg::new("output-batch-size")
+                .long("output-batch-size")
+                .value_parser(value_parser!(usize))
+                .default_value("4000")
+                .help_heading("Output settings")
+                .help("Output batch size")
+                .long_help(
+"Output batch size. Determines the number of alignments that are collected 
+before dumping these to file. Higher values reduce the I/O overhead, 
+potentially increasing speed, while requiring more memory."
+                )
+        )
+
+        // Threading options 
+
         .arg(
             Arg::new("threads")
                 .long("threads")
                 .short('t')
                 .value_parser(value_parser!(usize))
                 .default_value("8")
-                .help_heading("General settings")
+                .help_heading("Threading settings")
                 .help("Number of parallel threads")
                 .long_help(
 "Set the number of parallel threads used during processing. Set to 1 to 
@@ -183,7 +236,7 @@ processing (due to 3 non-worker threads)."
                 .long("queue-size")
                 .value_parser(value_parser!(usize))
                 .default_value("1000")
-                .help_heading("General settings")
+                .help_heading("Threading settings")
                 .help("Multi-threading queue size")
                 .long_help(
 "Sets the queue size for transfering data to and from worker threads. Only regarded
@@ -191,12 +244,14 @@ if number of threads is larger than 3. Decrease queue size for a reduced memory
 footprint."
                 )
         )
+
+        // Logging options
         .arg(
             Arg::new("log-level")
                 .long("log-level")
                 .value_parser(["off", "error", "warn", "info", "debug", "trace"])
                 .default_value("off")
-                .help_heading("General settings")
+                .help_heading("Logging settings")
                 .help("Which log level to use")
                 .long_help(
 "Sets the logging level. The amount of intermediated information written to the log 
@@ -209,24 +264,11 @@ the alignment failed for (some) given reads. Logging is disabled by default."
                 .long("log-path")
                 .default_value("log.txt")
                 .value_parser(value_parser!(PathBuf))
-                .help_heading("General settings")
+                .help_heading("Logging settings")
                 .help("Path to the log file")
                 .long_help(
 "Path to the log file. Only regarded if debug-level is other than 'off'. If the log 
 file exists already new logging output gets appended to the file."
-                )
-        )
-        .arg(
-            Arg::new("output-batch-size")
-                .long("output-batch-size")
-                .value_parser(value_parser!(usize))
-                .default_value("4000")
-                .help_heading("General settings")
-                .help("Output batch size")
-                .long_help(
-"Output batch size. Determines the number of alignments that are collected 
-before dumping these to file. Higher values reduce the I/O overhead, 
-potentially increasing speed, while requiring more memory."
                 )
         )
 
