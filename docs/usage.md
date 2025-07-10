@@ -54,20 +54,42 @@ The following arguments set the central input and output parameters and are requ
 
 There are various parameters available to set more general settings or to fine-tune the algorithm. For the sake of clarity, the optional arguments are split into three sub-groups:
 
-#### General
+#### General settings
 
-These arguments control overall program behaviour, resource usage, logging and output settings. Important flags to consider for biological questions are `rna`, which must be set when working with direct RNA sequencing data, and `alignment-type`, which determines to which sequence the signal gets aligned.
+These arguments let the user set important settings for the type of data that is used (direct RNA / DNA) and the alignment that is wanted (query-to-signal / reference-to-signal). 
 
 | Long flag | Short flag | Type (possible values) | Default | Description |
 |---|---|---|---|---|
 | --rna | -r | bool | false | Whether direct RNA data is provided. If set, reverses the raw sigal (3'->5') to be in 5'->3' orientation to match the base-called/mapped data. |
-| --force-overwrite | -f | bool | false | Whether existing output files should be overwritten. If the provided output path already exists and the flag is set the existing file is overwritten. Otherwise an error is raised. |
 | --alignment-type | -a | string (query \| reference \| both) | query | Determines the type of alignment that is performed. If set to 'query' the signal is aligned to the base-called query sequence. If set to 'reference' and a given read is mapped to a reference, the signal is aligned to that reference sequence. |
+
+#### Output settings
+These arguments control the output behaviour, including what information gets written to file (`output-level`).
+
+| Long flag | Short flag | Type (possible values) | Default | Description |
+|---|---|---|---|---|
+| --output-level | -l | int (1 \| 2 \| 3) | 1 | The output level determines which data gets written to the output file.<br> With level 1, only the read id and the alignment(s) get written to file. With level 2, the read id, alignment(s) and sequence(s) get written to file. With level 3, the read id, alignment(s), sequence(s) and the signal get written to file.<br> Note that especially when exporting the signal, the file size can get a lot larger. It is recommended to extract the signal separately in subsequent steps and not store it in the output.
+| --force-overwrite | -f | bool | false | Whether existing output files should be overwritten. If the provided output path already exists and the flag is set the existing file is overwritten. Otherwise an error is raised. |
+| --output-batch-size |  | int | 1000 | Output batch size. Determines the number of alignments that are collected before dumping these to file. Higher values reduce the I/O overhead, potentially increasing speed, while requiring more memory. |
+
+
+#### Threading settings
+These arguments handle multithreading options, including the number of parallel threads (`threads`).
+
+| Long flag | Short flag | Type (possible values) | Default | Description |
+|---|---|---|---|---|
 | --threads | -t | int | 8 | Set the number of parallel threads used during processing. Set to 1 to disable multithreading. If set to 2 or 3, falls back to single-threaded processing (due to 3 non-worker threads). |
 | --queue-size |  | int | 1000 | Sets the queue size for transfering data to and from worker threads. Only regarded if number of threads is larger than 3. Decrease queue size for a reduced memory footprint. |
+
+
+#### Logging settings
+These arguments handle if and how detailled information gets logged (`log-level`) and where it is written to (`log-path`).
+
+| Long flag | Short flag | Type (possible values) | Default | Description |
+|---|---|---|---|---|
 | --log-level |  | string (off \| error \| warn \| info \| debug \| trace) | off | Sets the logging level. The amount of intermediated information written to the log increases from 'error' to 'trace'. Set to error to get an overview of the reasons why the alignment failed for (some) given reads. Logging is disabled by default. |
 | --log-path |  | string | log.txt | Path to the log file. Only regarded if debug-level is other than 'off'. If the log file exists already new logging output gets appended to the file. |
-| --output-batch-size |  | int | 1000 | Output batch size. Determines the number of alignments that are collected before dumping these to file. Higher values reduce the I/O overhead, potentially increasing speed, while requiring more memory. |
+
 
 #### Refinement - Dynamic programming
 

@@ -4,14 +4,16 @@
 
 
 ## Table of contents
-- [Table of contents](#table-of-contents)
-- [Description](#description)
-- [Installation](#installation)
-- [Usage](#usage)
+- [Fishnet](#fishnet)
+  - [Table of contents](#table-of-contents)
+  - [Description](#description)
+  - [Installation](#installation)
+  - [Usage](#usage)
     - [Required arguments](#required-arguments)
     - [Optional arguments](#optional-arguments)
-- [Algorithm and backend details](#algorithm-and-backend-details)
-- [License](#license)
+  - [Algorithm details](#algorithm-details)
+  - [Code structure](#code-structure)
+  - [License](#license)
 
 ## Description
 
@@ -20,7 +22,8 @@ Fishnet implements the signal-to-sequence alignment algorithm used in [Remora](h
 ## Installation
 
 No installation is required. Simply download the executable for your operating system:
-- Ubuntu: [fishnet]()
+- Linux x64: [fishnet]()
+- Linux arm64: [fishnet]()
 - Windows: [fishnet.exe]()
 
 Afterwards the program can be executed from the command line:
