@@ -2,7 +2,7 @@
  * This module contains helper functions used during the intial alignment process.
  */
 
-use rust_htslib::bam::record::Cigar;
+use noodles::sam::alignment::record::cigar::{op::Kind, Op};
 
 use crate::error::alignment_errors::RefToSignalError;
 
@@ -16,8 +16,9 @@ use crate::error::alignment_errors::RefToSignalError;
 ///
 /// * `true` if the operation is Match (M), Equal (=), or Diff (X)
 /// * `false` otherwise
-pub fn is_match_ops(cigar: &Cigar) -> bool {
-    if let Cigar::Match(_) | Cigar::Equal(_) | Cigar::Diff(_) = cigar {
+pub fn is_match_ops(cigar: &Op) -> bool {
+    let kind = cigar.kind();
+    if let Kind::Match | Kind::SequenceMatch | Kind::SequenceMismatch = kind {
         true
     } else {
         false
@@ -44,14 +45,14 @@ pub fn is_match_ops(cigar: &Cigar) -> bool {
 ///
 /// The returned knots will always include the start (0) and end positions
 /// of both sequences.
-pub fn calculate_knots(cigar: &Vec<Cigar>) -> (Vec<u32>, Vec<u32>) {
+pub fn calculate_knots(cigar: &Vec<Op>) -> (Vec<u32>, Vec<u32>) {
     let mut current_site_q = 0u32;
     let mut current_site_r = 0u32;
     let mut query_knots = vec![0u32];
     let mut ref_knots = vec![0u32];
 
     for el in cigar.iter() {
-        let cig_len = el.len();
+        let cig_len = el.len() as u32;
         if consumes_query(el) {
             current_site_q += cig_len;
         }
@@ -85,12 +86,13 @@ pub fn calculate_knots(cigar: &Vec<Cigar>) -> (Vec<u32>, Vec<u32>) {
 ///
 /// * `true` if the operation consumes the reference (Match, Deletion, RefSkip, Equal, Diff)
 /// * `false` otherwise
-pub fn consumes_reference(cigar: &Cigar) -> bool {
-    if let Cigar::Match(_) 
-        | Cigar::Del(_) 
-        | Cigar::RefSkip(_)
-        | Cigar::Equal(_)
-        | Cigar::Diff(_) = cigar {
+pub fn consumes_reference(cigar: &Op) -> bool {
+    let kind = cigar.kind();
+    if let Kind::Match 
+        | Kind::Deletion 
+        | Kind::Skip
+        | Kind::SequenceMatch
+        | Kind::SequenceMismatch = kind {
         true
     } else {
         false
@@ -107,12 +109,13 @@ pub fn consumes_reference(cigar: &Cigar) -> bool {
 ///
 /// * `true` if the operation consumes the query (Match, Insertion, SoftClip, Equal, Diff)
 /// * `false` otherwise
-pub fn consumes_query(cigar: &Cigar) -> bool {
-    if let Cigar::Match(_) 
-        | Cigar::Ins(_) 
-        | Cigar::SoftClip(_)
-        | Cigar::Equal(_)
-        | Cigar::Diff(_) = cigar {
+pub fn consumes_query(cigar: &Op) -> bool {
+    let kind = cigar.kind();
+    if let Kind::Match 
+        | Kind::Insertion
+        | Kind::SoftClip
+        | Kind::SequenceMatch
+        | Kind::SequenceMismatch = kind {
         true
     } else {
         false

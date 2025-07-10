@@ -2,7 +2,7 @@
  * This module contains the function that starts the reference to signal alignment.
  */
 
-use rust_htslib::bam::record::Cigar;
+use noodles::sam::alignment::record::cigar::Op;
 use crate::error::alignment_errors::RefToSignalError;
 
 use super::helpers::{is_match_ops, calculate_knots, interpolate};
@@ -39,7 +39,7 @@ use super::helpers::{is_match_ops, calculate_knots, interpolate};
 /// * `RefToSignalError::DiscordantToSequence` - If the number of points in the mapping doesn't match the reference length
 /// * `RefToSignalError::LinInterpError` - If linear interpolation fails
 pub fn align_reference_to_signal(
-    cigar: &Vec<Cigar>,
+    cigar: &Vec<Op>,
     query_to_signal: &Vec<usize>,
     reference_len: usize
 ) -> Result<Vec<usize>, RefToSignalError>{

@@ -1,7 +1,19 @@
 #[derive(Debug, thiserror::Error)]
 pub enum BamReadError {
-    #[error("HTSLib error: {0}")]
-    HTSLibError(#[from] rust_htslib::errors::Error),
+    #[error("Could not extract read id")]
+    ReadIdError,
+    #[error("Invalid tag: {0} (Must be of length 2)")]
+    InvalidTagLength(String),
+    #[error("IO error: {0}")]
+    IoError(#[from] std::io::Error),
+    #[error("Tag '{0}' was found, but could not be extacted: {1}")]
+    TagNotExtracted(String, std::io::Error),
+    #[error("Tag '{0}' was not found in bam record")]
+    TagNotPresent(String),
+    #[error("Could not extract cigar operations: {0}")]
+    CigarError(std::io::Error),
+    #[error("Read is mapped, but alignment information ({0}) was not found")]
+    AlignmentInfoMissing(String),
     #[error("Could not transform id to String: {0}")]
     IdConversionError(#[from] std::str::Utf8Error),
     #[error("Could not extract tag '{0}': Expected {1}, got {2}")]
@@ -16,8 +28,8 @@ pub enum BamReadError {
 
 #[derive(Debug, thiserror::Error)]
 pub enum BamFileError {
-    #[error("HTSLib error: {0}")]
-    HTSLibError(#[from] rust_htslib::errors::Error),
+    #[error("IO error: {0}")]
+    IoError(#[from] std::io::Error),
     #[error("Could not transform id to String: {0}")]
     IdConversionError(#[from] std::str::Utf8Error),
     #[error("Id not found in index: {0}")]
@@ -26,6 +38,10 @@ pub enum BamFileError {
     ValueError(String),
     #[error("Could not initialize BamRead: {0}")]
     BamReadError(#[from] BamReadError),
+    #[error("Id of extracted read does not match the wanted id: {0} vs {1}")]
+    ReadIdMismatch(String, String),
+    #[error("Could not extract read ID from record")]
+    RecordAccessError,
 }
 
 #[derive(Debug, thiserror::Error, PartialEq)]

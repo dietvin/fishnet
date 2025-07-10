@@ -21,9 +21,13 @@
  */
 
 use std::collections::HashMap;
+use std::fs::File;
 use std::path::PathBuf;
-use rust_htslib::bam::ext::BamRecordExtensions;
-use rust_htslib::bam::{record::Cigar, Record, Reader, Read};
+use noodles::sam::alignment::record::cigar::Op;
+
+use noodles::bam::record::Data;
+use noodles::bam;
+use noodles::bgzf;
 
 use crate::error::loader_errors::bam_errors::{BamFileError, BamReadError};
 use crate::core::loader::helpers::{self, reverse_complement};
@@ -48,7 +52,7 @@ pub struct BamRead {
     
     mapped: bool,
     // The following data is only available if a read is mapped
-    cigar: Option<Vec<Cigar>>,
+    cigar: Option<Vec<Op>>,
     reference_seq: Option<Vec<u8>>,
     reference_len: Option<usize>,
     reverse_mapped: Option<bool>,
@@ -57,7 +61,7 @@ pub struct BamRead {
     trimmed_signal_length: Option<usize>, // stored in the ts tag
     subread_signal_length: Option<usize>, // stored in the ns tag
 
-    record: Record
+    record: bam::Record,
 }
 
 
@@ -74,48 +78,59 @@ impl BamRead {
     /// # Returns
     ///
     /// * `Result<Self, BamReadError>` - A new BamRead instance or an error
-    pub fn new(bam_record: Record) -> Result<Self, BamReadError> {
-        let read_id = std::str::from_utf8(bam_record.qname())?.to_string();
+    pub fn new(bam_record: bam::Record) -> Result<Self, BamReadError> {
+        let bam_data = bam_record.data();
+        let bam_flags = bam_record.flags();
+
+        let read_id = bam_record.name()
+            .map(|rn| rn.to_string())
+            .ok_or(BamReadError::ReadIdError)?;
 
         log::info!("Initializing BamRead '{}'", read_id);
 
-        let mut query = bam_record.seq().as_bytes();
-        
+        let mut query= bam_record.sequence().iter().collect::<Vec<u8>>();
         let query_length = query.len();
-        let (stride, move_table): (usize, Vec<bool>) = BamRead::get_stride_move_table(&bam_record)?;
 
-        let sm_tag = helpers::get_float_tag(&bam_record, "sm")?;
-        let sd_tag = helpers::get_float_tag(&bam_record, "sd")?;
+        let (stride, move_table): (usize, Vec<bool>) = BamRead::get_stride_move_table(&bam_data)?;
 
-        let mapped = !bam_record.is_unmapped();
-        let mut cigar: Option<Vec<Cigar>> = None; 
+        let sm_tag = helpers::get_float_tag(&bam_data, "sm")?;
+        let sd_tag = helpers::get_float_tag(&bam_data, "sd")?;
+
+        let mapped = !bam_flags.is_unmapped();
+
+        let mut cigar = None; 
         let mut reference_seq: Option<Vec<u8>> = None;
-        let mut reference_len = None;
-        let mut reverse_mapped = None;
+        let mut reference_len: Option<usize> = None;
+        let mut reverse_mapped: Option<bool> = None;
 
         let pi_tag = helpers::unpack_tag(
-            helpers::get_str_tag(&bam_record, "pi"),
+            helpers::get_str_tag(&bam_data, "pi"),
             None
         )?;
         let sp_tag = helpers::unpack_tag(
-            helpers::get_uint_tag(&bam_record, "sp"),
+            helpers::get_uint_tag(&bam_data, "sp"),
             Some(0 as usize)
         )?;
         let ts_tag = helpers::unpack_tag(
-            helpers::get_uint_tag(&bam_record, "ts"),
+            helpers::get_uint_tag(&bam_data, "ts"),
             Some(0 as usize)
         )?;
         let ns_tag = helpers::unpack_tag(
-            helpers::get_uint_tag(&bam_record, "ns"),
+            helpers::get_uint_tag(&bam_data, "ns"),
             None
         )?;
 
         if mapped {
-            let mut cigar_raw = bam_record.cigar().take().0;
-            let md_string = helpers::get_str_tag(&bam_record, "MD")?;
+            let mut cigar_raw = bam_record.cigar().iter()
+                .collect::<Result<Vec<Op>, std::io::Error>>()
+                .map_err(|e| BamReadError::CigarError(e))?;
+            
+            let md_string = helpers::get_str_tag(&bam_data, "MD")?;
             let reference_seq_raw = build_reference_sequence(&query, &cigar_raw, &md_string.as_bytes())?;
+            reference_len = Some(reference_seq_raw.len());
 
-            if bam_record.is_reverse() {
+            let is_reverse = bam_flags.is_reverse_complemented();
+            if is_reverse {
                 query = reverse_complement(&query)?;
 
                 reference_seq = Some(reverse_complement(&reference_seq_raw)?);
@@ -126,10 +141,7 @@ impl BamRead {
                 cigar = Some(cigar_raw);
             }
 
-            reference_len = Some(
-                (bam_record.reference_end() - bam_record.reference_start()) as usize
-            );
-            reverse_mapped = Some(bam_record.is_reverse());
+            reverse_mapped = Some(is_reverse);
         }
 
         log::debug!(
@@ -169,8 +181,8 @@ impl BamRead {
     /// # Returns
     ///
     /// * `Result<(u16, Vec<bool>), BamReadError>` - The stride and move table, or an error
-    fn get_stride_move_table(bam_record: &Record) -> Result<(usize, Vec<bool>), BamReadError> {
-        let mv_table = helpers::get_iarray_tag(bam_record, "mv")?;
+    fn get_stride_move_table(bam_data: &Data) -> Result<(usize, Vec<bool>), BamReadError> {
+        let mv_table = helpers::get_iarray_tag(bam_data, "mv")?;
     
         let stride = mv_table[0] as usize;
         let move_table = mv_table[1..].iter().map(|&el| el != 0).collect::<Vec<bool>>();
@@ -269,7 +281,7 @@ impl BamRead {
     ///
     /// * `Result<Option<&Vec<Cigar>>, BamReadError>` - The cigar elements, 
     /// None if the tag is not set, or an error if unmapped
-    pub fn get_cigar(&self) -> Result<Option<&Vec<Cigar>>, BamReadError> {
+    pub fn get_cigar(&self) -> Result<Option<&Vec<Op>>, BamReadError> {
         if self.mapped {
             Ok(self.cigar.as_ref())
         } else {
@@ -350,7 +362,7 @@ impl BamRead {
     /// # Returns
     ///
     /// * `&Record` - The original record from which the BamRead was constructed
-    pub fn get_record(&self) -> &Record {
+    pub fn get_record(&self) -> &bam::Record {
         &self.record
     }
 
@@ -359,7 +371,7 @@ impl BamRead {
     /// # Returns
     ///
     /// * `&mut Record` - The original record from which the BamRead was constructed
-    pub fn get_record_mut(&mut self) -> &mut Record {
+    pub fn get_record_mut(&mut self) -> &mut bam::Record {
         &mut self.record
     }
 }
@@ -371,11 +383,10 @@ impl BamRead {
 ///
 /// This struct provides indexed access to BAM records, building an in-memory
 /// index mapping read IDs to file offsets for efficient retrieval.
-#[derive(Debug)]
 pub struct BamFileLazy {
     path: PathBuf,
-    bam_reader: Reader,
-    index: HashMap<String, i64>
+    bam_reader: bam::io::Reader<bgzf::io::Reader<File>>,
+    index: HashMap<String, bgzf::VirtualPosition>
 }
 
 
@@ -399,28 +410,41 @@ impl BamFileLazy {
     pub fn new(path: &PathBuf) -> Result<Self, BamFileError> {
         log::info!("Initializing BamFileLazy from file '{}'", path.display());
 
-        let mut bam = Reader::from_path(path)?;
-        let mut index: HashMap<String, i64> = HashMap::new();
+        // Initialize a bam Reader wrapping a bgzf Reader in order to store offsets 
+        // of the contained reads 
+        let file = File::open(path)?;
+        let buf_reader = bgzf::io::Reader::new(file);
+        let mut bam_reader = bam::io::Reader::from(buf_reader);
+        // Skip to the start of the alignments
+        bam_reader.read_header()?;
 
-        let mut offset = bam.tell();
-        while let Some(read) = bam.records().next() {
-            let read = read?;
-            let id = std::str::from_utf8(read.qname())?;
+        // Initialize the index storing the offset for each read in a hashmap
+        let mut index: HashMap<String, bgzf::VirtualPosition> = HashMap::new();
 
-            // Insert if not already present
-            if !index.contains_key(id) {
-                index.insert(String::from(id), offset);
+        loop {
+            let offset = {
+                let inner = bam_reader.get_ref();
+                inner.virtual_position()
+            };
+    
+            let mut record = bam::Record::default();
+    
+            let n = bam_reader.read_record(&mut record)?;
+    
+            if n == 0 {
+                break;
             }
-
-            offset = bam.tell();
+    
+            if let Some(name) = record.name().map(|rn| rn.to_string()) {
+                index.entry(name).or_insert(offset);
+            }
         }
 
         log::debug!("BamFileLazy::new info: path = {}, #reads = {}", path.display(), index.len());
-    
-        Ok(BamFileLazy { 
-            path: path.clone(), 
-            bam_reader: bam, 
-            index 
+        Ok(BamFileLazy {
+            path: path.clone(),
+            bam_reader,
+            index
         })
     }
 
@@ -442,20 +466,31 @@ impl BamFileLazy {
     /// * `BamFileError::ValueError` - If the record cannot be read after seeking
     pub fn get(&mut self, id: &str) -> Result<BamRead, BamFileError> {
         log::info!("Loading BamRead '{}'", id);
-
         let offset = *self.index.get(id).ok_or(
             BamFileError::IndexError(String::from(id))
         )?;
 
-        self.bam_reader.seek(offset)?;
+        self.bam_reader.get_mut().seek(offset)?;
 
-        match self.bam_reader.records().next() {
-            Some(record) => {
-                let record = record?;
+        let mut record = bam::Record::default();
+        let n = self.bam_reader.read_record(&mut record)?;
+
+        if n == 0 {
+            return Err(BamFileError::ValueError(
+                "Block size 0, index corresponds to EOF.".to_string()
+            ));
+        }
+
+        // Double check that the read id is the one that is wanted
+        if let Some(name) = record.name().map(|rn| rn.to_string()) {
+            if name == id {
                 let bam_read = BamRead::new(record)?;
                 Ok(bam_read)
-            },
-            None => Err(BamFileError::ValueError(String::from(id)))
+            } else {
+                Err(BamFileError::ReadIdMismatch(name, id.to_string()))
+            } 
+        } else {
+            Err(BamFileError::RecordAccessError)
         }
     }
 
@@ -464,7 +499,7 @@ impl BamFileLazy {
     /// # Returns
     ///
     /// * `&HashMap<String, i64>` - Reference to the index HashMap
-    pub fn index(&self) -> &HashMap<String, i64> {
+    pub fn index(&self) -> &HashMap<String, bgzf::VirtualPosition> {
         &self.index
     }
 
@@ -523,7 +558,12 @@ impl BamFileLazy {
     ///
     /// * `Result<(), BamFileError>` - Success or an error
     pub fn reopen(&mut self) -> Result<(), BamFileError> {
-        self.bam_reader = Reader::from_path(&self.path)?;
+        let file = File::open(&self.path)?;
+        let buf_reader = bgzf::io::Reader::new(file);
+        let mut bam_reader = bam::io::Reader::from(buf_reader);
+        bam_reader.read_header()?;
+
+        self.bam_reader = bam_reader;
         Ok(())
     }
 }

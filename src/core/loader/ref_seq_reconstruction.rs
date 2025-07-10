@@ -7,9 +7,9 @@
  * https://github.com/pysam-developers/pysam/blob/3e3c8b0b5ac066d692e5c720a85d293efc825200/pysam/libcalignedsegment.pyx#L1971
  */
 
-use rust_htslib::bam::record::Cigar::{
-    self, Match, Equal, Diff, Del, Ins, SoftClip, HardClip, RefSkip, Pad
-};
+use noodles::sam::alignment::record::cigar::{op::Kind::{ 
+    Deletion, HardClip, Insertion, Match, Pad, SequenceMatch, SequenceMismatch, Skip, SoftClip
+}, Op};
 
 use crate::{error::loader_errors::bam_errors::RefSeqReconstructError, logger::get_log_vector_sample};
 
@@ -45,14 +45,14 @@ const NINE: u8 = 57;
 ///
 /// ```ignore
 /// let query = b"ACGTACGT";
-/// let cigar = vec![Match(4), Del(1), Match(4)];
+/// let cigar = vec![Match(4), Op::new(Deletion, 1), Match(4)];
 /// let md = b"4^T4";
 /// let reference = build_reference_sequence(query, &cigar, md)?;
 /// assert_eq!(reference, b"ACGTTACGT");
 /// ```
 pub fn build_reference_sequence(
     query_sequence: &[u8],
-    cigar: &[Cigar],
+    cigar: &[Op],
     md_tag: &[u8]
 ) -> Result<Vec<u8>, RefSeqReconstructError> {
     log::debug!(
@@ -75,11 +75,12 @@ pub fn build_reference_sequence(
     // - Del ('-' as placeholder; deleted base from the reference must be extracted from MD)
     let mut query_idx = 0;
     for op in cigar {
-        match op {
+        let len = op.len();
+        match op.kind() {
             // Match / Equal / Diff => All present in reference sequence
             // (Mismatches will be corrected in the second iteration)
-            Match(len) | Equal(len) | Diff(len) => {
-                for _ in 0..*len {
+            Match | SequenceMatch | SequenceMismatch => {
+                for _ in 0..len {
                     if query_idx >= query_sequence.len() {
                         return Err(RefSeqReconstructError::QueryOutOfBounds(
                             query_idx as usize, query_sequence.len()
@@ -93,8 +94,8 @@ pub fn build_reference_sequence(
             }
             // Del (deleted from the reference) => Present in the reference sequence
             // ('-' placeholders will be filled in the second iteration)
-            Del(len) => {
-                for _ in 0..*len {
+            Deletion => {
+                for _ in 0..len {
                     reference_sequence.push(HYPHEN);
                 }
                 reference_idx += len;
@@ -102,8 +103,8 @@ pub fn build_reference_sequence(
             // Insertions must be regarded in the query sequence, but are not present in
             // the reference sequence => Must be ignored when reconstructing the reference
             // sequence
-            Ins(len) | SoftClip(len) | Pad(len) => {
-                for _ in 0..*len {
+            Insertion | SoftClip | Pad => {
+                for _ in 0..len {
                     if query_idx > query_sequence.len() {
                         return Err(RefSeqReconstructError::QueryOutOfBounds(
                             reference_idx as usize, query_sequence.len()
@@ -114,7 +115,7 @@ pub fn build_reference_sequence(
             }
             // Clipping and reference skips do not affect either sequence, so they can
             // be ignored
-            HardClip(_) | RefSkip(_) => {}
+            HardClip | Skip => {}
         }
     }
 
@@ -301,7 +302,7 @@ mod test {
     /// https://github.com/pysam-developers/pysam/blob/3e3c8b0b5ac066d692e5c720a85d293efc825200/tests/AlignedSegment_test.py#L1309
     #[test]
     fn test_match_only() {
-        let cigar = vec![Match(21)];
+        let cigar = vec![Op::new(Match, 21)];
         let query_sequence = vec![b'A'; 21];
         let md_tag = b"5C0T0G05C0G0T5";
 
@@ -310,7 +311,7 @@ mod test {
         assert_eq!(expected, reference);
 
 
-        let cigar = vec![Match(21)];
+        let cigar = vec![Op::new(Match, 21)];
         let query_sequence = vec![b'A'; 21];
         let md_tag = b"5CTG5CGT5";
 
@@ -319,7 +320,7 @@ mod test {
         assert_eq!(expected, reference);
 
 
-        let cigar = vec![Match(11)];
+        let cigar = vec![Op::new(Match, 11)];
         let query_sequence = vec![b'A'; 11];
         let md_tag = b"CTG5CGT";
 
@@ -332,20 +333,20 @@ mod test {
     #[test]
     fn test_insertions() {
         // insertions are silent in the reference sequence
-        let cigar = vec![Match(5), Ins(1), Match(5)];
+        let cigar = vec![Op::new(Match, 5), Op::new(Insertion, 1), Op::new(Match, 5)];
         let query_sequence = vec![b'A', b'A', b'A', b'A', b'A', b'C', b'A', b'A', b'A', b'A', b'A'];
         let md_tag = b"10";
         let reference = build_reference_sequence(&query_sequence, &cigar, md_tag).unwrap();
         let expected = vec![b'A'; 10];
         assert_eq!(expected, reference);
         
-        let cigar = vec![Ins(1), Match(10)];
+        let cigar = vec![Op::new(Insertion, 1), Op::new(Match, 10)];
         let query_sequence = vec![b'C', b'A', b'A', b'A', b'A', b'A', b'A', b'A', b'A', b'A', b'A'];
         let reference = build_reference_sequence(&query_sequence, &cigar, md_tag).unwrap();
         let expected = vec![b'A'; 10];
         assert_eq!(expected, reference);
         
-        let cigar = vec![Match(10), Ins(1)];
+        let cigar = vec![Op::new(Match, 10), Op::new(Insertion, 1)];
         let query_sequence = vec![b'A', b'A', b'A', b'A', b'A', b'A', b'A', b'A', b'A', b'A', b'C'];
         let reference = build_reference_sequence(&query_sequence, &cigar, md_tag).unwrap();
         let expected = vec![b'A'; 10];
@@ -355,7 +356,7 @@ mod test {
     /// https://github.com/pysam-developers/pysam/blob/3e3c8b0b5ac066d692e5c720a85d293efc825200/tests/AlignedSegment_test.py#L1358
     #[test]
     fn test_deletions() {
-        let cigar = vec![Match(5), Del(1), Match(5)];
+        let cigar = vec![Op::new(Match, 5), Op::new(Deletion, 1), Op::new(Match, 5)];
         let query_sequence = vec![b'A'; 10];
         let md_tag = b"5^C5";
         let reference = build_reference_sequence(&query_sequence, &cigar, md_tag).unwrap();
@@ -363,7 +364,7 @@ mod test {
         expected[5] = b'C';
         assert_eq!(expected, reference);
         
-        let cigar = vec![Match(5), Del(3), Match(5)];
+        let cigar = vec![Op::new(Match, 5), Op::new(Deletion, 3), Op::new(Match, 5)];
         let query_sequence = vec![b'A'; 10];
         let md_tag = b"5^CCC5";
         let reference = build_reference_sequence(&query_sequence, &cigar, md_tag).unwrap();
@@ -377,14 +378,14 @@ mod test {
     /// https://github.com/pysam-developers/pysam/blob/3e3c8b0b5ac066d692e5c720a85d293efc825200/tests/AlignedSegment_test.py#L1358
     #[test]
     fn test_ref_skipping() {
-        let cigar = vec![Match(5), RefSkip(1), Match(5)];
+        let cigar = vec![Op::new(Match, 5), Op::new(Skip, 1), Op::new(Match, 5)];
         let query_sequence = vec![b'A'; 10];
         let md_tag = b"10";
         let reference = build_reference_sequence(&query_sequence, &cigar, md_tag).unwrap();
         let expected = vec![b'A'; 10];
         assert_eq!(expected, reference);
         
-        let cigar = vec![Match(5), RefSkip(3), Match(5)];
+        let cigar = vec![Op::new(Match, 5), Op::new(Skip, 3), Op::new(Match, 5)];
         let query_sequence = vec![b'A'; 10];
         let md_tag = b"10";
         let reference = build_reference_sequence(&query_sequence, &cigar, md_tag).unwrap();
@@ -396,7 +397,7 @@ mod test {
     #[test]
     fn test_soft_clipping() {
         // softclipping
-        let cigar = vec![SoftClip(5), Match(5), Del(1), Match(5), SoftClip(5)];
+        let cigar = vec![Op::new(SoftClip, 5), Op::new(Match, 5), Op::new(Deletion, 1), Op::new(Match, 5), Op::new(SoftClip, 5)];
         let query_sequence = vec![b'G', b'G', b'G', b'G', b'G', 
                                            b'A', b'A', b'A', b'A', b'A', 
                                            b'A', b'A', b'A', b'A', b'A', 
@@ -408,7 +409,7 @@ mod test {
         assert_eq!(expected, reference);
         
         // all together
-        let cigar = vec![SoftClip(5), Match(5), Del(1), Match(5), Ins(1), Match(5), SoftClip(5)];
+        let cigar = vec![Op::new(SoftClip, 5), Op::new(Match, 5), Op::new(Deletion, 1), Op::new(Match, 5), Op::new(Insertion, 1), Op::new(Match, 5), Op::new(SoftClip, 5)];
         let query_sequence = vec![b'G', b'G', b'G', b'G', b'G', 
                                            b'A', b'A', b'A', b'A', b'A', 
                                            b'A', b'A', b'A', b'A', b'A', 
@@ -424,7 +425,7 @@ mod test {
     /// https://github.com/pysam-developers/pysam/blob/3e3c8b0b5ac066d692e5c720a85d293efc825200/tests/AlignedSegment_test.py#L1386
     #[test]
     fn test_complex() {
-        let cigar = vec![SoftClip(5), Match(5), Ins(1), Del(2), Match(5), SoftClip(5)];
+        let cigar = vec![Op::new(SoftClip, 5), Op::new(Match, 5), Op::new(Insertion, 1), Op::new(Deletion, 2), Op::new(Match, 5), Op::new(SoftClip, 5)];
         let query_sequence = vec![b'G', b'G', b'G', b'G', b'G', 
                                            b'A', b'A', b'A', b'A', b'A', 
                                            b'A', b'A', b'A', b'A', b'A', 
@@ -435,7 +436,7 @@ mod test {
         let expected = b"AAcAATCAAAAA".to_vec();
         assert_eq!(expected, reference);
         
-        let cigar = vec![SoftClip(5), Match(5), Del(2), Ins(1), Match(5), SoftClip(5)];
+        let cigar = vec![Op::new(SoftClip, 5), Op::new(Match, 5), Op::new(Deletion, 2), Op::new(Insertion, 1), Op::new(Match, 5), Op::new(SoftClip, 5)];
         let query_sequence = vec![b'G', b'G', b'G', b'G', b'G', 
                                            b'A', b'A', b'A', b'A', b'A', 
                                            b'A', b'A', b'A', b'A', b'A', 
@@ -449,14 +450,14 @@ mod test {
         // insertion in reference overlapping deletion in reference
         // read: AACCCCA---AAA
         // ref:  AA----AGGGAAA
-        let cigar = vec![Match(2), Ins(4), Match(1), Del(3), Match(3)];
+        let cigar = vec![Op::new(Match, 2), Op::new(Insertion, 4), Op::new(Match, 1), Op::new(Deletion, 3), Op::new(Match, 3)];
         let md_tag = b"3^GGG3";
         let query_sequence = b"AACCCCAAAA".to_vec();
         let reference = build_reference_sequence(&query_sequence, &cigar, md_tag).unwrap();
         let expected = b"AAAGGGAAA".to_vec();
         assert_eq!(expected, reference);
         
-        let cigar = vec![Match(5), Del(2), Ins(2), Match(2)];
+        let cigar = vec![Op::new(Match, 5), Op::new(Deletion, 2), Op::new(Insertion, 2), Op::new(Match, 2)];
         let md_tag = b"4C^TT2";
         let query_sequence = vec![b'A'; 9];
         let reference = build_reference_sequence(&query_sequence, &cigar, md_tag).unwrap();
@@ -467,19 +468,19 @@ mod test {
     /// Transform a vector of cigar tuples into a vector of Cigar element
     /// 
     /// Helper function to easily copy pysam output into the tests
-    fn tuplevec_to_cigarvec(vec: Vec<(u32, u32)>) -> Vec<Cigar> {
+    fn tuplevec_to_cigarvec(vec: Vec<(u32, usize)>) -> Vec<Op> {
         let mut cigar_vec = Vec::with_capacity(vec.len());
         for (cig, len) in vec {
             let el = match cig {
-                0 => Match(len),
-                1 => Ins(len),
-                2 => Del(len),
-                3 => RefSkip(len),
-                4 => SoftClip(len),
-                5 => HardClip(len),
-                6 => Pad(len),
-                7 => Equal(len),
-                8 => Diff(len),
+                0 => Op::new(Match, len),
+                1 => Op::new(Insertion, len),
+                2 => Op::new(Deletion, len),
+                3 => Op::new(Skip, len),
+                4 => Op::new(SoftClip, len),
+                5 => Op::new(HardClip, len),
+                6 => Op::new(Pad, len),
+                7 => Op::new(SequenceMatch, len),
+                8 => Op::new(SequenceMismatch, len),
                 _ => panic!("Invalid cigar index")
             };
             cigar_vec.push(el);

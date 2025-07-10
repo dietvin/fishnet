@@ -48,7 +48,7 @@
 
 pub mod rescale;
 
-use rust_htslib::bam::Record;
+use noodles::bam::Record;
 
 use crate::core::alignment::aligned_read::AlignedRead;
 use crate::core::loader::bam::BamRead;
