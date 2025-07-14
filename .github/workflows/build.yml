@@ -51,16 +51,19 @@ jobs:
       - name: Download all artifacts
         uses: actions/download-artifact@v4
 
-      - name: List files
-        run: ls -R
+      - name: Rename artifacts for release
+        run: |
+          mv fishnet-linux-x86_64/fishnet fishnet-linux-x86_64
+          mv fishnet-linux-aarch64/fishnet fishnet-linux-aarch64
+          mv fishnet-windows/fishnet.exe fishnet-windows.exe
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            fishnet-linux-x86_64/fishnet
-            fishnet-linux-aarch64/fishnet
-            fishnet-windows/fishnet.exe
+            fishnet-linux-x86_64
+            fishnet-linux-aarch64
+            fishnet-windows.exe
           tag_name: ${{ github.ref_name }}
           name: Release ${{ github.ref_name }}
           draft: false
