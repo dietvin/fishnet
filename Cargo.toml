@@ -15,7 +15,7 @@ log = "0.4.27"
 log4rs = "1.3.0"
 noodles = { version = "0.99.0", features = ["bam", "bgzf", "sam"] }
 parquet = "55.0.0"
-pod5 = { git = "https://github.com/bsaintjo/pod5-rs", rev = "97f987e3fe8b49dfa4e9672f35e97c9b5c8e9122" }
+pod5 = { git = "https://github.com/bsaintjo/pod5-rs", rev = "e9335fef0ee6f7bcdeb72ccdd52cc98debddf361", version = "0.1.0" }
 rand = "0.9.0"
 serde = "1.0.219"
 serde_json = "1.0.140"

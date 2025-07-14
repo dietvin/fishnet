@@ -313,7 +313,7 @@ impl Pod5File {
 
             // Create an iterator for each column
             let read_id_col_iter = df
-                .column("minknow.uuid")?
+                .column("read_id")?
                 .str()?
                 .iter();
             let offset_col_iter = df
@@ -358,11 +358,11 @@ impl Pod5File {
                 .into_inner();
             // Create an iterator for each column
             let read_id_col_iter = df
-                .column("minknow.uuid")?
+                .column("read_id")?
                 .str()?
                 .iter();
             let signal_col_iter = df
-                .column("minknow.vbz")?
+                .column("signal")?
                 .list()?
                 .iter();
             let num_samples_col_iter = df
@@ -380,7 +380,7 @@ impl Pod5File {
                 // Convert signal data to rust-native Vec<i16>
                 let mut signal = signal
                     .ok_or(Pod5FileError::ColumnDataMissingError { 
-                        column: "minknow.vbz".to_string(), 
+                        column: "signal".to_string(), 
                         read_id: read_id.clone()
                     })?
                     .as_any()
