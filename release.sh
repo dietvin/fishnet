@@ -34,7 +34,7 @@ sed -i "s/^version = \".*\"/version = \"$VERSION\"/" Cargo.toml
 cargo check
 
 # Commit version bump
-git add Cargo.toml Cargo.lock
+git add Cargo.toml
 git commit -m "Bump version to $VERSION"
 
 # Create and push tag
