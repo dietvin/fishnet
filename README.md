@@ -43,7 +43,7 @@ Minimal usage:
 ```bash
 fishnet -b <basecalls.bam> -p <raw-signal.pod5> -k <level-table.txt> -o <output-dir>
 ```
-More examples are provided in the [usage documentation](./docs/usage.md). Fishnet requires the following input data:
+More examples are provided in the [usage documentation](./docs/usage.md#examples). Fishnet requires the following input data:
 1. **Raw sequencing data**. Must be stored in **POD5** format.
 2. **Basecalled data**. Must be stored in a single **BAM** file, as produced by Dorado (Note that it must contain the move-table, so base-call with the `--emit-moves` flag!)
 3. **Expected current intensities**. Must be stored in a **kmer level table**, as [provided by ONT](https://github.com/nanoporetech/kmer_models)
@@ -65,12 +65,12 @@ The following arguments are the most relevant optional arguments for most users:
 
 | Long flag        | Short flag | Explanation                                                                                                                                                                                                   | Type |
 |-----------------|-----------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------|
-| --rna             |          | Whether the provided data is direct RNA sequencing data. If set, the signal gets reversed for the alignment                                                                                                   | bool |
+| --rna             |          | Whether the provided data is direct RNA sequencing data. If set, the signal gets reversed for the alignment (dRNA signals are measured 3'-5')                                                                                                   | bool |
 | --alignment-type  | -a         | Which type(s) of alignment to generate. Can be '**query**' (Default) to align the signal to the base-called sequence, '**reference**' to align to the reference sequence (if mapped)or '**both**' to do both. | str  |
 | --threads         | -t         | Number of parallel threads to use. Default: **8**                                                                                                                                                             | int  |
 | --force-overwrite | -f         | If set and an output file already exists, this file will be overwritten. Raises an error otherwise                                                                                                            | bool |
 
-For the sake of simplicity, the table shows only a subset of the optional arguments. An explanation for all arguments can be found in the [usage documentation](./docs/usage.md).
+For the sake of simplicity, the table shows only a subset of the optional arguments. An explanation for all arguments can be found in the [usage documentation](./docs/usage.md#comman-line-interface).
 
 ## Algorithm details
 

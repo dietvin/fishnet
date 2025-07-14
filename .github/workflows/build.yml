@@ -12,27 +12,34 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        target:
-          - x86_64-unknown-linux-gnu
-          - aarch64-unknown-linux-gnu
-          - x86_64-pc-windows-gnu
-
+        include:
+          - target: x86_64-unknown-linux-gnu
+            artifact_name: fishnet-linux-x86_64
+            executable: fishnet
+          - target: aarch64-unknown-linux-gnu
+            artifact_name: fishnet-linux-aarch64
+            executable: fishnet
+          - target: x86_64-pc-windows-gnu
+            artifact_name: fishnet-windows
+            executable: fishnet.exe
+    
     steps:
       - uses: actions/checkout@v4
-
+      
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
-
+      
       - name: Install cross
         run: cargo install cross
-
+      
       - name: Build with cross
         run: cross build --release --target ${{ matrix.target }}
-
+      
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: build-${{ matrix.target }}
-          path: target/${{ matrix.target }}/release/
+          name: ${{ matrix.artifact_name }}
+          path: target/${{ matrix.target }}/release/${{ matrix.executable }}
+          if-no-files-found: error
