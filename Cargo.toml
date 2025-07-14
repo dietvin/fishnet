@@ -6,20 +6,6 @@ description = "Fast CLI tool for nanopore signal to sequence alignment"
 license-file = "./LICENSE"
 repository = "https://github.com/dietvin/fishnet"
 
-[package.metadata.release]
-# Don't publish to crates.io (since this seems to be a standalone binary)
-publish = false
-# Don't push to registry
-registry = false
-# Custom pre-release hooks (optional)
-pre-release-hook = ["git", "diff", "--exit-code"]
-# Custom post-release hooks (optional)
-post-release-hook = ["echo", "Released {{version}}"]
-# Tag message template
-tag-message = "Release {{crate_name}} {{version}}"
-# Don't create a release branch
-dev-version = false
-
 [dependencies]
 approx = "0.5.1"
 arrow = "55.0.0"
