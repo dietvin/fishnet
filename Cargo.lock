@@ -1037,7 +1037,7 @@ checksum = "f8eb564c5c7423d25c886fb561d1e4ee69f72354d16918afa32c08811f6b6a55"
 
 [[package]]
 name = "fishnet"
-version = "0.1.4"
+version = "0.1.1"
 dependencies = [
  "approx",
  "arrow",
