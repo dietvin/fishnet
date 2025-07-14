@@ -7,10 +7,18 @@ license-file = "./LICENSE"
 repository = "https://github.com/dietvin/fishnet"
 
 [package.metadata.release]
-publish = false # Disable publishing to crates.io
-skip-publish = true # Skip cargo publish entirely
-skip-push = false # Skip cargo push
-allow-dirty = false # Allow dirty working directory
+# Don't publish to crates.io (since this seems to be a standalone binary)
+publish = false
+# Don't push to registry
+registry = false
+# Custom pre-release hooks (optional)
+pre-release-hook = ["git", "diff", "--exit-code"]
+# Custom post-release hooks (optional)
+post-release-hook = ["echo", "Released {{version}}"]
+# Tag message template
+tag-message = "Release {{crate_name}} {{version}}"
+# Don't create a release branch
+dev-version = false
 
 [dependencies]
 approx = "0.5.1"
