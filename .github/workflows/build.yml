@@ -53,17 +53,18 @@ jobs:
 
       - name: Rename artifacts for release
         run: |
-          mv fishnet-linux-x86_64/fishnet fishnet-linux-x86_64
-          mv fishnet-linux-aarch64/fishnet fishnet-linux-aarch64
-          mv fishnet-windows/fishnet.exe fishnet-windows.exe
+          version=${{ github.ref_name }}
+          mv fishnet-linux-x86_64/fishnet fishnet-linux-x86_64-$version
+          mv fishnet-linux-aarch64/fishnet fishnet-linux-aarch64-$version
+          mv fishnet-windows/fishnet.exe fishnet-windows.exe-$version
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            fishnet-linux-x86_64
-            fishnet-linux-aarch64
-            fishnet-windows.exe
+            fishnet-linux-x86_64-${{ github.ref_name }}
+            fishnet-linux-aarch64-${{ github.ref_name }}
+            fishnet-windows-${{ github.ref_name }}.exe
           tag_name: ${{ github.ref_name }}
           name: Release ${{ github.ref_name }}
           draft: false
