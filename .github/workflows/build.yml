@@ -56,7 +56,7 @@ jobs:
           version=${{ github.ref_name }}
           mv fishnet-linux-x86_64/fishnet fishnet-linux-x86_64-$version
           mv fishnet-linux-aarch64/fishnet fishnet-linux-aarch64-$version
-          mv fishnet-windows/fishnet.exe fishnet-windows.exe-$version
+          mv fishnet-windows/fishnet.exe fishnet-windows-$version.exe
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
