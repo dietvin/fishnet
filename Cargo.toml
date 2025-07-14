@@ -2,6 +2,15 @@
 name = "fishnet"
 version = "0.1.0"
 edition = "2021"
+description = "Fast CLI tool for nanopore signal to sequence alignment"
+license-file = "./LICENSE"
+repository = "https://github.com/dietvin/fishnet"
+
+[package.metadata.release]
+publish = false # Disable publishing to crates.io
+skip-publish = true # Skip cargo publish entirely
+skip-push = false # Skip cargo push
+allow-dirty = false # Allow dirty working directory
 
 [dependencies]
 approx = "0.5.1"
