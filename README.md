@@ -48,6 +48,8 @@ More examples are provided in the [usage documentation](./docs/usage.md#examples
 2. **Basecalled data**. Must be stored in a single **BAM** file, as produced by Dorado (Note that it must contain the move-table, so base-call with the `--emit-moves` flag!)
 3. **Expected current intensities**. Must be stored in a **kmer level table**, as [provided by ONT](https://github.com/nanoporetech/kmer_models)
 
+**Note**: The current implementation does not yet support lazy loading of pod5 data. This means that a given pod5 file must be loaded into memory in its entirety. With very large pod5 files this can flood the memory, crashing the program. We provide a small python script that allows subsetting one large pod5 file into multiple small ones. For more information see the [usage documentation](./docs/usage.md#large-pod5-files)
+
 ### Required arguments
 
 The following arguments are required:
