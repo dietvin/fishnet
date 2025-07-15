@@ -22,9 +22,9 @@ Fishnet implements the signal-to-sequence alignment algorithm used in [Remora](h
 ## Installation
 
 No installation is required. Simply download the executable for your operating system:
-- [Linux x64](https://github.com/dietvin/fishnet/releases/latest/download/fishnet-linux-x86_64-v0.1.2)
-- [Linux arm64](https://github.com/dietvin/fishnet/releases/latest/download/fishnet-linux-aarch64-v0.1.2)
-- [Windows](https://github.com/dietvin/fishnet/releases/latest/download/fishnet-windows-v0.1.2.exe)
+- [Linux x64](https://github.com/dietvin/fishnet/releases/latest/download/fishnet-linux-x86_64-v0.1.3)
+- [Linux arm64](https://github.com/dietvin/fishnet/releases/latest/download/fishnet-linux-aarch64-v0.1.3)
+- [Windows](https://github.com/dietvin/fishnet/releases/latest/download/fishnet-windows-v0.1.3.exe)
 
 Afterwards the program can be executed from the command line:
 ```bash
