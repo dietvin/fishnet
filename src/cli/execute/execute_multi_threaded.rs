@@ -63,8 +63,7 @@ use crate::{
             output_arrow::OutputWriterArrow, 
             output_json::OutputWriterJsonl, 
             AlignmentWriter, 
-            OutputData, 
-            OutputSchema
+            output_data::OutputData, 
         }, 
         parse::args_to_input::{
             Config, 
@@ -178,10 +177,20 @@ pub fn run_alignment_multi_threaded(input: Config) -> Result<(), FishnetError> {
     progress_bar_init.set_message("Initializing the output writer...");
     let output_path = input.output_file();
     let output_writer_res = match input.output_format() {
-        OutputFormat::Parquet => OutputWriterArrow::new(&output_path, input.force_overwrite(), input.output_batch_size(), input.output_schema().clone())
-            .map(|w| Box::new(w) as Box<dyn AlignmentWriter>),
-        OutputFormat::Json => OutputWriterJsonl::new(&output_path, input.force_overwrite(), input.output_batch_size(), input.output_schema().clone())
-            .map(|w| Box::new(w) as Box<dyn AlignmentWriter>)
+        OutputFormat::Parquet => OutputWriterArrow::new(
+            &output_path, 
+            input.force_overwrite(), 
+            input.output_batch_size(), 
+            input.output_config()
+            .clone()
+        ).map(|w| Box::new(w) as Box<dyn AlignmentWriter>),
+        OutputFormat::Json => OutputWriterJsonl::new(
+            &output_path, 
+            input.force_overwrite(), 
+            input.output_batch_size(), 
+            input.output_config()
+            .clone()
+        ).map(|w| Box::new(w) as Box<dyn AlignmentWriter>)
     };
     
     let mut output_writer = match output_writer_res {
@@ -200,7 +209,7 @@ pub fn run_alignment_multi_threaded(input: Config) -> Result<(), FishnetError> {
 
     let is_drna = input.is_drna();
     let alignment_type = input.alignment_type().clone();
-    let output_schema = input.output_schema().clone();
+    let output_config = input.output_config().clone();
 
     // Handles data transfer from the producer thread to the worker threads
     let (data_sender, data_receiver) = bounded::<(String, Pod5Read, BamRead)>(input.queue_size());
@@ -270,7 +279,7 @@ pub fn run_alignment_multi_threaded(input: Config) -> Result<(), FishnetError> {
         let is_drna = is_drna.clone();
         let alignment_type = alignment_type.clone();
 
-        let output_schema = output_schema.clone();
+        let output_config = output_config.clone();
 
         let handle = match thread::Builder::new()
             .name(format!("worker{thread_id}"))
@@ -345,74 +354,47 @@ pub fn run_alignment_multi_threaded(input: Config) -> Result<(), FishnetError> {
                         continue;
                     }
 
-                    // Extract the refined query to signal alignment
-                    let query_to_signal = match sig_map_refiner.refined_query_to_sig_offset_adjusted() {
-                        Ok(v) => v,
-                        Err(e) => {
-                            log::error!("Failed to adjust the signal offset for {read_id}: {e}");
-                            if let Err(e) = progress_tx.send(false) {
-                                handle_channels_error(e);
+                    // Extract the refined query to signal alignment (only if needed)
+                    let query_to_signal = match &alignment_type {
+                        WhichToAlign::Reference => None,
+                        WhichToAlign::Query | WhichToAlign::Both => {
+                            match sig_map_refiner.refined_query_to_sig_offset_adjusted() {
+                                Ok(v) => v,
+                                Err(e) => {
+                                    log::error!("Failed to adjust the signal offset for {read_id}: {e}");
+                                    if let Err(e) = progress_tx.send(false) {
+                                        handle_channels_error(e);
+                                    }
+                                    continue;
+                                }
                             }
-                            continue;
                         }
                     };
 
-                    // Extract the refined reference to signal alignment
-                    let ref_to_signal = match sig_map_refiner.refined_ref_to_sig_offset_adjusted() {
-                        Ok(v) => v,
-                        Err(e) => {
-                            log::error!("Failed to adjust the signal offset for {read_id}: {e}");
-                            if let Err(e) = progress_tx.send(false) {
-                                handle_channels_error(e);
+                    // Extract the refined reference to signal alignment (only if needed)
+                    let ref_to_signal = match &alignment_type {
+                        WhichToAlign::Query => None,
+                        WhichToAlign::Reference | WhichToAlign::Both => {
+                            match sig_map_refiner.refined_ref_to_sig_offset_adjusted() {
+                                Ok(v) => v,
+                                Err(e) => {
+                                    log::error!("Failed to adjust the signal offset for {read_id}: {e}");
+                                    if let Err(e) = progress_tx.send(false) {
+                                        handle_channels_error(e);
+                                    }
+                                    continue;
+                                }
                             }
-                            continue;
                         }
-                    };
+                    };            
                     
-                    // Collect the output data requested by the user
-                    let output_data = match output_schema {
-                        OutputSchema::Basic => OutputData::basic(
-                            read_id.clone(), 
-                            query_to_signal,
-                            ref_to_signal
-                        ), 
-                        OutputSchema::WithSequences | OutputSchema::WithSequencesAndSignal => {
-                            let query_sequence = query_to_signal.as_ref().and_then(|_| {
-                                String::from_utf8(sig_map_refiner.bam_read().query().to_vec()).ok()
-                            });
-
-                            let ref_sequence = ref_to_signal.as_ref().and_then(|_| {
-                                sig_map_refiner
-                                    .bam_read()
-                                    .get_reference()
-                                    .ok()
-                                    .and_then(|s_u8| String::from_utf8(s_u8.clone()).ok())
-                            });
-
-                            if matches!(output_schema, OutputSchema::WithSequences) {
-                                OutputData::with_seq(
-                                    read_id.clone(), 
-                                    query_to_signal, 
-                                    ref_to_signal, 
-                                    query_sequence, 
-                                    ref_sequence
-                                )
-                            } else {
-                                let signal = match ref_to_signal.is_some() || query_to_signal.is_some() {
-                                    true => Some(sig_map_refiner.pod5_read().signal().clone()),
-                                    false => None
-                                };
-                                OutputData::with_seq_and_signal(
-                                    read_id.clone(),
-                                    query_to_signal,
-                                    ref_to_signal,
-                                    query_sequence,
-                                    ref_sequence,
-                                    signal
-                                )
-                            }
-                        }
-                    };
+                    let output_data = OutputData::new(
+                        &output_config,
+                        read_id.clone(), 
+                        query_to_signal, 
+                        ref_to_signal, 
+                        &sig_map_refiner
+                    );
 
                     // Send the output data to the main thread for actually writing it to file
                     if let Err(e) = result_tx.send((read_id, output_data)) {

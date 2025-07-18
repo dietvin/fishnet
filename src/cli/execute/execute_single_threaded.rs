@@ -29,8 +29,12 @@ use log::LevelFilter;
 use crate::{
     cli::{
         output::{
-            output_arrow::OutputWriterArrow, output_json::OutputWriterJsonl, AlignmentWriter, OutputData, OutputSchema
-        }, parse::args_to_input::{
+            output_arrow::OutputWriterArrow, 
+            output_json::OutputWriterJsonl, 
+            AlignmentWriter, 
+            output_data::OutputData, 
+        }, 
+        parse::args_to_input::{
             Config, OutputFormat, WhichToAlign
         }
     }, 
@@ -41,7 +45,8 @@ use crate::{
             pod5::Pod5Index
         }, 
         refinement::{
-            kmer_table::KmerTable, signal_map_refiner::SigMapRefiner
+            kmer_table::KmerTable, 
+            signal_map_refiner::SigMapRefiner
         }
     }, 
     error::FishnetError, 
@@ -135,9 +140,9 @@ pub fn run_alignment_single_threaded(input: Config) -> Result<(), FishnetError> 
     let output_path = input.output_file();
 
     let output_writer_res = match input.output_format() {
-        OutputFormat::Parquet => OutputWriterArrow::new(&output_path, input.force_overwrite(), input.output_batch_size(), input.output_schema().clone())
+        OutputFormat::Parquet => OutputWriterArrow::new(&output_path, input.force_overwrite(), input.output_batch_size(), input.output_config().clone())
             .map(|w| Box::new(w) as Box<dyn AlignmentWriter>),
-        OutputFormat::Json => OutputWriterJsonl::new(&output_path, input.force_overwrite(), input.output_batch_size(), input.output_schema().clone())
+        OutputFormat::Json => OutputWriterJsonl::new(&output_path, input.force_overwrite(), input.output_batch_size(), input.output_config().clone())
             .map(|w| Box::new(w) as Box<dyn AlignmentWriter>),
     };
     
@@ -255,50 +260,13 @@ pub fn run_alignment_single_threaded(input: Config) -> Result<(), FishnetError> 
             }
         };
 
-        let output_data = match input.output_schema() {
-            OutputSchema::Basic => OutputData::basic(
-                read_id.clone(), 
-                query_to_signal,
-                ref_to_signal
-            ), 
-            OutputSchema::WithSequences | OutputSchema::WithSequencesAndSignal => {
-                let query_sequence = query_to_signal.as_ref().and_then(|_| {
-                    String::from_utf8(sig_map_refiner.bam_read().query().to_vec()).ok()
-                });
-
-                let ref_sequence = ref_to_signal.as_ref().and_then(|_| {
-                    sig_map_refiner
-                        .bam_read()
-                        .get_reference()
-                        .ok()
-                        .and_then(|s_u8| String::from_utf8(s_u8.clone()).ok())
-                });
-
-                if matches!(input.output_schema(), OutputSchema::WithSequences) {
-                    OutputData::with_seq(
-                        read_id.clone(), 
-                        query_to_signal, 
-                        ref_to_signal, 
-                        query_sequence, 
-                        ref_sequence
-                    )
-                } else {
-                    let signal = match ref_to_signal.is_some() || query_to_signal.is_some() {
-                        true => Some(sig_map_refiner.pod5_read().signal().clone()),
-                        false => None
-                    };
-                    OutputData::with_seq_and_signal(
-                        read_id.clone(),
-                        query_to_signal,
-                        ref_to_signal,
-                        query_sequence,
-                        ref_sequence,
-                        signal
-                    )
-                }
-            }
-        };
-
+        let output_data = OutputData::new(
+            input.output_config(), 
+            read_id.clone(), 
+            query_to_signal, 
+            ref_to_signal, 
+            &sig_map_refiner
+        );
 
         match output_writer.write_record(
             output_data

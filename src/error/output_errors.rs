@@ -17,6 +17,9 @@ pub enum OutputError {
     #[error("Invalid output schema: {0}")]
     InvalidOutputSchema(String),
 
+    #[error("Mismatch variants between the buffer ({0}) and the output data schema ({1})")]
+    MismatchedVariants(String, String),
+
     // Errors specific to Arrow output format
 
     /// Error from underlying Parquet library operations

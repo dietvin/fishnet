@@ -23,7 +23,13 @@ pub enum BamReadError {
     #[error("Failed to reconstruct the reference sequence: {0}")]
     RefSeqError(#[from] RefSeqReconstructError),
     #[error("Failed to set up the reverse complement (Unexpected ascii value {0}")]
-    ReverseComplement(u8)
+    ReverseComplement(u8),
+    #[error("Reference name was not found")]
+    RefNameNotFound,
+    #[error("No value found in reference sequence index for key {0}")]
+    InvalidRefSeqKey(usize),
+    #[error("Reference start position was not found")]
+    ReferenceStartNotFound
 }
 
 #[derive(Debug, thiserror::Error)]

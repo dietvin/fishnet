@@ -52,6 +52,8 @@ pub struct BamRead {
     
     mapped: bool,
     // The following data is only available if a read is mapped
+    reference_name: Option<String>,
+    reference_start: Option<usize>,
     cigar: Option<Vec<Op>>,
     reference_seq: Option<Vec<u8>>,
     reference_len: Option<usize>,
@@ -78,7 +80,10 @@ impl BamRead {
     /// # Returns
     ///
     /// * `Result<Self, BamReadError>` - A new BamRead instance or an error
-    pub fn new(bam_record: bam::Record) -> Result<Self, BamReadError> {
+    pub fn new(
+        bam_record: bam::Record,
+        ref_seq_index: &HashMap<usize, String>
+    ) -> Result<Self, BamReadError> {
         let bam_data = bam_record.data();
         let bam_flags = bam_record.flags();
 
@@ -98,7 +103,9 @@ impl BamRead {
 
         let mapped = !bam_flags.is_unmapped();
 
-        let mut cigar = None; 
+        let mut reference_name: Option<String> = None;
+        let mut reference_start: Option<usize> = None;
+        let mut cigar: Option<Vec<Op>> = None; 
         let mut reference_seq: Option<Vec<u8>> = None;
         let mut reference_len: Option<usize> = None;
         let mut reverse_mapped: Option<bool> = None;
@@ -121,6 +128,21 @@ impl BamRead {
         )?;
 
         if mapped {
+            let ref_seq_key = bam_record
+                .reference_sequence_id()
+                .ok_or_else(|| BamReadError::RefNameNotFound)??;
+
+            reference_name = Some(ref_seq_index
+                .get(&ref_seq_key)
+                .cloned()
+                .ok_or(BamReadError::InvalidRefSeqKey(ref_seq_key))?
+            );
+
+            reference_start = Some(bam_record
+                .alignment_start()
+                .ok_or(BamReadError::ReferenceStartNotFound)??
+                .get()
+            );
             let mut cigar_raw = bam_record.cigar().iter()
                 .collect::<Result<Vec<Op>, std::io::Error>>()
                 .map_err(|e| BamReadError::CigarError(e))?;
@@ -158,6 +180,8 @@ impl BamRead {
             signal_scaling_mean: sm_tag,
             signal_scaling_dispersion: sd_tag,
             mapped,
+            reference_name,
+            reference_start,
             cigar,
             reference_seq,
             reference_len,
@@ -275,6 +299,30 @@ impl BamRead {
         self.reverse_mapped.as_ref()
     }
 
+    /// Gets the name of the reference sequence with error handling
+    ///
+    /// # Returns
+    ///
+    /// * `Result<Option<&Vec<Cigar>>, BamReadError>` - The cigar elements, 
+    /// None if the tag is not set, or an error if unmapped
+    pub fn get_reference_name(&self) -> Result<&String, BamReadError> {
+        self.reference_name.as_ref().ok_or(
+            BamReadError::NoSuchDataForUnmappedRead("reference_name".to_string())
+        )
+    }
+
+    /// Gets the start position on the reference sequence with error handling
+    ///
+    /// # Returns
+    ///
+    /// * `Result<Option<&Vec<Cigar>>, BamReadError>` - The cigar elements, 
+    /// None if the tag is not set, or an error if unmapped
+    pub fn get_reference_start(&self) -> Result<&usize, BamReadError> {
+        self.reference_start.as_ref().ok_or(
+            BamReadError::NoSuchDataForUnmappedRead("reference_start".to_string())
+        )
+    }
+
     /// Gets the CIGAR string with error handling
     ///
     /// # Returns
@@ -386,7 +434,8 @@ impl BamRead {
 pub struct BamFileLazy {
     path: PathBuf,
     bam_reader: bam::io::Reader<bgzf::io::Reader<File>>,
-    index: HashMap<String, bgzf::VirtualPosition>
+    index: HashMap<String, bgzf::VirtualPosition>,
+    ref_sequence_index: HashMap<usize, String>
 }
 
 
@@ -415,8 +464,16 @@ impl BamFileLazy {
         let file = File::open(path)?;
         let buf_reader = bgzf::io::Reader::new(file);
         let mut bam_reader = bam::io::Reader::from(buf_reader);
-        // Skip to the start of the alignments
-        bam_reader.read_header()?;
+        // Extract the header and skip to the start of the alignments
+        let header = bam_reader.read_header()?;
+
+        // Extract the reference dictionary to get the ref seq names later on 
+        let ref_sequence_index = header
+            .reference_sequences()
+            .keys()
+            .enumerate()
+            .map(|(i, name)| (i, name.to_string()))
+            .collect();
 
         // Initialize the index storing the offset for each read in a hashmap
         let mut index: HashMap<String, bgzf::VirtualPosition> = HashMap::new();
@@ -444,7 +501,8 @@ impl BamFileLazy {
         Ok(BamFileLazy {
             path: path.clone(),
             bam_reader,
-            index
+            index,
+            ref_sequence_index
         })
     }
 
@@ -484,7 +542,10 @@ impl BamFileLazy {
         // Double check that the read id is the one that is wanted
         if let Some(name) = record.name().map(|rn| rn.to_string()) {
             if name == id {
-                let bam_read = BamRead::new(record)?;
+                let bam_read = BamRead::new(
+                    record, 
+                    &self.ref_sequence_index
+                )?;
                 Ok(bam_read)
             } else {
                 Err(BamFileError::ReadIdMismatch(name, id.to_string()))

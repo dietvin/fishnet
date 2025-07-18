@@ -4,108 +4,48 @@
 
 use std::path::PathBuf;
 
-use crate::error::output_errors::OutputError;
+use crate::{cli::{output::output_data::OutputData, parse::args_to_input::WhichToAlign}, error::output_errors::OutputError};
 
 pub mod output_arrow;
 pub mod output_json;
-
-
-/// Represents different schemas to write to file
-#[derive(Debug, Clone)]
-pub enum OutputData {
-    /// Minimal output format containing only the alignments
-    Basic {
-        read_id: String,
-        query_to_signal: Option<Vec<usize>>,
-        ref_to_signal: Option<Vec<usize>>,
-    },
-    /// Extended output format containing the sequences in 
-    /// addition to the alignments
-    WithSequences {
-        read_id: String,
-        query_to_signal: Option<Vec<usize>>,
-        ref_to_signal: Option<Vec<usize>>,
-        query_sequence: Option<String>,
-        ref_sequence: Option<String>,
-    },
-    /// Extended output format containing the alignements,
-    /// the sequences and the signal
-    WithSequencesAndSignal {
-        read_id: String,
-        query_to_signal: Option<Vec<usize>>,
-        ref_to_signal: Option<Vec<usize>>,
-        query_sequence: Option<String>,
-        ref_sequence: Option<String>,
-        signal: Option<Vec<i16>>
-    }
-}
-
-/// Constructor functions for each option
-impl OutputData {
-    pub fn basic(
-        read_id: String,
-        query_to_signal: Option<Vec<usize>>,
-        ref_to_signal: Option<Vec<usize>>,
-    ) -> Self {
-        OutputData::Basic { 
-            read_id, 
-            query_to_signal,
-            ref_to_signal
-        }
-    }
-
-    pub fn with_seq(
-        read_id: String,
-        query_to_signal: Option<Vec<usize>>,
-        ref_to_signal: Option<Vec<usize>>,
-        query_sequence: Option<String>,
-        ref_sequence: Option<String>,
-    ) -> Self {
-        OutputData::WithSequences { 
-            read_id,
-            query_to_signal,
-            ref_to_signal,
-            query_sequence,
-            ref_sequence 
-        }
-    }
-
-    pub fn with_seq_and_signal(
-        read_id: String,
-        query_to_signal: Option<Vec<usize>>,
-        ref_to_signal: Option<Vec<usize>>,
-        query_sequence: Option<String>,
-        ref_sequence: Option<String>,
-        signal: Option<Vec<i16>>   
-    ) -> Self {
-        OutputData::WithSequencesAndSignal { 
-            read_id,
-            query_to_signal,
-            ref_to_signal,
-            query_sequence,
-            ref_sequence,
-            signal
-        }
-    }
-
-    /// Checks if a given output schema corresponds to the output data at hand.
-    pub fn matches(&self, output_schema: &OutputSchema) -> bool {
-        match (self, output_schema) {
-            (OutputData::Basic { .. }, OutputSchema::Basic) => true,
-            (OutputData::WithSequences { .. }, OutputSchema::WithSequences) => true,
-            (OutputData::WithSequencesAndSignal { .. }, OutputSchema::WithSequencesAndSignal) => true,
-            _ => false
-        }
-    }
-}
-
-
+pub mod arrow_buffer;
+pub mod output_data;
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum OutputSchema {
-    Basic,
-    WithSequences,
-    WithSequencesAndSignal
+pub struct OutputConfig {
+    pub alignment_type: WhichToAlign,
+    pub include_sequences: bool,
+    pub include_signal: bool 
+}
+
+impl OutputConfig {
+    pub fn new(
+        alignment_type: WhichToAlign,
+        include_sequences: bool,
+        include_signal: bool
+    ) -> Self {
+        OutputConfig { 
+            alignment_type,
+            include_sequences,
+            include_signal
+        }
+    }
+
+    pub fn alignment_type(&self) -> &WhichToAlign {
+        &self.alignment_type
+    }
+
+    pub fn include_sequences(&self) -> bool {
+        self.include_sequences
+    }
+
+    pub fn include_signal(&self) -> bool {
+        self.include_signal
+    }
+
+    pub fn which_to_include(&self) -> (&bool, &bool) {
+        (&self.include_sequences, &self.include_signal)
+    }
 }
 
 
@@ -130,7 +70,7 @@ pub trait AlignmentWriter {
         path: &PathBuf, 
         force_overwrite: bool, 
         batch_size: usize, 
-        schema: OutputSchema
+        schema: OutputConfig
     ) -> Result<Self, OutputError> 
     where 
         Self: Sized;

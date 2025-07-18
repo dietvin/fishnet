@@ -59,14 +59,14 @@
  */
 
 use std::{fs::File, io::{BufWriter, Write}, path::PathBuf};
-use crate::{cli::output::{OutputData, OutputSchema}, error::output_errors::OutputError};
+use crate::{cli::output::{OutputData, OutputConfig}, error::output_errors::OutputError};
 
 use super::AlignmentWriter;
 
 pub struct OutputWriterJsonl {
     writer: Option<BufWriter<File>>,
     batch_size: usize,
-    output_schema: OutputSchema,
+    output_config: OutputConfig,
     buffer: Vec<serde_json::Value>
 }
 
@@ -75,7 +75,7 @@ impl AlignmentWriter for OutputWriterJsonl {
         path: &PathBuf, 
         force_overwrite: bool, 
         batch_size: usize,
-        output_schema: OutputSchema
+        output_config: OutputConfig
     ) -> Result<Self, crate::error::output_errors::OutputError> {
         if path.exists() && !force_overwrite {
             return Err(OutputError::FileExists(path.clone()));
@@ -87,7 +87,7 @@ impl AlignmentWriter for OutputWriterJsonl {
         Ok(OutputWriterJsonl {
             writer: Some(writer),
             batch_size,
-            output_schema,
+            output_config,
             buffer: Vec::with_capacity(batch_size),
         })
     }
@@ -101,62 +101,98 @@ impl AlignmentWriter for OutputWriterJsonl {
         }
 
         // Check if the provided data matches the expected output schema
-        if !data.matches(&self.output_schema) {
+        if !data.matches(&self.output_config) {
             return Err(OutputError::InvalidOutputSchema(
                 format!(
                     "OutputData type {:?} does not match writer OutputSchema {:?}",
                     std::mem::discriminant(&data),
-                    self.output_schema
+                    self.output_config
                 )
             ));
         }
 
         let record = match data {
-            OutputData::Basic { 
-                read_id, 
-                query_to_signal, 
-                ref_to_signal 
-            } => {
+            OutputData::QueryBasic { read_id, query_to_signal } => {
                 serde_json::json!({
                     "read_id": read_id,
                     "query_to_signal": query_to_signal,
-                    "ref_to_signal": ref_to_signal,
                 })
             }
-            OutputData::WithSequences { 
-                read_id, 
-                query_to_signal, 
-                ref_to_signal, 
-                query_sequence, 
-                ref_sequence 
-            } => {
+            OutputData::RefBasic { read_id, ref_to_signal, ref_name, ref_start } => {
                 serde_json::json!({
                     "read_id": read_id,
-                    "query_to_signal": query_to_signal,
                     "ref_to_signal": ref_to_signal,
-                    "query_sequence": query_sequence,
-                    "ref_sequence": ref_sequence
+                    "ref_name": ref_name,
+                    "ref_start": ref_start,
                 })
             }
-            OutputData::WithSequencesAndSignal { 
-                read_id, 
-                query_to_signal, 
-                ref_to_signal, 
-                query_sequence, 
-                ref_sequence, 
-                signal 
-            } => {
+            OutputData::BothBasic { read_id, query_to_signal, ref_to_signal, ref_name, ref_start } => {
                 serde_json::json!({
                     "read_id": read_id,
                     "query_to_signal": query_to_signal,
                     "ref_to_signal": ref_to_signal,
+                    "ref_name": ref_name,
+                    "ref_start": ref_start,
+                })
+            }
+            OutputData::QueryWithSeq { read_id, query_to_signal, query_sequence } => {
+                serde_json::json!({
+                    "read_id": read_id,
+                    "query_to_signal": query_to_signal,
                     "query_sequence": query_sequence,
+                })
+            }
+            OutputData::RefWithSeq { read_id, ref_to_signal, ref_sequence, ref_name, ref_start } => {
+                serde_json::json!({
+                    "read_id": read_id,
+                    "ref_to_signal": ref_to_signal,
                     "ref_sequence": ref_sequence,
-                    "signal": signal
+                    "ref_name": ref_name,
+                    "ref_start": ref_start,
+                })
+            }
+            OutputData::BothWithSeq { read_id, query_to_signal, query_sequence, ref_to_signal, ref_sequence, ref_name, ref_start } => {
+                serde_json::json!({
+                    "read_id": read_id,
+                    "query_to_signal": query_to_signal,
+                    "query_sequence": query_sequence,
+                    "ref_to_signal": ref_to_signal,
+                    "ref_sequence": ref_sequence,
+                    "ref_name": ref_name,
+                    "ref_start": ref_start,
+                })
+            }
+            OutputData::QueryWithSeqAndSig { read_id, query_to_signal, query_sequence, signal } => {
+                serde_json::json!({
+                    "read_id": read_id,
+                    "query_to_signal": query_to_signal,
+                    "query_sequence": query_sequence,
+                    "signal": signal,
+                })
+            }
+            OutputData::RefWithSeqAndSig { read_id, ref_to_signal, ref_sequence, ref_name, ref_start, signal } => {
+                serde_json::json!({
+                    "read_id": read_id,
+                    "ref_to_signal": ref_to_signal,
+                    "ref_sequence": ref_sequence,
+                    "ref_name": ref_name,
+                    "ref_start": ref_start,
+                    "signal": signal,
+                })
+            }
+            OutputData::BothWithSeqAndSig { read_id, query_to_signal, query_sequence, ref_to_signal, ref_sequence, ref_name, ref_start, signal } => {
+                serde_json::json!({
+                    "read_id": read_id,
+                    "query_to_signal": query_to_signal,
+                    "query_sequence": query_sequence,
+                    "ref_to_signal": ref_to_signal,
+                    "ref_sequence": ref_sequence,
+                    "ref_name": ref_name,
+                    "ref_start": ref_start,
+                    "signal": signal,
                 })
             }
         };
-
         self.buffer.push(record);
 
         if self.buffer.len() >= self.batch_size {

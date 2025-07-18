@@ -28,13 +28,27 @@
  * - SNAPPY compression provides good balance between compression ratio and speed
  * - Arrow format enables efficient columnar analytics on the output data
  */
-
-use std::{fs::File, path::PathBuf, sync::Arc};
-use arrow::{array::{ArrayRef, Int16Builder, ListBuilder, RecordBatch, StringBuilder, UInt64Builder}, datatypes::{DataType, Field, Schema}};
-use parquet::{arrow::ArrowWriter, file::properties::WriterProperties};
-use crate::{cli::output::{OutputData, OutputSchema}, error::output_errors::OutputError};
-
-use super::AlignmentWriter;
+use std::{fs::File, path::PathBuf, sync::Arc, vec};
+use parquet::{
+    arrow::ArrowWriter, 
+    file::properties::WriterProperties
+};
+use arrow::{datatypes::{
+    DataType, 
+    Field, 
+    Schema, 
+}};
+use crate::{
+    cli::{
+        output::{
+            output_data::OutputData, 
+            OutputConfig
+        },
+        parse::args_to_input::WhichToAlign
+    }, 
+    error::output_errors::OutputError
+};
+use super::{AlignmentWriter, arrow_buffer::ArrowBuffer};
 
 /// Writer that buffers alignment data and writes it to an Arrow file in batches
 ///
@@ -45,49 +59,85 @@ pub struct OutputWriterArrow {
     writer: Option<ArrowWriter<File>>,
     schema: Arc<Schema>,
     batch_size: usize,
-    output_schema: OutputSchema,
-
-    // Basic buffers
-    buf_read_ids: Vec<String>,
-    buf_query_alignments: Vec<Option<Vec<usize>>>,
-    buf_ref_alignments: Vec<Option<Vec<usize>>>,
-
-    // Optional buffers
-    buf_query_seq: Vec<Option<String>>,
-    buf_ref_seq: Vec<Option<String>>,
-    buf_signal: Vec<Option<Vec<i16>>>
+    output_config: OutputConfig,
+    // Buffers
+    buffer: ArrowBuffer,
+    current_buffer_size: usize
 }
 
 impl OutputWriterArrow {
     /// Creates the Arrow schema based on the ouput schema
-    fn create_schema(output_schema: &OutputSchema) -> Arc<Schema> {
-        let mut fields = vec![
-            Field::new("read_id", DataType::Utf8, false),
-            Field::new(
-                "query_to_signal", 
-                DataType::List(Arc::new(
-                    Field::new("item", DataType::UInt64, true)
-                )), 
-                true
-            ),
-            Field::new(
-                "ref_to_signal",
-                DataType::List(Arc::new(
-                    Field::new("item", DataType::UInt64, true)
-                )), 
-                true
-            )
-        ];
+    fn create_schema(output_schema: &OutputConfig) -> Arc<Schema> {
+        // Read id column is always present
+        let mut fields = vec![Field::new("read_id", DataType::Utf8, false)];
 
-        match output_schema {
-            OutputSchema::Basic => {}, // nothing needs to be added
-            OutputSchema::WithSequences => {
-                fields.push(Field::new("query_sequence", DataType::Utf8, true));
-                fields.push(Field::new("ref_sequence", DataType::Utf8, true));
-            },
-            OutputSchema::WithSequencesAndSignal => {
-                fields.push(Field::new("query_sequence", DataType::Utf8, true));
-                fields.push(Field::new("ref_sequence", DataType::Utf8, true));
+        let alignment_type = output_schema.alignment_type();
+        let include_sequences = output_schema.include_sequences();
+        let include_signal = output_schema.include_signal();
+
+        match alignment_type {
+            WhichToAlign::Query => {
+                fields.push(
+                    Field::new(
+                        "query_to_signal", 
+                        DataType::List(Arc::new(
+                            Field::new("item", DataType::UInt64, true)
+                        )), 
+                        true
+                    )
+                );
+            }
+            WhichToAlign::Reference => {
+                fields.append(&mut vec![
+                    Field::new(
+                        "ref_to_signal",
+                        DataType::List(Arc::new(
+                            Field::new("item", DataType::UInt64, true)
+                        )), 
+                        true
+                    ),
+                    Field::new("ref_name", DataType::Utf8, false),
+                    Field::new("ref_start", DataType::UInt64, false),
+                ]);
+            }
+            WhichToAlign::Both => {
+                fields.append(&mut vec![
+                    Field::new(
+                        "query_to_signal", 
+                        DataType::List(Arc::new(
+                            Field::new("item", DataType::UInt64, true)
+                        )), 
+                        true
+                    ),
+                    Field::new(
+                        "ref_to_signal",
+                        DataType::List(Arc::new(
+                            Field::new("item", DataType::UInt64, true)
+                        )), 
+                        true
+                    ),
+                    Field::new("ref_name", DataType::Utf8, false),
+                    Field::new("ref_start", DataType::UInt64, false),
+                ]);
+
+            }
+        }
+
+        if include_sequences {
+            match alignment_type {
+                WhichToAlign::Query => {
+                    fields.push(Field::new("query_sequence", DataType::Utf8, true));
+                }
+                WhichToAlign::Reference => {
+                    fields.push(Field::new("ref_sequence", DataType::Utf8, true));
+                }
+                WhichToAlign::Both => {
+                    fields.push(Field::new("query_sequence", DataType::Utf8, true));
+                    fields.push(Field::new("ref_sequence", DataType::Utf8, true));
+                }
+            }
+
+            if include_signal {
                 fields.push(Field::new(
                     "signal", 
                     DataType::List(Arc::new(
@@ -125,13 +175,13 @@ impl AlignmentWriter for OutputWriterArrow {
         path: &PathBuf, 
         force_overwrite: bool, 
         batch_size: usize, 
-        output_schema: OutputSchema
+        output_config: OutputConfig
     ) -> Result<Self, OutputError> {
         if path.exists() && !force_overwrite {
             return Err(OutputError::FileExists(path.clone()));
         }
 
-        let schema = OutputWriterArrow::create_schema(&output_schema);
+        let schema = OutputWriterArrow::create_schema(&output_config);
         let file = File::create(path)?;
 
         let props = WriterProperties::builder()
@@ -140,17 +190,15 @@ impl AlignmentWriter for OutputWriterArrow {
         
         let writer = ArrowWriter::try_new(file, schema.clone(), Some(props))?;
 
+        let buffer = ArrowBuffer::new(&output_config);
+
         Ok(OutputWriterArrow { 
             writer: Some(writer), 
             schema, 
             batch_size, 
-            output_schema, 
-            buf_read_ids: Vec::with_capacity(batch_size), 
-            buf_query_alignments: Vec::with_capacity(batch_size), 
-            buf_ref_alignments: Vec::with_capacity(batch_size), 
-            buf_query_seq: Vec::with_capacity(batch_size), 
-            buf_ref_seq: Vec::with_capacity(batch_size), 
-            buf_signal: Vec::with_capacity(batch_size) 
+            output_config, 
+            buffer,
+            current_buffer_size: 0
         })
     }
 
@@ -180,62 +228,20 @@ impl AlignmentWriter for OutputWriterArrow {
         }
 
         // Check if the provided data matches the expected output schema
-        if !data.matches(&self.output_schema) {
+        if !data.matches(&self.output_config) {
             return Err(OutputError::InvalidOutputSchema(
                 format!(
                     "OutputData type {:?} does not match writer OutputSchema {:?}",
                     std::mem::discriminant(&data),
-                    self.output_schema
+                    self.output_config
                 )
             ));
         }
 
-        match data {
-            OutputData::Basic { 
-                read_id, 
-                query_to_signal, 
-                ref_to_signal 
-            } => {
-                self.buf_read_ids.push(read_id.to_string());
-                self.buf_query_alignments.push(query_to_signal);
-                self.buf_ref_alignments.push(ref_to_signal);
-            }
+        self.buffer.push_data(&data)?;
+        self.current_buffer_size += 1;
 
-            OutputData::WithSequences { 
-                read_id, 
-                query_to_signal, 
-                ref_to_signal, 
-                query_sequence, 
-                ref_sequence 
-            } => {
-                self.buf_read_ids.push(read_id.to_string());
-                self.buf_query_alignments.push(query_to_signal);
-                self.buf_ref_alignments.push(ref_to_signal);
-
-                self.buf_query_seq.push(query_sequence.map(|s| s.to_string()));
-                self.buf_ref_seq.push(ref_sequence.map(|s| s.to_string()));
-            }
-
-            OutputData::WithSequencesAndSignal { 
-                read_id, 
-                query_to_signal, 
-                ref_to_signal, 
-                query_sequence, 
-                ref_sequence, 
-                signal 
-            } => {
-                self.buf_read_ids.push(read_id.to_string());
-                self.buf_query_alignments.push(query_to_signal);
-                self.buf_ref_alignments.push(ref_to_signal);
-                
-                self.buf_query_seq.push(query_sequence.map(|s| s.to_string()));
-                self.buf_ref_seq.push(ref_sequence.map(|s| s.to_string()));
-
-                self.buf_signal.push(signal);
-            }
-        }
-
-        if self.buf_read_ids.len() >= self.batch_size {
+        if self.current_buffer_size >= self.batch_size {
             self.flush()?
         }
 
@@ -263,105 +269,17 @@ impl AlignmentWriter for OutputWriterArrow {
             Some(w) => w
         };
 
-        if self.buf_read_ids.is_empty() {
+        if self.current_buffer_size == 0 {
             return Ok(());
         }
 
-        // Collects all columns
-        let mut columns: Vec<ArrayRef> = Vec::new();
-
-        // Build the read id column (always present)
-        let mut read_id_builder = StringBuilder::new();
-        for read_id in &self.buf_read_ids {
-            read_id_builder.append_value(read_id);
-        }
-        columns.push(Arc::new(read_id_builder.finish()));
-
-        // Build query alignment column (always present)
-        let mut query_builder = ListBuilder::new(UInt64Builder::new());
-        for alignment_opt in &self.buf_query_alignments {
-            if let Some(alignment) = alignment_opt {
-                for &val in alignment {
-                    query_builder.values().append_value(val as u64);
-                }
-                query_builder.append(true);
-            } else {
-                query_builder.append(false);
-            }
-        }
-        columns.push(Arc::new(query_builder.finish()));
-
-        // Build ref alignment array (always present)
-        let mut ref_builder = ListBuilder::new(UInt64Builder::new());
-        for alignment_opt in &self.buf_ref_alignments {
-            if let Some(alignment) = alignment_opt {
-                for &value in alignment {
-                    ref_builder.values().append_value(value as u64);
-                }
-                ref_builder.append(true);
-            } else {
-                ref_builder.append(false);
-            }
-        }
-        columns.push(Arc::new(ref_builder.finish()));
-
-        match self.output_schema {
-            OutputSchema::Basic => {}, // nothing needs to be added
-            OutputSchema::WithSequences | OutputSchema::WithSequencesAndSignal => {
-                // Build the query sequence column
-                let mut query_seq_builder = StringBuilder::new();
-                for seq in &self.buf_query_seq {
-                    if let Some(s) = seq {
-                        query_seq_builder.append_value(s);
-                    } else {
-                        query_seq_builder.append_null();
-                    }
-                }
-                columns.push(Arc::new(query_seq_builder.finish()));
-
-                // Build the reference sequence column
-                let mut ref_seq_builder = StringBuilder::new();
-                for seq in &self.buf_ref_seq {
-                    if let Some(s) = seq {
-                        ref_seq_builder.append_value(s);
-                    } else {
-                        ref_seq_builder.append_null();
-                    }
-                }
-                columns.push(Arc::new(ref_seq_builder.finish()));
-
-                if matches!(self.output_schema, OutputSchema::WithSequencesAndSignal) {
-                    // Build the signal column
-                    let mut signal_builder = ListBuilder::new(Int16Builder::new());
-                    for signal_opt in &self.buf_signal {
-                        if let Some(signal) = signal_opt {
-                            for &val in signal {
-                                signal_builder.values().append_value(val);
-                            }
-                            signal_builder.append(true);
-                        } else {
-                            signal_builder.append(false);
-                        }
-                    }
-                    columns.push(Arc::new(signal_builder.finish()));
-                }
-            }
-        }
-
-        // Create batch from arrays
-        let batch = RecordBatch::try_new(
-            self.schema.clone(),
-            columns
-        )?;
+        let batch = self.buffer.buffer_to_record_batch(&self.schema)?;
 
         writer.write(&batch)?;
 
-        self.buf_read_ids.clear();
-        self.buf_query_alignments.clear();
-        self.buf_ref_alignments.clear();
-        self.buf_query_seq.clear();
-        self.buf_ref_seq.clear();
-        self.buf_signal.clear();
+        // Clear buffer by re-initializing it
+        self.buffer = ArrowBuffer::new(&self.output_config);
+        self.current_buffer_size = 0;
 
         Ok(())
     }

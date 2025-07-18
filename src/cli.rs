@@ -4,4 +4,4 @@
 
 pub mod parse;
 pub mod execute;
-mod output;
+pub mod output;

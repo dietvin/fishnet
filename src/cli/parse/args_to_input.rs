@@ -11,7 +11,7 @@ use std::path::PathBuf;
 use clap::ArgMatches;
 use log::LevelFilter;
 
-use crate::{cli::output::OutputSchema, core::refinement::settings::{RefineAlgo, RefineSettings, RescaleAlgo, RoughRescaleAlgo, WhichToRefine}, error::cli_errors::CliError};
+use crate::{cli::output::OutputConfig, core::refinement::settings::{RefineAlgo, RefineSettings, RescaleAlgo, RoughRescaleAlgo, WhichToRefine}, error::cli_errors::CliError};
 
 use super::helpers::{calc_quantiles, check_output_file, check_and_get_pod5_input, check_input_file};
 
@@ -46,7 +46,7 @@ pub struct Config {
     alignment_type: WhichToAlign,
 
     output_format: OutputFormat,
-    output_schema: OutputSchema,
+    output_config: OutputConfig,
     output_batch_size: usize,
     force_overwrite: bool,
     
@@ -106,10 +106,22 @@ impl Config {
         let output_level_raw = matches.get_one::<String>("output-level").ok_or(
             CliError::ArgumentNone("output-level".to_string()) 
         )?.clone();
-        let output_schema = match output_level_raw.as_str() {
-            "1" => OutputSchema::Basic,
-            "2" => OutputSchema::WithSequences,
-            "3" => OutputSchema::WithSequencesAndSignal,
+        let output_config = match output_level_raw.as_str() {
+            "1" => OutputConfig::new(
+                alignment_type.clone(),
+                false, 
+                false
+            ),
+            "2" => OutputConfig::new(
+                alignment_type.clone(),
+                true, 
+                false
+            ),
+            "3" => OutputConfig::new(
+                alignment_type.clone(),
+                true, 
+                true
+            ),
             _ => unreachable!()
         };
 
@@ -377,7 +389,7 @@ impl Config {
             output_file, 
             is_drna,
             alignment_type, 
-            output_schema,
+            output_config,
             output_format,
             output_batch_size,
             force_overwrite,
@@ -406,8 +418,8 @@ impl Config {
         &self.output_file
     }
 
-    pub fn output_schema(&self) -> &OutputSchema {
-        &self.output_schema
+    pub fn output_config(&self) -> &OutputConfig {
+        &self.output_config
     }
 
     pub fn output_format(&self) -> &OutputFormat {
