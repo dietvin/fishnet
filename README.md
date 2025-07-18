@@ -1,12 +1,18 @@
 # Fishnet
 
-<div style="font-size: 25px; font-weight: bold">Fast signal-to-sequence alignment for Nanopore sequencing data in a simple command line interface</div>
+## TL;DR
 
+Fishnet implements the signal-to-sequence alignment algorithm used in [Remora](https://github.com/nanoporetech/remora) in a Rust-based command line interface for better accessibility and improved speed.
+
+[Download](https://github.com/dietvin/fishnet/releases/latest) the binary, extract it and run:
+```bash
+./fishnet --help
+```
 
 ## Table of contents
 - [Fishnet](#fishnet)
+  - [TL;DR](#tldr)
   - [Table of contents](#table-of-contents)
-  - [Description](#description)
   - [Installation](#installation)
   - [Usage](#usage)
     - [Required arguments](#required-arguments)
@@ -14,10 +20,6 @@
   - [Algorithm details](#algorithm-details)
   - [Code structure](#code-structure)
   - [License](#license)
-
-## Description
-
-Fishnet implements the signal-to-sequence alignment algorithm used in [Remora](https://github.com/nanoporetech/remora) in a Rust-based command line interface for better accessibility and improved speed.
 
 ## Installation
 
@@ -73,6 +75,20 @@ The following arguments are the most relevant optional arguments for most users:
 | --force-overwrite | -f         | If set and an output file already exists, this file will be overwritten. Raises an error otherwise                                                                                                            | bool |
 
 For the sake of simplicity, the table shows only a subset of the optional arguments. An explanation for all arguments can be found in the [usage documentation](./docs/usage.md#comman-line-interface).
+
+## Output
+
+The output format is determined by the file extension provided in the output file path. Available formats are [Parquet](https://parquet.apache.org/docs/overview/) (`.parquet`) and [JSONL](https://jsonlines.org/) (`.jsonl`) format. Parquet format is recommended as it is more efficient due to compression and chunked writing/reading.
+
+The output structure depends on the given values for the `--alignment-type` and `--output-level` flags. The table below shows the columns that are present with given alignment type (rows) and output level (columns) settings:
+
+|  | 1 | 2 | 3 |
+|---|---|---|---|
+| **query** | read_id, query_to_signal | read_id, query_to_signal, **query_sequence** | read_id, query_to_signal, query_seq, **signal** |
+| **reference** | read_id, ref_to_signal, ref_name, ref_start | read_id, ref_to_signal, ref_name, ref_start, **ref_sequence** | read_id, ref_to_signal, ref_name, ref_start, ref_sequence, **signal** |
+| **both** | read_id, query_to_signal ref_to_signal, ref_name, ref_start | read_id, query_to_signal ref_to_signal, ref_name, ref_start, **query_sequence**, **ref_sequence** | read_id, query_to_signal ref_to_signal, ref_name, ref_start, query_sequence, ref_sequence, **signal** |
+
+More information about the output file structure is given in the [usage documentation](./docs/usage.md#output)
 
 ## Algorithm details
 
