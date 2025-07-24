@@ -1,0 +1,20 @@
+[package]
+name = "pod5_reader_api"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+arrow2 = { version = "0.18.0", features = ["compute_concatenate", "io_ipc"] }
+bitvec = "1.0.1"
+chrono = "0.4.41"
+delta-encoding = "0.4.8"
+flatbuffers = "25.2.10"
+serde_json = "1.0.141"
+thiserror = "2.0.12"
+uuid = "1.17.0"
+zigzag = "0.1.0"
+zstd = "0.13.3"
+
+[lib]
+name = "pod5_reader_api"
+path = "src/lib.rs"

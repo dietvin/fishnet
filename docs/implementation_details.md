@@ -2,6 +2,8 @@
 
 This page provides a overview of the general code structure. It lists all modules along with short explanations. Detailed descriptions of each function are provided in the scripts. 
 
+## Fishnet
+
 Fishnet is structured in the following modules:
 
 - [cli](../src/cli.rs): Handles the command line parsing, the execution and output writing.
@@ -39,3 +41,9 @@ Fishnet is structured in the following modules:
     - [alignment_errors](../src/error/alignment_errors.rs)
     - [refinement_errors](../src/error/refinement_errors.rs)
     - [output_errors](../src/error/output_errors.rs)
+
+## Pod5 reader API
+
+Fishnet initially used the pod5 API from the [pod5-rs](https://github.com/bsaintjo/pod5-rs) crate. This implementation has the major limitation that at the time of writing, it does not support lazy loading of individual reads. As such, working with larger pod5 file (multiple GB) frequently leads to crashes when the machine runs out of memory.
+
+To enable working with large Pod5 files directly, Fishnet uses on a custom pod5 Reader API that allows lazy loading of large datasets. 

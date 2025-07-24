@@ -1,0 +1,30 @@
+[package]
+name = "fishnet"
+version = "0.1.4"
+edition = "2021"
+description = "Fast CLI tool for nanopore signal to sequence alignment"
+license-file = "../LICENSE"
+repository = "https://github.com/dietvin/fishnet"
+
+[dependencies]
+# Local dependency on pod5_reader_api
+pod5_reader_api = { path = "../pod5_reader_api" }
+
+# External dependencies
+approx = "0.5.1"
+arrow = "55.0.0"
+clap = "4.5.37"
+console = "0.15.11"
+crossbeam = "0.8.4"
+indicatif = "0.17.11"
+itertools = "0.14.0"
+log = "0.4.27"
+log4rs = "1.3.0"
+noodles = { version = "0.99.0", features = ["bam", "bgzf", "sam"] }
+parquet = "55.0.0"
+rand = "0.9.0"
+serde = "1.0.219"
+serde_json = "1.0.140"
+thiserror = "2.0.11"
+uuid = "1.16.0"
+walkdir = "2.5.0"

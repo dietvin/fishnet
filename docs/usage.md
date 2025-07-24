@@ -16,7 +16,6 @@
       - [Refinement - Dynamic programming](#refinement---dynamic-programming)
       - [Refinement - Rescaling](#refinement---rescaling)
       - [Refinement - Rough rescaling](#refinement---rough-rescaling)
-  - [Large pod5 files](#large-pod5-files)
 
 ## Input data
 
@@ -170,28 +169,3 @@ The inidividual columns have the following data types in them:
 - `ref_start`: 64bit unsigned int
 - `query_sequence` / `ref_sequence`: String
 - `signal`: List of 16bit signed int
-
-## Large pod5 files
-
-The current implementation does not yet support lazy loading of pod5 data. This means that a given pod5 file must be loaded into memory in its entirety. With very large pod5 files this can flood the memory, crashing the program. 
-
-We provide a small python script that allows subsetting one large pod5 file into multiple small ones: [subset_large_pod5.py](../scripts/subset_large_pod5.py)
-
-To run the script the `pod5` and `tqdm` packages must be installed. A straight forward approach for this is to use a conda environment:
-```bash
-conda create -n subset_pod5 python==3.13.1 && conda activate subset_pod5
-pip install pod5 tqdm
-```
-
-To then run the script simply run:
-```bash
-python script/subset_large_pod5.py <path-to-pod5>
-```
-By default the script creates a folder in the directory where the pod5 file is located with the same basename as the file. For example for file `/path/to/control.pod5` the directory `/path/to/control` is created and filled with files `chunk_1.pod5`, `chunk_<...>.pod5`.
-
-It's also possible to process multiple large files in one run. For this, simply provide multiple paths space-separated: 
-```bash
-python script/subset_large_pod5.py <path-to-pod5-1> <path-to-pod5-2> <path-to-pod5-3> ...
-```
-
-By default each chunk contains 8000 reads. This number can be adjusted via the `--reads-per-file` / `-n` flag. Use the `--quiet` flag to suppress output. To write the output to another base directory than the one containing the large files, provide a directory using the `--output-dir` / `-o` flag.

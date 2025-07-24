@@ -28,7 +28,7 @@ fi
 echo "Releasing version $VERSION..."
 
 # Update version in Cargo.toml
-sed -i "s/^version = \".*\"/version = \"$VERSION\"/" Cargo.toml
+sed -i "s/^version = \".*\"/version = \"$VERSION\"/" fishnet/Cargo.toml
 
 # Update Cargo.lock
 cargo check
