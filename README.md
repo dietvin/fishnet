@@ -17,6 +17,7 @@ Fishnet implements the signal-to-sequence alignment algorithm used in [Remora](h
   - [Usage](#usage)
     - [Required arguments](#required-arguments)
     - [Optional arguments](#optional-arguments)
+  - [Output](#output)
   - [Algorithm details](#algorithm-details)
   - [Code structure](#code-structure)
   - [License](#license)
@@ -48,7 +49,11 @@ fishnet -b <basecalls.bam> -p <raw-signal.pod5> -k <level-table.txt> -o <output-
 More examples are provided in the [usage documentation](./docs/usage.md#examples). Fishnet requires the following input data:
 1. **Raw sequencing data**. Must be stored in **POD5** format.
 2. **Basecalled data**. Must be stored in a single **BAM** file, as produced by Dorado (Note that it must contain the move-table, so base-call with the `--emit-moves` flag!)
-3. **Expected current intensities**. Must be stored in a **kmer level table**, as [provided by ONT](https://github.com/nanoporetech/kmer_models)
+3. **Expected current intensities**. Must be stored in a **kmer level table**, as [provided by ONT](https://github.com/nanoporetech/kmer_models):
+     - DNA R10 (400bps): [9mer_levels_v1.txt](https://raw.githubusercontent.com/nanoporetech/kmer_models/refs/heads/master/dna_r10.4.1_e8.2_400bps/9mer_levels_v1.txt)
+     - DNA R10 (260bps): [9mer_levels_v1.txt](https://github.com/nanoporetech/kmer_models/blob/master/dna_r10.4.1_e8.2_260bps/9mer_levels_v1.txt)
+     - RNA004: [9mer_levels_v1.txt](https://raw.githubusercontent.com/nanoporetech/kmer_models/refs/heads/master/rna004/9mer_levels_v1.txt)
+     - RNA002: [5mer_levels_v1.txt](https://raw.githubusercontent.com/nanoporetech/kmer_models/refs/heads/master/rna_r9.4_180mv_70bps/5mer_levels_v1.txt)
 
 ### Required arguments
 
