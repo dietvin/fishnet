@@ -28,16 +28,21 @@
  * - SNAPPY compression provides good balance between compression ratio and speed
  * - Arrow format enables efficient columnar analytics on the output data
  */
-use std::{fs::File, path::PathBuf, sync::Arc, vec};
-use parquet::{
-    arrow::ArrowWriter, 
-    file::properties::WriterProperties
+use std::{
+    fs::File, 
+    path::PathBuf, 
+    vec
 };
-use arrow::{datatypes::{
-    DataType, 
-    Field, 
-    Schema, 
-}};
+use arrow2::{
+    datatypes::{DataType, Field, Schema},
+    io::parquet::write::{
+        CompressionOptions, 
+        Encoding, 
+        FileWriter, 
+        Version, 
+        WriteOptions
+    } 
+};
 use crate::{
     cli::{
         output::{
@@ -50,14 +55,17 @@ use crate::{
 };
 use super::{AlignmentWriter, arrow_buffer::ArrowBuffer};
 
+
 /// Writer that buffers alignment data and writes it to an Arrow file in batches
 ///
 /// This struct buffers read IDs and alignment data (query-to-signal and reference-to-signal)
 /// until a specified batch size is reached, then writes the data to an Arrow file in
 /// the Parquet format with SNAPPY compression.
 pub struct OutputWriterArrow {
-    writer: Option<ArrowWriter<File>>,
-    schema: Arc<Schema>,
+    writer: Option<FileWriter<File>>,
+    schema: Schema,
+    options: WriteOptions,
+    encodings: Vec<Vec<Encoding>>,
     batch_size: usize,
     output_config: OutputConfig,
     // Buffers
@@ -66,8 +74,8 @@ pub struct OutputWriterArrow {
 }
 
 impl OutputWriterArrow {
-    /// Creates the Arrow schema based on the ouput schema
-    fn create_schema(output_schema: &OutputConfig) -> Arc<Schema> {
+    /// Creates the Arrow schema based on the output schema
+    fn create_schema(output_schema: &OutputConfig) -> Schema {
         // Read id column is always present
         let mut fields = vec![Field::new("read_id", DataType::Utf8, false)];
 
@@ -80,7 +88,7 @@ impl OutputWriterArrow {
                 fields.push(
                     Field::new(
                         "query_to_signal", 
-                        DataType::List(Arc::new(
+                        DataType::List(Box::new(
                             Field::new("item", DataType::UInt64, true)
                         )), 
                         true
@@ -91,7 +99,7 @@ impl OutputWriterArrow {
                 fields.append(&mut vec![
                     Field::new(
                         "ref_to_signal",
-                        DataType::List(Arc::new(
+                        DataType::List(Box::new(
                             Field::new("item", DataType::UInt64, true)
                         )), 
                         true
@@ -104,14 +112,14 @@ impl OutputWriterArrow {
                 fields.append(&mut vec![
                     Field::new(
                         "query_to_signal", 
-                        DataType::List(Arc::new(
+                        DataType::List(Box::new(
                             Field::new("item", DataType::UInt64, true)
                         )), 
                         true
                     ),
                     Field::new(
                         "ref_to_signal",
-                        DataType::List(Arc::new(
+                        DataType::List(Box::new(
                             Field::new("item", DataType::UInt64, true)
                         )), 
                         true
@@ -119,7 +127,6 @@ impl OutputWriterArrow {
                     Field::new("ref_name", DataType::Utf8, false),
                     Field::new("ref_start", DataType::UInt64, false),
                 ]);
-
             }
         }
 
@@ -140,7 +147,7 @@ impl OutputWriterArrow {
             if include_signal {
                 fields.push(Field::new(
                     "signal", 
-                    DataType::List(Arc::new(
+                    DataType::List(Box::new(
                         Field::new("item", DataType::Int16, true)
                     )),
                     true
@@ -148,7 +155,7 @@ impl OutputWriterArrow {
             }
         }
 
-        Arc::new(Schema::new(fields))
+        Schema::from(fields)
     }
 }
 
@@ -184,17 +191,28 @@ impl AlignmentWriter for OutputWriterArrow {
         let schema = OutputWriterArrow::create_schema(&output_config);
         let file = File::create(path)?;
 
-        let props = WriterProperties::builder()
-            .set_compression(parquet::basic::Compression::SNAPPY)
-            .build();
-        
-        let writer = ArrowWriter::try_new(file, schema.clone(), Some(props))?;
+        let options = WriteOptions {
+            write_statistics: true,
+            compression: CompressionOptions::Snappy,
+            version: Version::V2,
+            data_pagesize_limit: None,
+        };
+
+        let encodings = schema
+            .fields
+            .iter()
+            .map(|_| vec![Encoding::Plain])
+            .collect::<Vec<Vec<Encoding>>>();
+
+        let writer = FileWriter::try_new(file, schema.clone(), options)?;
 
         let buffer = ArrowBuffer::new(&output_config);
 
         Ok(OutputWriterArrow { 
             writer: Some(writer), 
             schema, 
+            options,
+            encodings,
             batch_size, 
             output_config, 
             buffer,
@@ -248,8 +266,6 @@ impl AlignmentWriter for OutputWriterArrow {
         Ok(())
     }
 
-
-
     /// Writes all buffered data to disk
     ///
     /// Creates Arrow arrays from the buffered data and writes them as a record batch.
@@ -273,9 +289,15 @@ impl AlignmentWriter for OutputWriterArrow {
             return Ok(());
         }
 
-        let batch = self.buffer.buffer_to_record_batch(&self.schema)?;
+        let row_groups = self.buffer.buffer_to_rowgroupiter(
+            &self.schema, 
+            &self.encodings, 
+            &self.options
+        )?;
 
-        writer.write(&batch)?;
+        for group in row_groups {
+            writer.write(group?)?;
+        }
 
         // Clear buffer by re-initializing it
         self.buffer = ArrowBuffer::new(&self.output_config);
@@ -298,8 +320,8 @@ impl AlignmentWriter for OutputWriterArrow {
     fn finalize(&mut self) -> Result<(), OutputError> {
         self.flush()?;
 
-        if let Some(writer) = self.writer.take() {
-            writer.close()?;
+        if let Some(mut writer) = self.writer.take() {
+            writer.end(None)?;
         }
 
         Ok(())

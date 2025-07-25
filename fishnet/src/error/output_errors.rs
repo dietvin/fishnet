@@ -22,13 +22,9 @@ pub enum OutputError {
 
     // Errors specific to Arrow output format
 
-    /// Error from underlying Parquet library operations
-    #[error("Parquet error: {0}")]
-    ParquetError(#[from] parquet::errors::ParquetError),
-
     /// Error from underlying Arrow library operations
     #[error("Arrow error: {0}")]
-    ArrowError(#[from] arrow::error::ArrowError),
+    ArrowError(#[from] arrow2::error::Error),
 
     // Error specific to Json output format
 

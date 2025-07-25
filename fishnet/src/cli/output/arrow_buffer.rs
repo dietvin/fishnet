@@ -1,14 +1,19 @@
-use std::sync::Arc;
-use arrow::{
+use arrow2::{
     array::{
-        ArrayRef, 
-        Int16Builder, 
-        ListBuilder, 
-        RecordBatch, 
-        StringBuilder, 
-        UInt64Builder
-    }, 
-    datatypes::Schema
+        Array, 
+        MutableArray, 
+        MutableListArray, 
+        MutablePrimitiveArray, 
+        MutableUtf8Array, 
+        TryPush
+    },
+    chunk::Chunk,
+    datatypes::Schema, 
+    io::parquet::write::{
+        Encoding,
+        RowGroupIterator,
+        WriteOptions
+    },
 };
 use crate::{
     cli::{
@@ -29,88 +34,88 @@ use crate::{
 #[derive(Debug)]
 pub enum ArrowBuffer {
     QueryBasic{
-        buffer_read_id: StringBuilder,
-        buffer_query_to_signal: ListBuilder<UInt64Builder>,
+        buffer_read_id: MutableUtf8Array<i32>,
+        buffer_query_to_signal: MutableListArray<i32, MutablePrimitiveArray<u64>>,
     },
     RefBasic{
-        buffer_read_id: StringBuilder,
-        buffer_ref_to_signal: ListBuilder<UInt64Builder>,
-        buffer_ref_name: StringBuilder,
-        buffer_ref_start: UInt64Builder,
+        buffer_read_id: MutableUtf8Array<i32>,
+        buffer_ref_to_signal: MutableListArray<i32, MutablePrimitiveArray<u64>>,
+        buffer_ref_name: MutableUtf8Array<i32>,
+        buffer_ref_start: MutablePrimitiveArray<u64>,
     },
     BothBasic{
-        buffer_read_id: StringBuilder,
-        buffer_query_to_signal: ListBuilder<UInt64Builder>,
-        buffer_ref_to_signal: ListBuilder<UInt64Builder>,
-        buffer_ref_name: StringBuilder,
-        buffer_ref_start: UInt64Builder,
+        buffer_read_id: MutableUtf8Array<i32>,
+        buffer_query_to_signal: MutableListArray<i32, MutablePrimitiveArray<u64>>,
+        buffer_ref_to_signal: MutableListArray<i32, MutablePrimitiveArray<u64>>,
+        buffer_ref_name: MutableUtf8Array<i32>,
+        buffer_ref_start: MutablePrimitiveArray<u64>,
     },
     QueryWithSeq{
-        buffer_read_id: StringBuilder,
-        buffer_query_to_signal: ListBuilder<UInt64Builder>,
-        buffer_query_seq: StringBuilder,
+        buffer_read_id: MutableUtf8Array<i32>,
+        buffer_query_to_signal: MutableListArray<i32, MutablePrimitiveArray<u64>>,
+        buffer_query_seq: MutableUtf8Array<i32>,
     },
     RefWithSeq{
-        buffer_read_id: StringBuilder,
-        buffer_ref_to_signal: ListBuilder<UInt64Builder>,
-        buffer_ref_name: StringBuilder,
-        buffer_ref_start: UInt64Builder,
-        buffer_ref_seq: StringBuilder,
+        buffer_read_id: MutableUtf8Array<i32>,
+        buffer_ref_to_signal: MutableListArray<i32, MutablePrimitiveArray<u64>>,
+        buffer_ref_name: MutableUtf8Array<i32>,
+        buffer_ref_start: MutablePrimitiveArray<u64>,
+        buffer_ref_seq: MutableUtf8Array<i32>,
     },
     BothWithSeq{
-        buffer_read_id: StringBuilder,
-        buffer_query_to_signal: ListBuilder<UInt64Builder>,
-        buffer_ref_to_signal: ListBuilder<UInt64Builder>,
-        buffer_ref_name: StringBuilder,
-        buffer_ref_start: UInt64Builder,
-        buffer_query_seq: StringBuilder,
-        buffer_ref_seq: StringBuilder,
+        buffer_read_id: MutableUtf8Array<i32>,
+        buffer_query_to_signal: MutableListArray<i32, MutablePrimitiveArray<u64>>,
+        buffer_ref_to_signal: MutableListArray<i32, MutablePrimitiveArray<u64>>,
+        buffer_ref_name: MutableUtf8Array<i32>,
+        buffer_ref_start: MutablePrimitiveArray<u64>,
+        buffer_query_seq: MutableUtf8Array<i32>,
+        buffer_ref_seq: MutableUtf8Array<i32>,
     },
     QueryWithSeqAndSig{
-        buffer_read_id: StringBuilder,
-        buffer_query_to_signal: ListBuilder<UInt64Builder>,
-        buffer_query_seq: StringBuilder,
-        buffer_signal: ListBuilder<Int16Builder>,
+        buffer_read_id: MutableUtf8Array<i32>,
+        buffer_query_to_signal: MutableListArray<i32, MutablePrimitiveArray<u64>>,
+        buffer_query_seq: MutableUtf8Array<i32>,
+        buffer_signal: MutableListArray<i32, MutablePrimitiveArray<i16>>,
     },
     RefWithSeqAndSig{
-        buffer_read_id: StringBuilder,
-        buffer_ref_to_signal: ListBuilder<UInt64Builder>,
-        buffer_ref_name: StringBuilder,
-        buffer_ref_start: UInt64Builder,
-        buffer_ref_seq: StringBuilder,
-        buffer_signal: ListBuilder<Int16Builder>,
+        buffer_read_id: MutableUtf8Array<i32>,
+        buffer_ref_to_signal: MutableListArray<i32, MutablePrimitiveArray<u64>>,
+        buffer_ref_name: MutableUtf8Array<i32>,
+        buffer_ref_start: MutablePrimitiveArray<u64>,
+        buffer_ref_seq: MutableUtf8Array<i32>,
+        buffer_signal: MutableListArray<i32, MutablePrimitiveArray<i16>>,
     },
     BothWithSeqAndSig{
-        buffer_read_id: StringBuilder,
-        buffer_query_to_signal: ListBuilder<UInt64Builder>,
-        buffer_ref_to_signal: ListBuilder<UInt64Builder>,
-        buffer_ref_name: StringBuilder,
-        buffer_ref_start: UInt64Builder,
-        buffer_query_seq: StringBuilder,
-        buffer_ref_seq: StringBuilder,
-        buffer_signal: ListBuilder<Int16Builder>,
+        buffer_read_id: MutableUtf8Array<i32>,
+        buffer_query_to_signal: MutableListArray<i32, MutablePrimitiveArray<u64>>,
+        buffer_ref_to_signal: MutableListArray<i32, MutablePrimitiveArray<u64>>,
+        buffer_ref_name: MutableUtf8Array<i32>,
+        buffer_ref_start: MutablePrimitiveArray<u64>,
+        buffer_query_seq: MutableUtf8Array<i32>,
+        buffer_ref_seq: MutableUtf8Array<i32>,
+        buffer_signal: MutableListArray<i32, MutablePrimitiveArray<i16>>,
     }
 }
 
 impl ArrowBuffer {
-    /// Creates a new StringBuilder for string fields (for read_id, sequences)
-    fn new_string_builder() -> StringBuilder {
-        StringBuilder::new()
+    /// Creates a new MutableUtf8Array<i32> for string fields (for read_id, sequences)
+    fn new_string_builder() -> MutableUtf8Array<i32> {
+        MutableUtf8Array::<i32>::new()
     }
 
     /// Creates a new ListBuilder for UInt64 lists (for the alignments)
-    fn new_u64_list_builder() -> ListBuilder<UInt64Builder> {
-        ListBuilder::<UInt64Builder>::new(UInt64Builder::new())
+    fn new_u64_list_builder() -> MutableListArray<i32, MutablePrimitiveArray<u64>> {
+        MutableListArray::<i32, MutablePrimitiveArray<u64>>::new()
     }
 
     /// Creates a new builder for UInt64 fields (for ref_start)
-    fn new_u64_builder() -> UInt64Builder {
-        UInt64Builder::new()
+    fn new_u64_builder() -> MutablePrimitiveArray<u64> {
+        MutablePrimitiveArray::<u64>::new()
     }
 
     /// Creates a new ListBuilder for Int16 lists (for the signal data)
-    fn new_i16_list_builder() -> ListBuilder<Int16Builder> {
-        ListBuilder::<Int16Builder>::new(Int16Builder::new())
+    fn new_i16_list_builder() -> MutableListArray<i32, MutablePrimitiveArray<i16>> {
+        MutableListArray::<i32, MutablePrimitiveArray<i16>>::new()
     }
 
     /// Creates a new ArrowBuffer based on output configuration
@@ -191,45 +196,52 @@ impl ArrowBuffer {
         }
     }
 
-    /// Appends a string value to a StringBuilder
-    fn append_string(builder: &mut StringBuilder, value: &str) {
-        builder.append_value(value);
+    /// Appends a string value to a MutableUtf8Array<i32>
+    fn append_string(builder: &mut MutableUtf8Array<i32>, value: &str) {
+        builder.push(Some(value));
     }
 
-    /// Appends an optional string value to a StringBuilder
-    fn append_optional_string(builder: &mut StringBuilder, value: &Option<String>) {
-        if let Some(s) = value {
-            builder.append_value(s);
-        } else {
-            builder.append_null();
-        }
+    /// Appends an optional string value to a MutableUtf8Array<i32>
+    fn append_optional_string(builder: &mut MutableUtf8Array<i32>, value: &Option<String>) {
+        builder.push(value.as_deref());
     }
 
     /// Appends an optional usize list to a UInt64 ListBuilder
-    fn append_optional_usize_list(builder: &mut ListBuilder<UInt64Builder>, value: &Option<Vec<usize>>) {
-        if let Some(vec) = value {
-            builder.append_value(vec.iter().map(|&x| Some(x as u64)));
-        } else {
-            builder.append_null();
+    fn append_optional_usize_list(builder: &mut MutableListArray<i32, MutablePrimitiveArray<u64>>, value: &Option<Vec<usize>>) -> Result<(), arrow2::error::Error> {
+        match value {
+            Some(vec) => {
+                let vec_u64 = vec.iter().map(|&x| Some(x as u64)).collect::<Vec<Option<u64>>>();
+                builder.try_push(Some(vec_u64))?;
+            }
+            None => {
+                let opt: Option<Vec<Option<u64>>> = None;
+                builder.try_push(opt)?;
+            }
         }
+        Ok(())
     }
 
     /// Appends an optional usize value to a UInt64 builder
-    fn append_optional_usize(builder: &mut UInt64Builder, value: &Option<usize>) {
-        if let Some(val) = value {
-            builder.append_value(*val as u64);
-        } else {
-            builder.append_null();
-        }
+    fn append_optional_usize(builder: &mut MutablePrimitiveArray<u64>, value: &Option<usize>) {
+        builder.push(value.map(|v| v as u64));
     }
 
     /// Appends an optional i16 list to an Int16 ListBuilder (for signal data)
-    fn append_optional_i16_list(builder: &mut ListBuilder<Int16Builder>, value: &Option<Vec<i16>>) {
-        if let Some(vec) = value {
-            builder.append_value(vec.iter().map(|&x| Some(x)));
-        } else {
-            builder.append_null();
+    fn append_optional_i16_list(
+        builder: &mut MutableListArray<i32, MutablePrimitiveArray<i16>>, 
+        value: &Option<Vec<i16>>
+    ) -> Result<(), arrow2::error::Error> {
+        match value {
+            Some(vec) => {
+                let vec_i16 = vec.iter().map(|&x| Some(x as i16)).collect::<Vec<Option<i16>>>();
+                builder.try_push(Some(vec_i16))?;
+            }
+            None => {
+                let opt: Option<Vec<Option<i16>>> = None;
+                builder.try_push(opt)?;
+            }
         }
+        Ok(())
     }
 
     pub fn variant_name(&self) -> &'static str {
@@ -262,13 +274,13 @@ impl ArrowBuffer {
             (ArrowBuffer::QueryBasic { buffer_read_id, buffer_query_to_signal }, 
              OutputData::QueryBasic { read_id, query_to_signal }) => {
                 Self::append_string(buffer_read_id, read_id);
-                Self::append_optional_usize_list(buffer_query_to_signal, query_to_signal);
+                Self::append_optional_usize_list(buffer_query_to_signal, query_to_signal)?;
             }
 
             (ArrowBuffer::RefBasic { buffer_read_id, buffer_ref_to_signal, buffer_ref_name, buffer_ref_start }, 
              OutputData::RefBasic { read_id, ref_to_signal, ref_name, ref_start }) => {
                 Self::append_string(buffer_read_id, read_id);
-                Self::append_optional_usize_list(buffer_ref_to_signal, ref_to_signal);
+                Self::append_optional_usize_list(buffer_ref_to_signal, ref_to_signal)?;
                 Self::append_optional_string(buffer_ref_name, ref_name);
                 Self::append_optional_usize(buffer_ref_start, ref_start);
             }
@@ -276,8 +288,8 @@ impl ArrowBuffer {
             (ArrowBuffer::BothBasic { buffer_read_id, buffer_query_to_signal, buffer_ref_to_signal, buffer_ref_name, buffer_ref_start }, 
              OutputData::BothBasic { read_id, query_to_signal, ref_to_signal, ref_name, ref_start }) => {
                 Self::append_string(buffer_read_id, read_id);
-                Self::append_optional_usize_list(buffer_query_to_signal, query_to_signal);
-                Self::append_optional_usize_list(buffer_ref_to_signal, ref_to_signal);
+                Self::append_optional_usize_list(buffer_query_to_signal, query_to_signal)?;
+                Self::append_optional_usize_list(buffer_ref_to_signal, ref_to_signal)?;
                 Self::append_optional_string(buffer_ref_name, ref_name);
                 Self::append_optional_usize(buffer_ref_start, ref_start);
             }
@@ -285,14 +297,14 @@ impl ArrowBuffer {
             (ArrowBuffer::QueryWithSeq { buffer_read_id, buffer_query_to_signal, buffer_query_seq }, 
              OutputData::QueryWithSeq { read_id, query_to_signal, query_sequence }) => {
                 Self::append_string(buffer_read_id, read_id);
-                Self::append_optional_usize_list(buffer_query_to_signal, query_to_signal);
+                Self::append_optional_usize_list(buffer_query_to_signal, query_to_signal)?;
                 Self::append_optional_string(buffer_query_seq, query_sequence);
             }
 
             (ArrowBuffer::RefWithSeq { buffer_read_id, buffer_ref_to_signal, buffer_ref_name, buffer_ref_start, buffer_ref_seq }, 
              OutputData::RefWithSeq { read_id, ref_to_signal, ref_sequence, ref_name, ref_start }) => {
                 Self::append_string(buffer_read_id, read_id);
-                Self::append_optional_usize_list(buffer_ref_to_signal, ref_to_signal);
+                Self::append_optional_usize_list(buffer_ref_to_signal, ref_to_signal)?;
                 Self::append_optional_string(buffer_ref_seq, ref_sequence);
                 Self::append_optional_string(buffer_ref_name, ref_name);
                 Self::append_optional_usize(buffer_ref_start, ref_start);
@@ -301,9 +313,9 @@ impl ArrowBuffer {
             (ArrowBuffer::BothWithSeq { buffer_read_id, buffer_query_to_signal, buffer_ref_to_signal, buffer_ref_name, buffer_ref_start, buffer_query_seq, buffer_ref_seq }, 
              OutputData::BothWithSeq { read_id, query_to_signal, query_sequence, ref_to_signal, ref_sequence, ref_name, ref_start }) => {
                 Self::append_string(buffer_read_id, read_id);
-                Self::append_optional_usize_list(buffer_query_to_signal, query_to_signal);
+                Self::append_optional_usize_list(buffer_query_to_signal, query_to_signal)?;
                 Self::append_optional_string(buffer_query_seq, query_sequence);
-                Self::append_optional_usize_list(buffer_ref_to_signal, ref_to_signal);
+                Self::append_optional_usize_list(buffer_ref_to_signal, ref_to_signal)?;
                 Self::append_optional_string(buffer_ref_seq, ref_sequence);
                 Self::append_optional_string(buffer_ref_name, ref_name);
                 Self::append_optional_usize(buffer_ref_start, ref_start);
@@ -312,31 +324,31 @@ impl ArrowBuffer {
             (ArrowBuffer::QueryWithSeqAndSig { buffer_read_id, buffer_query_to_signal, buffer_query_seq, buffer_signal }, 
              OutputData::QueryWithSeqAndSig { read_id, query_to_signal, query_sequence, signal }) => {
                 Self::append_string(buffer_read_id, read_id);
-                Self::append_optional_usize_list(buffer_query_to_signal, query_to_signal);
+                Self::append_optional_usize_list(buffer_query_to_signal, query_to_signal)?;
                 Self::append_optional_string(buffer_query_seq, query_sequence);
-                Self::append_optional_i16_list(buffer_signal, signal);
+                Self::append_optional_i16_list(buffer_signal, signal)?;
             }
 
             (ArrowBuffer::RefWithSeqAndSig { buffer_read_id, buffer_ref_to_signal, buffer_ref_name, buffer_ref_start, buffer_ref_seq, buffer_signal }, 
              OutputData::RefWithSeqAndSig { read_id, ref_to_signal, ref_sequence, ref_name, ref_start, signal }) => {
                 Self::append_string(buffer_read_id, read_id);
-                Self::append_optional_usize_list(buffer_ref_to_signal, ref_to_signal);
+                Self::append_optional_usize_list(buffer_ref_to_signal, ref_to_signal)?;
                 Self::append_optional_string(buffer_ref_seq, ref_sequence);
                 Self::append_optional_string(buffer_ref_name, ref_name);
                 Self::append_optional_usize(buffer_ref_start, ref_start);
-                Self::append_optional_i16_list(buffer_signal, signal);
+                Self::append_optional_i16_list(buffer_signal, signal)?;
             }
 
             (ArrowBuffer::BothWithSeqAndSig { buffer_read_id, buffer_query_to_signal, buffer_ref_to_signal, buffer_ref_name, buffer_ref_start, buffer_query_seq, buffer_ref_seq, buffer_signal }, 
              OutputData::BothWithSeqAndSig { read_id, query_to_signal, query_sequence, ref_to_signal, ref_sequence, ref_name, ref_start, signal }) => {
                 Self::append_string(buffer_read_id, read_id);
-                Self::append_optional_usize_list(buffer_query_to_signal, query_to_signal);
+                Self::append_optional_usize_list(buffer_query_to_signal, query_to_signal)?;
                 Self::append_optional_string(buffer_query_seq, query_sequence);
-                Self::append_optional_usize_list(buffer_ref_to_signal, ref_to_signal);
+                Self::append_optional_usize_list(buffer_ref_to_signal, ref_to_signal)?;
                 Self::append_optional_string(buffer_ref_seq, ref_sequence);
                 Self::append_optional_string(buffer_ref_name, ref_name);
                 Self::append_optional_usize(buffer_ref_start, ref_start);
-                Self::append_optional_i16_list(buffer_signal, signal);
+                Self::append_optional_i16_list(buffer_signal, signal)?;
             }
 
             // Mismatched variants return an error
@@ -359,75 +371,82 @@ impl ArrowBuffer {
     ///
     /// # Errors
     /// Returns OutputError if RecordBatch creation fails
-    pub fn buffer_to_record_batch(&mut self, schema: &Arc<Schema>) -> Result<RecordBatch, OutputError> {
-        let mut columns: Vec<ArrayRef> = vec![];
+    pub fn buffer_to_rowgroupiter(&mut self, schema: &Schema, encodings: &Vec<Vec<Encoding>>, options: &WriteOptions) -> Result<RowGroupIterator<Box<dyn Array>, std::iter::Once<Result<Chunk<Box<dyn Array>>, arrow2::error::Error>>>, OutputError> {
+        let mut columns: Vec<Box<dyn Array>> = vec![];
 
         match self {
             ArrowBuffer::QueryBasic { buffer_read_id, buffer_query_to_signal } => {
-                columns.push(Arc::new(buffer_read_id.finish()));
-                columns.push(Arc::new(buffer_query_to_signal.finish()));
+                columns.push(buffer_read_id.as_box());
+                columns.push(buffer_query_to_signal.as_box());
             }
             ArrowBuffer::RefBasic { buffer_read_id, buffer_ref_to_signal, buffer_ref_name, buffer_ref_start } => {
-                columns.push(Arc::new(buffer_read_id.finish()));
-                columns.push(Arc::new(buffer_ref_to_signal.finish()));
-                columns.push(Arc::new(buffer_ref_name.finish()));
-                columns.push(Arc::new(buffer_ref_start.finish()));
+                columns.push(buffer_read_id.as_box());
+                columns.push(buffer_ref_to_signal.as_box());
+                columns.push(buffer_ref_name.as_box());
+                columns.push(buffer_ref_start.as_box());
             }
             ArrowBuffer::BothBasic { buffer_read_id, buffer_query_to_signal, buffer_ref_to_signal, buffer_ref_name, buffer_ref_start } => {
-                columns.push(Arc::new(buffer_read_id.finish()));
-                columns.push(Arc::new(buffer_query_to_signal.finish()));
-                columns.push(Arc::new(buffer_ref_to_signal.finish()));
-                columns.push(Arc::new(buffer_ref_name.finish()));
-                columns.push(Arc::new(buffer_ref_start.finish()));
+                columns.push(buffer_read_id.as_box());
+                columns.push(buffer_query_to_signal.as_box());
+                columns.push(buffer_ref_to_signal.as_box());
+                columns.push(buffer_ref_name.as_box());
+                columns.push(buffer_ref_start.as_box());
             }
             ArrowBuffer::QueryWithSeq { buffer_read_id, buffer_query_to_signal, buffer_query_seq } => {
-                columns.push(Arc::new(buffer_read_id.finish()));
-                columns.push(Arc::new(buffer_query_to_signal.finish()));
-                columns.push(Arc::new(buffer_query_seq.finish()));
+                columns.push(buffer_read_id.as_box());
+                columns.push(buffer_query_to_signal.as_box());
+                columns.push(buffer_query_seq.as_box());
             }
             ArrowBuffer::RefWithSeq { buffer_read_id, buffer_ref_to_signal, buffer_ref_name, buffer_ref_start, buffer_ref_seq } => {
-                columns.push(Arc::new(buffer_read_id.finish()));
-                columns.push(Arc::new(buffer_ref_to_signal.finish()));
-                columns.push(Arc::new(buffer_ref_name.finish()));
-                columns.push(Arc::new(buffer_ref_start.finish()));
-                columns.push(Arc::new(buffer_ref_seq.finish()));
+                columns.push(buffer_read_id.as_box());
+                columns.push(buffer_ref_to_signal.as_box());
+                columns.push(buffer_ref_name.as_box());
+                columns.push(buffer_ref_start.as_box());
+                columns.push(buffer_ref_seq.as_box());
             }
             ArrowBuffer::BothWithSeq { buffer_read_id, buffer_query_to_signal, buffer_ref_to_signal, buffer_ref_name, buffer_ref_start, buffer_query_seq, buffer_ref_seq } => {
-                columns.push(Arc::new(buffer_read_id.finish()));
-                columns.push(Arc::new(buffer_query_to_signal.finish()));
-                columns.push(Arc::new(buffer_ref_to_signal.finish()));
-                columns.push(Arc::new(buffer_ref_name.finish()));
-                columns.push(Arc::new(buffer_ref_start.finish()));
-                columns.push(Arc::new(buffer_query_seq.finish()));
-                columns.push(Arc::new(buffer_ref_seq.finish()));
+                columns.push(buffer_read_id.as_box());
+                columns.push(buffer_query_to_signal.as_box());
+                columns.push(buffer_ref_to_signal.as_box());
+                columns.push(buffer_ref_name.as_box());
+                columns.push(buffer_ref_start.as_box());
+                columns.push(buffer_query_seq.as_box());
+                columns.push(buffer_ref_seq.as_box());
             }
             ArrowBuffer::QueryWithSeqAndSig { buffer_read_id, buffer_query_to_signal, buffer_query_seq, buffer_signal } => {
-                columns.push(Arc::new(buffer_read_id.finish()));
-                columns.push(Arc::new(buffer_query_to_signal.finish()));
-                columns.push(Arc::new(buffer_query_seq.finish()));
-                columns.push(Arc::new(buffer_signal.finish()));
+                columns.push(buffer_read_id.as_box());
+                columns.push(buffer_query_to_signal.as_box());
+                columns.push(buffer_query_seq.as_box());
+                columns.push(buffer_signal.as_box());
             }
             ArrowBuffer::RefWithSeqAndSig { buffer_read_id, buffer_ref_to_signal, buffer_ref_name, buffer_ref_start, buffer_ref_seq, buffer_signal } => {
-                columns.push(Arc::new(buffer_read_id.finish()));
-                columns.push(Arc::new(buffer_ref_to_signal.finish()));
-                columns.push(Arc::new(buffer_ref_name.finish()));
-                columns.push(Arc::new(buffer_ref_start.finish()));
-                columns.push(Arc::new(buffer_ref_seq.finish()));
-                columns.push(Arc::new(buffer_signal.finish()));
+                columns.push(buffer_read_id.as_box());
+                columns.push(buffer_ref_to_signal.as_box());
+                columns.push(buffer_ref_name.as_box());
+                columns.push(buffer_ref_start.as_box());
+                columns.push(buffer_ref_seq.as_box());
+                columns.push(buffer_signal.as_box());
             }
             ArrowBuffer::BothWithSeqAndSig { buffer_read_id, buffer_query_to_signal, buffer_ref_to_signal, buffer_ref_name, buffer_ref_start, buffer_query_seq, buffer_ref_seq, buffer_signal } => {
-                columns.push(Arc::new(buffer_read_id.finish()));
-                columns.push(Arc::new(buffer_query_to_signal.finish()));
-                columns.push(Arc::new(buffer_ref_to_signal.finish()));
-                columns.push(Arc::new(buffer_ref_name.finish()));
-                columns.push(Arc::new(buffer_ref_start.finish()));
-                columns.push(Arc::new(buffer_query_seq.finish()));
-                columns.push(Arc::new(buffer_ref_seq.finish()));
-                columns.push(Arc::new(buffer_signal.finish()));
+                columns.push(buffer_read_id.as_box());
+                columns.push(buffer_query_to_signal.as_box());
+                columns.push(buffer_ref_to_signal.as_box());
+                columns.push(buffer_ref_name.as_box());
+                columns.push(buffer_ref_start.as_box());
+                columns.push(buffer_query_seq.as_box());
+                columns.push(buffer_ref_seq.as_box());
+                columns.push(buffer_signal.as_box());
             }
         }
 
-        RecordBatch::try_new(schema.clone(), columns)
-            .map_err(|e| OutputError::ArrowError(e))
+        let chunk = Chunk::try_new(columns)
+            .map_err(|e| OutputError::ArrowError(e)).unwrap();
+
+        Ok(RowGroupIterator::try_new(
+            std::iter::once(Ok(chunk)), 
+            schema, 
+            options.clone(), 
+            encodings.clone()
+        )?)
     }
 }
