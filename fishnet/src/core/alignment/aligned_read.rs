@@ -152,7 +152,7 @@ impl<'a> AlignedRead<'a> {
             ));
         }
 
-        let mut signal = pod5_read.require_signal_mut()?;
+        let signal = pod5_read.require_signal_mut()?;
         if reverse_signal {
             signal.drain(end..);
             signal.drain(..start);

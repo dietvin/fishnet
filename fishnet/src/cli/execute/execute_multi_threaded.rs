@@ -51,7 +51,7 @@
  * - Critical errors that prevent continuing will exit the program with error code 1
  */
 
-use std::{ops::Deref, sync::Arc, thread};
+use std::{sync::Arc, thread};
 
 use console::style;
 use crossbeam::channel::{bounded, SendError};
