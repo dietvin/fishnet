@@ -46,4 +46,6 @@ Fishnet is structured in the following modules:
 
 Fishnet initially used the pod5 API from the [pod5-rs](https://github.com/bsaintjo/pod5-rs) crate. This implementation has the major limitation that at the time of writing, it does not support lazy loading of individual reads. As such, working with larger pod5 file (multiple GB) frequently leads to crashes when the machine runs out of memory.
 
-To enable working with large Pod5 files directly, Fishnet uses on a custom pod5 Reader API that allows lazy loading of large datasets. 
+To enable working with large Pod5 files directly, Fishnet uses a [custom pod5 Reader API](../pod5_reader_api/README.md) that implements a more efficient data loading approach. Here, since the signal measurements make up by far the biggest chunk of a pod5 file, only the metadata is read into memory initially. The signal data is only accessed and decompressed once a reads gets requested (either through random access by the read id or when iterating through a file). The decompression functionalities are taken from the [pod5-rs crate](https://github.com/bsaintjo/pod5-rs/blob/main/svb16/src/lib.rs).
+
+The implementation is bare-bones at the moment, but it works as a stand in for Fishnet.
