@@ -51,7 +51,7 @@
  * - Critical errors that prevent continuing will exit the program with error code 1
  */
 
-use std::{sync::Arc, thread};
+use std::{sync::Arc, thread, time::Duration};
 
 use console::style;
 use crossbeam::channel::{bounded, SendError};
@@ -97,6 +97,7 @@ pub fn run_alignment_multi_threaded(input: Config) -> Result<(), FishnetError> {
             .template("{spinner} [{elapsed_precise}] {msg}")                    
             .unwrap()            
     );
+    progress_bar_init.enable_steady_tick(Duration::from_millis(100));
 
     // Initialize the logger
     if *input.log_level() != LevelFilter::Off {
@@ -235,6 +236,7 @@ pub fn run_alignment_multi_threaded(input: Config) -> Result<(), FishnetError> {
                     .template("{spinner} [{elapsed_precise}] Processed {pos} reads | {msg}")                    
                     .unwrap()            
             );
+            progress_bar.enable_steady_tick(Duration::from_millis(100));
 
             for is_success in progress_receiver {
                 if is_success {
