@@ -28,3 +28,5 @@ remora_step_by_step/
 *.jsonl
 log.txt
 *.ipynb
+
+.vscode/
