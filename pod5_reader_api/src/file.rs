@@ -1,3 +1,6 @@
+pub mod iterator;
+mod signal_table_index;
+
 use std::{
     collections::HashMap, 
     fs::File, 
@@ -13,44 +16,49 @@ use arrow2::{
     array::Array,
     chunk::Chunk, 
     io::ipc::read::{
-        read_batch, 
-        read_file_dictionaries
+        read_batch, read_file_dictionaries
     }
 };
 use uuid::Uuid;
 use crate::{
-        feather_reader::{
-            FeatherReader, 
-            FeatherReaderError
-        }, 
-        file_iterator::{
+    feather_reader::{
+        FeatherReader, 
+        FeatherReaderError
+    }, 
+    file::{
+        iterator::{
             ReadIterator, 
             ReadIteratorError
         }, 
-        footer::{
-            embedded_content::EmbeddedContentType, 
-            Pod5Footer, 
-            Pod5FooterError
+        signal_table_index::{
+            SignalTableIndex, 
+            SignalTableIndexError
+        }
+    }, 
+    footer::{
+        embedded_content::EmbeddedContentType, 
+        Pod5Footer, 
+        Pod5FooterError
+    }, 
+    read::{
+        Pod5Read, 
+        Pod5ReadError
+    }, 
+    tables::{
+        reads_table::{
+            ReadsTable, 
+            ReadsTableError
         }, 
-        read::{
-            Pod5Read, 
-            Pod5ReadError
+        run_info::{
+            RunInfo, 
+            RunInfoError
         }, 
-        tables::{
-            reads_table::{
-                ReadsTable, 
-                ReadsTableError
-            }, 
-            run_info::{
-                RunInfo, 
-                RunInfoError
-            }, 
-            signal_table::{
-                SignalTable, 
-                SignalTableError, 
-            }
-        } 
-    };
+        signal_table::{
+            SignalTable, 
+            SignalTableError, 
+        }
+    } 
+};
 
 const EXPECTED_SIGNATURE: [u8; 8] = [139, 80, 79, 68, 13, 10, 26, 10];
 
@@ -70,6 +78,7 @@ pub struct Pod5File {
     reads: HashMap<Uuid, Pod5Read>,
     run_info : RunInfo,
     signal_table_reader: FeatherReader,
+    signal_table_index: SignalTableIndex,
     footer: Pod5Footer
 }
 
@@ -95,7 +104,7 @@ impl Pod5File {
         // Parse the run info table and extract the data
         let run_info = Self::parse_run_info_table(&file, &footer)?;
         // Parse the reads table and extract the data into the read_ids vector and the reads hashmap
-        let (read_ids, reads) = Self::parse_reads_table(&file, &footer)?;
+        let (read_ids, reads, signal_table_index) = Self::parse_reads_table(&file, &footer)?;
         // Initialize the signal table reader without accessing the data at this point
         let signal_table_reader = Self::init_signal_table_reader(&file, &footer)?;
 
@@ -105,6 +114,7 @@ impl Pod5File {
             reads,
             run_info,
             signal_table_reader,
+            signal_table_index,
             footer
         })
     } 
@@ -162,7 +172,7 @@ impl Pod5File {
     /// 
     /// # Returns
     /// Tuple containing (read_ids, reads) or an error
-    fn parse_reads_table(file: &File, footer: &Pod5Footer) -> Result<(Vec<Uuid>, HashMap<Uuid, Pod5Read>), Pod5FileError> {
+    fn parse_reads_table(file: &File, footer: &Pod5Footer) -> Result<(Vec<Uuid>, HashMap<Uuid, Pod5Read>, SignalTableIndex), Pod5FileError> {
         let embedded_file_reads_table = footer.retrieve_embedded_file(EmbeddedContentType::ReadsTable)?;
         let mut reader_reads_table = FeatherReader::new(
             file.try_clone()?, 
@@ -172,22 +182,35 @@ impl Pod5File {
 
         let mut read_ids = Vec::new();
         let mut reads = HashMap::new();
+        let mut n_signal_table_rows: usize = 0;
 
-        let reads_iterator = reader_reads_table.iter_chunks()?;
-
-        for chunk_res in reads_iterator {
+        for chunk_res in reader_reads_table.iter_chunks()? {
             let chunk = chunk_res?;
             let reads_table = ReadsTable::from_chunk(chunk)?;
     
             for read_res in reads_table {
                 let read = read_res?;
                 let read_id = read.read_id();
+                let signal_indices = read.signal_indices();
+
+                // Determine the number of rows in the signal table (corresponds to the highest index found in the signal indices)
+                if let Some(&val) = signal_indices.iter().max() {
+                    let val = val as usize;
+                    if val > n_signal_table_rows {
+                        n_signal_table_rows = val;
+                    }
+                }
+
                 read_ids.push(read_id.clone());
                 reads.insert(read_id.clone(), read);
             }
         }
+        // The max value is a 0-based index, to get the length add 1
+        n_signal_table_rows += 1;
 
-        Ok((read_ids, reads))
+        let signal_table_index = SignalTableIndex::new(&reads, n_signal_table_rows)?;
+
+        Ok((read_ids, reads, signal_table_index))
     }
 
     /// Initializes the signal table reader.
@@ -338,6 +361,10 @@ impl Pod5File {
         )
     }
 
+    pub(crate) fn signal_table_index(&self) -> &SignalTableIndex {
+        &self.signal_table_index
+    }
+
     /// Returns mutable reference to the signal table reader.
     pub(crate) fn signal_table_reader_mut(&mut self) -> &mut FeatherReader {
         &mut self.signal_table_reader
@@ -386,5 +413,7 @@ pub enum Pod5FileError {
     #[error("Signal length mismatch: {0} vs. {1} (expected)")]
     SignalReconstructLengthError(usize, usize),
     #[error("Read iterator error: {0}")]
-    ReadIteratorError(#[from] ReadIteratorError)
+    ReadIteratorError(#[from] ReadIteratorError),
+    #[error("Signal table index error: {0}")]
+    SignalTableIndexError(#[from] SignalTableIndexError)
 }
