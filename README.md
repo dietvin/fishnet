@@ -103,6 +103,12 @@ A detailed description of all steps in is provided in the [algorithm documentati
 
 A detailed overview of the code structure is provided in the [implementation documentation](./docs/implementation_details.md). More detailed explanations are given directly in the scripts.
 
+## Known bugs & roadmap
+
+- Bug: When writing the signal to the output, the trimmed signal is used, so the alignment and signal do not match
+- Planned feature: perform alignments only on reads of interest (reference region/motif)
+- Planned feature: Analysis module; calculate base-wise statistics (mean/std/signal-to-noise ratio of the signal, dwell time, ...); bring signal chunks of bases into a uniform shape for downstream analyses (dimensionality reduction, clustering, ...); plot alignments
+We plan to include more features to improve convenience in specific workflows. These include:
 
 ## License
 
