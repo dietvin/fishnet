@@ -238,14 +238,19 @@ pub fn run_alignment_multi_threaded(input: Config) -> Result<(), FishnetError> {
             );
             progress_bar.enable_steady_tick(Duration::from_millis(100));
 
+            let mut counter = 0;
             for is_success in progress_receiver {
                 if is_success {
                     n_successful_reads += 1;
                 } else {
                     n_failed_reads += 1;
                 }
-                progress_bar.set_message(format!("{} ✓ | {} ✗", n_successful_reads, n_failed_reads));
-                progress_bar.inc(1);
+
+                counter += 1;
+                if counter % 100 == 0 {
+                    progress_bar.set_message(format!("{} ✓ | {} ✗", n_successful_reads, n_failed_reads));
+                    progress_bar.inc(100);
+                }
             }
             progress_bar.set_style(
                 ProgressStyle::default_spinner()
@@ -254,7 +259,7 @@ pub fn run_alignment_multi_threaded(input: Config) -> Result<(), FishnetError> {
             );
             progress_bar.finish_with_message(format!(
                 "{} | {} | {}",
-                style(format!("Finished. Processed {} reads", progress_bar.position())).green(),
+                style(format!("Finished processing {} reads", progress_bar.position())).green(),
                 style(format!("{} ✓ ", n_successful_reads)).green(),
                 style(format!("{} ✗ ", n_failed_reads)).red()
             ));
@@ -264,6 +269,43 @@ pub fn run_alignment_multi_threaded(input: Config) -> Result<(), FishnetError> {
                 log::error!("Failed to spawn progress thread: {e}");
                 eprintln!(
                     "Failed to spawn progress thread: {}",
+                    format!("{}", style(e).red())
+                );
+                std::process::exit(1);
+            }
+        };
+
+    // Initialize the writer thread
+    let writer_handle = match thread::Builder::new()
+        .name("writer".to_string())
+        .spawn(move || {
+            for (read_id, output_data) in result_receiver {
+                match output_writer.write_record(
+                    output_data
+                ) {
+                    Ok(_) => {
+                        log::info!("Successfully processed read {read_id}");
+                    }
+                    Err(e) => {
+                        log::error!("Failed to write alignment(s) to file for {read_id}: {e}");
+                    }
+                }
+            }
+
+            if let Err(e) = output_writer.finalize() {
+                log::error!("Failed to write the remaining buffer to file: {e}");
+                eprintln!(
+                    "Failed to write the remaining buffer to file: {}",
+                    format!("{}", style(e).red())
+                );
+                std::process::exit(1);
+            }
+        }) {
+            Ok(v) => v,
+            Err(e) => {
+                log::error!("Failed to spawn writer thread: {e}");
+                eprintln!(
+                    "Failed to spawn writer thread: {}",
                     format!("{}", style(e).red())
                 );
                 std::process::exit(1);
@@ -405,6 +447,11 @@ pub fn run_alignment_multi_threaded(input: Config) -> Result<(), FishnetError> {
                     if let Err(e) = result_tx.send((read_id, output_data)) {
                         handle_channels_error(e);
                     }
+
+                    // If everything worked for the read, send a success update to the progress thread
+                    if let Err(e) = progress_tx.send(true) {
+                        handle_channels_error(e);
+                    }
                 }
             }) {
                 Ok(v) => v,
@@ -484,48 +531,16 @@ pub fn run_alignment_multi_threaded(input: Config) -> Result<(), FishnetError> {
             }
         };
 
-
-    // Write the results in the main thread
-    for (read_id, output_data) in result_receiver {
-        match output_writer.write_record(
-            output_data
-        ) {
-            Ok(_) => {
-                log::info!("Successfully processed read {read_id}");
-                if let Err(e) = progress_sender.send(true) {
-                    handle_channels_error(e);
-                }
-            }
-            Err(e) => {
-                log::error!("Failed to write alignment(s) to file for {read_id}: {e}");
-                if let Err(e) = progress_sender.send(false) {
-                    handle_channels_error(e);
-                }
-                continue;
-            }
-        }
-    }
-
-    if let Err(e) = output_writer.finalize() {
-        log::error!("Failed to write the remaining buffer to file: {e}");
-        eprintln!(
-            "Failed to write the remaining buffer to file: {}",
-            format!("{}", style(e).red())
-        );
-        std::process::exit(1);
-    }
-
-
     // Join all threads
     if let Err(e) = producer_handle.join() {
-        log::error!("Failed to join threads: {:?}", e);
-        eprintln!("Failed to join threads: {:?}", e);
+        log::error!("Failed to join producer thread: {:?}", e);
+        eprintln!("Failed to join producer thread: {:?}", e);
         std::process::exit(1);
     }
     for handle in worker_handles {
         if let Err(e) = handle.join() {
-            log::error!("Failed to join threads: {:?}", e);
-            eprintln!("Failed to join threads: {:?}", e);
+            log::error!("Failed to join worker threads: {:?}", e);
+            eprintln!("Failed to join worker threads: {:?}", e);
             std::process::exit(1);
         }
     }
@@ -534,10 +549,28 @@ pub fn run_alignment_multi_threaded(input: Config) -> Result<(), FishnetError> {
     drop(progress_sender);
 
     if let Err(e) = progress_handler.join() {
-        log::error!("Failed to join threads: {:?}", e);
-        eprintln!("Failed to join threads: {:?}", e);
+        log::error!("Failed to join progress thread: {:?}", e);
+        eprintln!("Failed to join progress thread: {:?}", e);
         std::process::exit(1);
     }
+
+    let progress_bar_finishing = ProgressBar::new_spinner();
+    progress_bar_finishing.set_style(
+        ProgressStyle::default_bar()
+            .tick_strings(&["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"])
+            .template("{spinner} [{elapsed_precise}] {msg}")                    
+            .unwrap()            
+    );
+    progress_bar_finishing.enable_steady_tick(Duration::from_millis(100));
+    progress_bar_finishing.set_message("Writing remaining data...");
+
+    if let Err(e) = writer_handle.join() {
+        log::error!("Failed to join writer thread: {:?}", e);
+        eprintln!("Failed to join writer thread: {:?}", e);
+        std::process::exit(1);
+    }
+
+    progress_bar_finishing.finish_with_message(format!("{}", style("Finished.").green()));
 
     Ok(())
 }

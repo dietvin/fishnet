@@ -53,7 +53,7 @@ impl OutputConfig {
 ///
 /// This trait defines the common interface for writing read alignments 
 /// to various output formats, such as Arrow, BAM/SAM, or JSON.
-pub trait AlignmentWriter {
+pub trait AlignmentWriter: Send {
     /// Creates a new alignment writer
     ///
     /// # Arguments
