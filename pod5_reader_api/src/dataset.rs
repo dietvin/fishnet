@@ -1,6 +1,8 @@
 use std::{collections::HashMap, ffi::OsString, path::PathBuf, slice::{Iter, IterMut}};
 
-use crate::file::{Pod5File, Pod5FileError};
+use uuid::Uuid;
+
+use crate::{file::{Pod5File, Pod5FileError}, read::Pod5Read};
 
 /// A collection of POD5 files that can be accessed as a single dataset.
 /// 
@@ -9,8 +11,10 @@ use crate::file::{Pod5File, Pod5FileError};
 #[derive(Debug)]
 pub struct Pod5Dataset {
     files: Vec<Pod5File>,
-    index: HashMap<OsString, usize>,
-    length: usize
+    file_index: HashMap<OsString, usize>,
+    n_files: usize,
+    reads_index: HashMap<Uuid, usize>,
+    n_reads: usize
 }
 impl Pod5Dataset {
     /// Creates a new Pod5Dataset from a list of file paths.
@@ -25,21 +29,30 @@ impl Pod5Dataset {
     /// Returns errors for invalid files or IO problems
     pub fn new(paths: &Vec<PathBuf>) -> Result<Self, Pod5DatasetError> {
         let mut files = Vec::with_capacity(paths.len()); 
-        let mut index = HashMap::with_capacity(paths.len());
-
+        let mut file_index = HashMap::with_capacity(paths.len());
+        let mut reads_index = HashMap::new();
         for (path_idx, path_buf) in paths.iter().enumerate() {
             let path = path_buf.as_os_str().to_os_string();
             let file = Pod5File::new(path_buf.to_path_buf())?;
 
+            // Keep track on which read is in which file
+            let read_ids = file.read_ids().clone();
+            for read_id in read_ids {
+                reads_index.insert(read_id, path_idx);
+            }
+
             files.push(file);
-            index.insert(path, path_idx);
+            file_index.insert(path, path_idx);
         }
 
-        let length = files.len();
+        let n_files = files.len();
+        let n_reads = reads_index.len();
         Ok(Pod5Dataset { 
             files, 
-            index,
-            length
+            file_index,
+            n_files,
+            reads_index,
+            n_reads,        
         })
     }
 
@@ -53,12 +66,12 @@ impl Pod5Dataset {
     /// 
     /// # Errors
     /// Returns InvalidKey if the key doesn't exist in the dataset
-    pub fn get(&self, key: &OsString) -> Result<&Pod5File, Pod5DatasetError> {
-        let index = self.index.get(key).ok_or(
+    pub fn get_file(&self, key: &OsString) -> Result<&Pod5File, Pod5DatasetError> {
+        let index = self.file_index.get(key).ok_or(
             Pod5DatasetError::InvalidKey(key.clone())
         )?;
         
-        self.get_by_index(*index)
+        self.get_file_by_index(*index)
     }
 
     /// Gets a reference to a Pod5File by its index.
@@ -71,9 +84,9 @@ impl Pod5Dataset {
     /// 
     /// # Errors
     /// Returns FileIndexError if the index is out of bounds
-    pub fn get_by_index(&self, index: usize) -> Result<&Pod5File, Pod5DatasetError> {
+    pub fn get_file_by_index(&self, index: usize) -> Result<&Pod5File, Pod5DatasetError> {
         self.files.get(index).ok_or(
-            Pod5DatasetError::FileIndexError(index, self.length)
+            Pod5DatasetError::FileIndexError(index, self.n_files)
         )    
     }
 
@@ -87,12 +100,12 @@ impl Pod5Dataset {
     /// 
     /// # Errors
     /// Returns InvalidKey if the key doesn't exist in the dataset
-    pub fn get_mut(&mut self, key: &OsString) -> Result<&mut Pod5File, Pod5DatasetError> {
-        let index = self.index.get(key).ok_or(
+    pub fn get_file_mut(&mut self, key: &OsString) -> Result<&mut Pod5File, Pod5DatasetError> {
+        let index = self.file_index.get(key).ok_or(
             Pod5DatasetError::InvalidKey(key.clone())
         )?;
         
-        self.get_by_index_mut(*index)
+        self.get_file_by_index_mut(*index)
     }
 
     /// Gets a mutable reference to a Pod5File by its index.
@@ -105,9 +118,9 @@ impl Pod5Dataset {
     /// 
     /// # Errors
     /// Returns FileIndexError if the index is out of bounds
-    pub fn get_by_index_mut(&mut self, index: usize) -> Result<&mut Pod5File, Pod5DatasetError> {
+    pub fn get_file_by_index_mut(&mut self, index: usize) -> Result<&mut Pod5File, Pod5DatasetError> {
         self.files.get_mut(index).ok_or(
-            Pod5DatasetError::FileIndexError(index, self.length)
+            Pod5DatasetError::FileIndexError(index, self.n_files)
         )    
     }
 
@@ -127,8 +140,21 @@ impl Pod5Dataset {
     }
 
     /// Returns the number of files in the dataset.
-    pub fn len(&self) -> usize {
-        self.length
+    pub fn n_files(&self) -> usize {
+        self.n_files
+    }
+
+    pub fn get_read(&mut self, read_id: &Uuid) -> Result<Pod5Read, Pod5DatasetError> {
+        let file_idx = self.reads_index.get(read_id)
+            .ok_or(Pod5DatasetError::ReadIdNotFound(*read_id))?;
+
+        let file = self.get_file_by_index_mut(*file_idx)?;
+        let read = file.get(read_id)?;
+        Ok(read)
+    }
+
+    pub fn n_reads(&self) -> usize {
+        self.n_reads
     }
 }
 
@@ -149,4 +175,6 @@ pub enum Pod5DatasetError {
     FileIndexError(usize, usize),
     #[error("Read index out of bounds: {0} (len={1})")]
     ReadIndexError(usize, usize),
+    #[error("Read id {0} not found in read ids.")]
+    ReadIdNotFound(Uuid)
 }
