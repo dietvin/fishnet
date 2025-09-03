@@ -1,7 +1,9 @@
 [workspace]
 members = [
     "fishnet",
-    "pod5_reader_api"
+    "alignment",
+    "pod5_reader_api", 
+    "reformat"
 ]
 resolver = "2"
 
