@@ -8,6 +8,8 @@ repository = "https://github.com/dietvin/fishnet"
 
 [dependencies]
 alignment = { path = "../alignment" }
+reformat = { path = "../reformat" }
+
 clap = { version = "4.5.46", features = ["cargo"] }
 console = "0.16.0"
 log = "0.4.27"
