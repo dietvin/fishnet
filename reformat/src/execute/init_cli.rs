@@ -1,9 +1,12 @@
 use std::path::PathBuf;
-use clap::{Arg, ArgAction, ArgGroup, Command};
+use clap::{value_parser, Arg, ArgAction, ArgGroup, Command};
 
 pub fn init_reformat() -> Command {
     let command = Command::new("reformat")
         .about("Process alignments to prepare for analyses")
+
+        // Required IO
+
         .arg(
             Arg::new("alignment")
                 .long("alignment")

@@ -2,6 +2,7 @@
  * Main entry point to the alignment process.
  */
 
+pub mod init_cli;
 pub mod config;
 pub mod execute_multi_threaded;
 pub mod execute_single_threaded;

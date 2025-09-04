@@ -1,11 +1,7 @@
-pub(crate) mod init_alignment;
-pub(crate) mod init_reformat;
-pub(crate) mod init_plot;
-
+use alignment::execute::init_cli::init_align;
 use clap::{Command, crate_version};
 use console::style;
-
-use crate::cli::{init_alignment::init_align, init_plot::init_plot, init_reformat::init_reformat};
+use reformat::execute::init_cli::init_reformat;
 
 pub fn init_cli() -> Command {
     
@@ -20,10 +16,6 @@ pub fn init_cli() -> Command {
         
         .subcommand(
             init_reformat()
-        )
-        
-        .subcommand(
-            init_plot()
         );
 
     matches
