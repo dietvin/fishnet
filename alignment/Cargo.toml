@@ -9,6 +9,7 @@ repository = "https://github.com/dietvin/fishnet"
 [dependencies]
 # Local dependency on pod5_reader_api
 pod5_reader_api = { path = "../pod5_reader_api" }
+helper = { path = "../helper" }
 
 # External dependencies
 approx = "0.5.1"

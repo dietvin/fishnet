@@ -1,5 +1,7 @@
 use std::{io::Error, path::PathBuf};
 
+use crate::io::OutputFormat;
+
 
 #[derive(Debug, thiserror::Error)]
 pub enum PathError {
@@ -7,8 +9,12 @@ pub enum PathError {
     IsNotFile(PathBuf),
     #[error("Provided path '{0}' does not exist")]
     DoesNotExist(PathBuf),
-    #[error("Provided path '{0}' has an invalid extension (expected '{1}')")]
-    InvalidExtension(PathBuf, String),
+    #[error("Extension could not be extracted from path '{0}'")]
+    ExtensionNone(PathBuf),
+    #[error("Provided path '{0}' has an invalid extension")]
+    InvalidExtension(String),
+    #[error("Unexpected format {0} (must be one of {1:?}")]
+    UnexpectedFormat(String, Vec<OutputFormat>),
     #[error("Provided path '{0}' is a directory")]
     IsDir(PathBuf),
     #[error("Failed to create directory '{0}'")]

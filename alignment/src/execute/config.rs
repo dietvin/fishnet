@@ -3,11 +3,30 @@ pub mod refinement_config;
 mod helpers;
 
 use std::path::PathBuf;
-
 use clap::ArgMatches;
+use helper::{
+    errors::CliError, 
+    file_handling::{
+        calc_quantiles, 
+        check_and_get_pod5_input, 
+        check_input_file, 
+        check_output_file
+    }, 
+    io::OutputFormat
+};
 use log::LevelFilter;
-
-use crate::{error::cli_errors::CliError, execute::config::{helpers::{calc_quantiles, check_and_get_pod5_input, check_input_file, check_output_file}, output_config::OutputConfig, refinement_config::{RefineAlgo, RefineSettings, RescaleAlgo, RoughRescaleAlgo, WhichToRefine}}};
+use crate::{
+    execute::config::{
+        output_config::OutputConfig, 
+        refinement_config::{
+            RefineAlgo, 
+            RefineSettings, 
+            RescaleAlgo, 
+            RoughRescaleAlgo, 
+            WhichToRefine
+        }
+    }
+};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum WhichToAlign {
@@ -15,13 +34,6 @@ pub enum WhichToAlign {
     Query,
     Reference
 }
-
-#[derive(Debug, Clone, PartialEq)]
-pub enum OutputFormat {
-    Parquet,
-    Json
-}
-
 
 impl Default for WhichToAlign {
     fn default() -> Self {
@@ -55,7 +67,6 @@ pub struct ConfigAlign {
 
 impl ConfigAlign {
     pub fn from_argmatches(matches: &ArgMatches) -> Result<Self, CliError> {
-        
         // Required arguments
 
         let bam_input = matches.get_one::<PathBuf>("bam").ok_or(
@@ -78,7 +89,11 @@ impl ConfigAlign {
         let output_file_raw = matches.get_one::<PathBuf>("out").ok_or(
             CliError::ArgumentNone("out".to_string()) 
         )?.clone();
-        let (output_file, output_format)  = check_output_file(&output_file_raw, force_overwrite)?;
+        let (output_file, output_format)  = check_output_file(
+            &output_file_raw, 
+            force_overwrite,
+            vec![OutputFormat::Parquet, OutputFormat::Json]
+        )?;
 
 
         // Optional general arguments
@@ -97,6 +112,7 @@ impl ConfigAlign {
 
 
         // Optional output arguments
+
         let output_level_raw = matches.get_one::<String>("output-level").ok_or(
             CliError::ArgumentNone("output-level".to_string()) 
         )?.clone();

@@ -24,6 +24,7 @@
  */
 
 use console::style;
+use helper::io::OutputFormat;
 use indicatif::{ProgressBar, ProgressStyle};
 use log::LevelFilter;
 use pod5_reader_api::dataset::Pod5Dataset;
@@ -35,7 +36,7 @@ use crate::{
             kmer_table::KmerTable, 
             signal_map_refiner::SigMapRefiner
         }
-    }, error::AlignmentError, execute::{config::{ConfigAlign, OutputFormat, WhichToAlign}, output::{output_arrow::OutputWriterArrow, output_data::OutputData, output_json::OutputWriterJsonl, AlignmentWriter}}, logger::setup_logger
+    }, error::AlignmentError, execute::{config::{ConfigAlign, WhichToAlign}, output::{output_arrow::OutputWriterArrow, output_data::OutputData, output_json::OutputWriterJsonl, AlignmentWriter}}, logger::setup_logger
 };
 
 
@@ -129,6 +130,7 @@ pub fn run_alignment_single_threaded(input: ConfigAlign) -> Result<(), Alignment
             .map(|w| Box::new(w) as Box<dyn AlignmentWriter>),
         OutputFormat::Json => OutputWriterJsonl::new(&output_path, input.force_overwrite(), input.output_batch_size(), input.output_config().clone())
             .map(|w| Box::new(w) as Box<dyn AlignmentWriter>),
+        _ => unreachable!()
     };
     
     let mut output_writer = match output_writer_res {

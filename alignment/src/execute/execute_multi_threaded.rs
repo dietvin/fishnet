@@ -55,6 +55,7 @@ use std::{sync::Arc, thread, time::Duration};
 
 use console::style;
 use crossbeam::channel::{bounded, SendError};
+use helper::io::OutputFormat;
 use indicatif::{ProgressBar, ProgressStyle};
 use log::LevelFilter;
 use pod5_reader_api::{
@@ -68,7 +69,7 @@ use crate::{
         refinement::{
             kmer_table::KmerTable, signal_map_refiner::SigMapRefiner
         }
-    }, error::AlignmentError, execute::{config::{ConfigAlign, OutputFormat, WhichToAlign}, output::{
+    }, error::AlignmentError, execute::{config::{ConfigAlign, WhichToAlign}, output::{
         output_arrow::OutputWriterArrow, output_data::OutputData, output_json::OutputWriterJsonl, AlignmentWriter
     }}, logger::setup_logger
 };
@@ -181,7 +182,8 @@ pub fn run_alignment_multi_threaded(input: ConfigAlign) -> Result<(), AlignmentE
             input.output_batch_size(), 
             input.output_config()
             .clone()
-        ).map(|w| Box::new(w) as Box<dyn AlignmentWriter>)
+        ).map(|w| Box::new(w) as Box<dyn AlignmentWriter>),
+        _ => unreachable!()
     };
     
     let mut output_writer = match output_writer_res {

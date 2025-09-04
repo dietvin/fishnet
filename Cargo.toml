@@ -3,7 +3,8 @@ members = [
     "fishnet",
     "alignment",
     "pod5_reader_api", 
-    "reformat"
+    "reformat", 
+    "helper"
 ]
 resolver = "2"
 
