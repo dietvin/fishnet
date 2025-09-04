@@ -35,11 +35,11 @@ use crate::{
             kmer_table::KmerTable, 
             signal_map_refiner::SigMapRefiner
         }
-    }, error::FishnetError, execute::{config::{ConfigAlign, OutputFormat, WhichToAlign}, output::{output_arrow::OutputWriterArrow, output_data::OutputData, output_json::OutputWriterJsonl, AlignmentWriter}}, logger::setup_logger
+    }, error::AlignmentError, execute::{config::{ConfigAlign, OutputFormat, WhichToAlign}, output::{output_arrow::OutputWriterArrow, output_data::OutputData, output_json::OutputWriterJsonl, AlignmentWriter}}, logger::setup_logger
 };
 
 
-pub fn run_alignment_single_threaded(input: ConfigAlign) -> Result<(), FishnetError> {
+pub fn run_alignment_single_threaded(input: ConfigAlign) -> Result<(), AlignmentError> {
     let progress_bar_init = ProgressBar::new_spinner();
     progress_bar_init.set_style(
         ProgressStyle::default_bar()

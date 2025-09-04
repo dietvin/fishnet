@@ -68,14 +68,14 @@ use crate::{
         refinement::{
             kmer_table::KmerTable, signal_map_refiner::SigMapRefiner
         }
-    }, error::FishnetError, execute::{config::{ConfigAlign, OutputFormat, WhichToAlign}, output::{
+    }, error::AlignmentError, execute::{config::{ConfigAlign, OutputFormat, WhichToAlign}, output::{
         output_arrow::OutputWriterArrow, output_data::OutputData, output_json::OutputWriterJsonl, AlignmentWriter
     }}, logger::setup_logger
 };
 
 /// Perform the signal to sequence alignment concurrently with a given configuration 
 /// set by the user through the command line interface.
-pub fn run_alignment_multi_threaded(input: ConfigAlign) -> Result<(), FishnetError> {    
+pub fn run_alignment_multi_threaded(input: ConfigAlign) -> Result<(), AlignmentError> {    
     // Initialize the progress bar for the initialization steps
     let progress_bar_init = ProgressBar::new_spinner();
     progress_bar_init.set_style(

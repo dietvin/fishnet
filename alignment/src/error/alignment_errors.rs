@@ -3,7 +3,7 @@ use pod5_reader_api::read::Pod5ReadError;
 use super::loader_errors::bam_errors::BamReadError;
 
 #[derive(Debug, thiserror::Error)]
-pub enum AlignmentError {
+pub enum AlignmentCoreError {
     #[error("Aligned read error: {0}")]
     AlignedReadError(#[from] AlignedReadError),
     #[error("Query to signal error: {0}")]
