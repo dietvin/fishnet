@@ -55,7 +55,7 @@ use std::{sync::Arc, thread, time::Duration};
 
 use console::style;
 use crossbeam::channel::{bounded, SendError};
-use helper::io::OutputFormat;
+use helper::{io::OutputFormat, logger::setup_logger};
 use indicatif::{ProgressBar, ProgressStyle};
 use log::LevelFilter;
 use pod5_reader_api::{
@@ -71,7 +71,7 @@ use crate::{
         }
     }, error::AlignmentError, execute::{config::{ConfigAlign, WhichToAlign}, output::{
         output_arrow::OutputWriterArrow, output_data::OutputData, output_json::OutputWriterJsonl, AlignmentWriter
-    }}, logger::setup_logger
+    }}
 };
 
 /// Perform the signal to sequence alignment concurrently with a given configuration 

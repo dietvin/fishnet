@@ -24,7 +24,7 @@
  */
 
 use console::style;
-use helper::io::OutputFormat;
+use helper::{io::OutputFormat, logger::setup_logger};
 use indicatif::{ProgressBar, ProgressStyle};
 use log::LevelFilter;
 use pod5_reader_api::dataset::Pod5Dataset;
@@ -36,7 +36,7 @@ use crate::{
             kmer_table::KmerTable, 
             signal_map_refiner::SigMapRefiner
         }
-    }, error::AlignmentError, execute::{config::{ConfigAlign, WhichToAlign}, output::{output_arrow::OutputWriterArrow, output_data::OutputData, output_json::OutputWriterJsonl, AlignmentWriter}}, logger::setup_logger
+    }, error::AlignmentError, execute::{config::{ConfigAlign, WhichToAlign}, output::{output_arrow::OutputWriterArrow, output_data::OutputData, output_json::OutputWriterJsonl, AlignmentWriter}}
 };
 
 
