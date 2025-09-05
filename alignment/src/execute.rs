@@ -22,7 +22,7 @@ pub fn execute(input_args: &ArgMatches) {
     let config = match ConfigAlign::from_argmatches(input_args) {
         Ok(c) => c,
         Err(e) => {
-            println!(
+            eprintln!(
                 "Failed to parse input data: {}",
                 format!("{}", style(e).red())
             );
@@ -32,7 +32,7 @@ pub fn execute(input_args: &ArgMatches) {
 
     if config.n_threads() <= 1 {
         if let Err(e) = run_alignment_single_threaded(config) {
-            println!(
+            eprintln!(
                 "Failed to perform alignment: {}",
                 format!("{}", style(e).red())
             );
@@ -40,7 +40,7 @@ pub fn execute(input_args: &ArgMatches) {
         }
     } else {
         if let Err(e) = run_alignment_multi_threaded(config) {
-            println!(
+            eprintln!(
                 "Failed to perform alignment: {}",
                 format!("{}", style(e).red())
             );
