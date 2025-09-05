@@ -12,7 +12,7 @@
  * - Choosing the most probable alignment path based on signal error and dwell time cost.
  */
 
-use crate::logger::get_log_vector_sample;
+use helper::logger::get_log_vector_sample;
 
 use super::forward_step::{forward_step_viterbi, score};
 

@@ -7,11 +7,12 @@
  * https://github.com/pysam-developers/pysam/blob/3e3c8b0b5ac066d692e5c720a85d293efc825200/pysam/libcalignedsegment.pyx#L1971
  */
 
+use helper::logger::get_log_vector_sample;
 use noodles::sam::alignment::record::cigar::{op::Kind::{ 
     Deletion, HardClip, Insertion, Match, Pad, SequenceMatch, SequenceMismatch, Skip, SoftClip
 }, Op};
 
-use crate::{error::loader_errors::bam_errors::RefSeqReconstructError, logger::get_log_vector_sample};
+use crate::{error::loader_errors::bam_errors::RefSeqReconstructError};
 
 // Decimal ascii codes for relevant operations 
 const A: u8 = 65;

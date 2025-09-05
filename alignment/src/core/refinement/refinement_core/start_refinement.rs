@@ -2,7 +2,9 @@
  * This module contains the entry point for the refinement process.
  */
 
-use crate::{core::refinement::refinement_core::bands::Band, error::refinement_errors::refine_errors::RefineError, execute::config::refinement_config::RefineSettings, logger::get_log_vector_sample};
+use helper::logger::get_log_vector_sample;
+
+use crate::{core::refinement::refinement_core::bands::Band, error::refinement_errors::refine_errors::RefineError, execute::config::refinement_config::RefineSettings};
 use super::dp_algorithm::banded_dp;
 
 

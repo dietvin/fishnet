@@ -15,7 +15,7 @@
 use pod5_reader_api::read::Pod5Read;
 
 use crate::error::alignment_errors::AlignedReadError;
-use crate::logger::get_log_vector_sample;
+use helper::logger::get_log_vector_sample;
 
 use super::super::loader::bam::BamRead;
 use super::{query_to_signal, reference_to_signal};

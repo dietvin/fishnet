@@ -42,7 +42,7 @@ mod helpers;
 mod binary_kmer;
 
 use std::{collections::{HashMap, HashSet}, fs::File, io::{BufRead, BufReader}, path::PathBuf};
-use crate::logger::get_log_vector_sample;
+use helper::logger::get_log_vector_sample;
 
 use self::binary_kmer::BinaryKmer;
 use self::helpers::{process_line, sort_and_index, determine_dominant_base, Median};

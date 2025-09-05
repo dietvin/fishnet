@@ -28,7 +28,9 @@
  * mapping, then converted to sequence bands using `convert_to_sequence_band()`.
  */
 
-use crate::{error::refinement_errors::band_errors::{BandValidationError, SequenceBandError, SignalBandError}, logger::get_log_vector_sample};
+use helper::logger::get_log_vector_sample;
+
+use crate::{error::refinement_errors::band_errors::{BandValidationError, SequenceBandError, SignalBandError}};
 use std::fmt;
 
 /// Enum representing the type of a band: SignalBand or SequenceBand.

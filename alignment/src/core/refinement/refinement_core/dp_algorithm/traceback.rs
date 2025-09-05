@@ -14,7 +14,8 @@ where banded alignment and variable dwell times are typical. This module assumes
 a forward pass has already computed the necessary traceback information.
 */
 
-use crate::{logger::get_log_vector_sample, core::refinement::refinement_core::bands::Band};
+use crate::core::refinement::refinement_core::bands::Band;
+use helper::logger::get_log_vector_sample;
 
 /// Performs traceback to reconstruct the optimal path (i.e. where each base starts)
 ///

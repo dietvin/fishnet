@@ -11,7 +11,7 @@
  * "stay" and "move" transitions within a constrained banded dynamic programming framework.
  */
 
-use crate::logger::get_log_vector_sample;
+use helper::logger::get_log_vector_sample;
 
 const LARGE_SCORE: f32 = 100.0;
 

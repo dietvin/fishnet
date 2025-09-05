@@ -50,10 +50,11 @@ pub mod forward_step;
 mod forward_step_dwell_penalty;
 
 use forward_pass::forward_pass;
+use helper::logger::get_log_vector_sample;
 use traceback::banded_traceback;
 
 
-use crate::{execute::config::refinement_config::RefineAlgo, logger::get_log_vector_sample};
+use crate::{execute::config::refinement_config::RefineAlgo};
 
 use super::bands::Band;
 

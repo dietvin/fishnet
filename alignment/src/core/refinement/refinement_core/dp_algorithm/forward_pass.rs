@@ -15,7 +15,7 @@
 */
 
 use crate::execute::config::refinement_config::RefineAlgo;
-use crate::logger::get_log_vector_sample;
+use helper::logger::get_log_vector_sample;
 use crate::core::refinement::refinement_core::bands::Band;
 
 use super::forward_step::forward_step_viterbi;

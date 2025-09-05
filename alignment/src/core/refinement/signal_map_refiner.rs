@@ -54,7 +54,7 @@ use pod5_reader_api::read::Pod5Read;
 use crate::core::alignment::aligned_read::AlignedRead;
 use crate::core::loader::bam::BamRead;
 use crate::execute::config::refinement_config::{RefineSettings, RoughRescaleAlgo, WhichToRefine};
-use crate::logger::get_log_vector_sample;
+use helper::logger::get_log_vector_sample;
 use super::kmer_table::KmerTable;
 use self::rescale::{rough_rescale_lstsq, rough_rescale_theil_sen, rescale};
 use super::refinement_core::start_refinement::refinement;
