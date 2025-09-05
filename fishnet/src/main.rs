@@ -1,9 +1,4 @@
-#[macro_use]
-extern crate clap;
-
-use alignment::execute::config::ConfigAlign;
 use console::style;
-use alignment::execute::execute;
 use crate::{cli::init_cli};
 pub mod cli;
 
@@ -12,12 +7,11 @@ fn main() {
 
     match command_line_input.subcommand() {
         Some(("align", subcommand_args)) => {
-            execute(subcommand_args);
+            alignment::execute::execute(subcommand_args);
         }
 
         Some(("reformat", subcommand_args)) => {
-            println!("{:#?}", subcommand_args.try_get_one::<Vec<String>>("position-wise-stats"));
-            println!("{:#?}", subcommand_args.try_get_one::<usize>("interpolate"));
+            reformat::execute::execute(subcommand_args);
         }
         // }
         // Some(("plot", subcommand_args)) => {
@@ -33,7 +27,9 @@ fn main() {
         //     };
         // }
         _ => {
-            println!("No subcommand provided")
+            eprintln!(
+                "{}", format!("{}", style("No subcommand provided").red())
+            )
         }
     }
 }
