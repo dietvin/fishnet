@@ -155,7 +155,7 @@ reference and query sequences."
                 .long("strategy")
                 .short('s')
                 .value_parser(["stats", "interpolate"])
-                .default_value("position-wise-stats")
+                .default_value("stats")
                 .help_heading("Processing strategy")
                 .help("Set the processing strategy.")
                 .long_help(
@@ -174,7 +174,7 @@ measurements can be set via the --target-size flag."
                 .help_heading("Processing strategy")
                 .help("Sets the alignment that gets parsed.")
                 .long_help(
-"Sets the alignment that gets parsed. Only relevant if the alignment input contains both
+"Sets the alignment that gets parsed. Only needed if the alignment input contains both
 reference and query alignments. Note that 'query' is incompatible with the --ref-regions, 
 --bed-file and --positions-of-interest flags."
                 )                
