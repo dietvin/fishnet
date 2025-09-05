@@ -139,7 +139,7 @@ impl ConfigAlign {
             CliError::ArgumentNone("alignment-type".to_string()) 
         )?.clone();
         if output_batch_size == 0 {
-            CliError::InvalidArgument("output-batch-size".to_string(), 0.to_string());
+            return Err(CliError::InvalidArgument("output-batch-size".to_string(), 0.to_string()));
         }
 
 
