@@ -30,6 +30,7 @@ dependencies = [
  "clap",
  "console 0.15.11",
  "crossbeam",
+ "helper",
  "indicatif",
  "itertools",
  "log",
@@ -359,18 +360,18 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "4.5.46"
+version = "4.5.47"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2c5e4fcf9c21d2e544ca1ee9d8552de13019a42aa7dbf32747fa7aaf1df76e57"
+checksum = "7eac00902d9d136acd712710d71823fb8ac8004ca445a89e73a41d45aa712931"
 dependencies = [
  "clap_builder",
 ]
 
 [[package]]
 name = "clap_builder"
-version = "4.5.46"
+version = "4.5.47"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fecb53a0e6fcfb055f686001bc2e2592fa527efaf38dbe81a6a9563562e57d41"
+checksum = "2ad9bbf750e73b5884fb8a211a9424a1906c1e156724260fdae972f31d70e1d6"
 dependencies = [
  "anstream",
  "anstyle",
@@ -557,6 +558,7 @@ dependencies = [
  "clap",
  "console 0.16.0",
  "log",
+ "reformat",
  "thiserror 2.0.12",
 ]
 
@@ -733,6 +735,16 @@ name = "hashbrown"
 version = "0.15.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9229cfe53dfd69f0609a49f65461bd93001ea1ef889cd5529dd176593f5338a1"
+
+[[package]]
+name = "helper"
+version = "0.1.0"
+dependencies = [
+ "approx",
+ "log",
+ "log4rs",
+ "thiserror 2.0.12",
+]
 
 [[package]]
 name = "humantime"
@@ -919,9 +931,9 @@ dependencies = [
 
 [[package]]
 name = "log"
-version = "0.4.27"
+version = "0.4.28"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "13dc2df351e3202783a1fe0d44375f7295ffb4049267b0f3018346dc122a1d94"
+checksum = "34080505efa8e45a4b816c349525ebe327ceaa8559756f0356cba97ef3bf7432"
 dependencies = [
  "serde",
 ]
@@ -1318,6 +1330,15 @@ dependencies = [
 [[package]]
 name = "reformat"
 version = "0.1.0"
+dependencies = [
+ "arrow2",
+ "clap",
+ "console 0.16.0",
+ "helper",
+ "log",
+ "log4rs",
+ "thiserror 2.0.12",
+]
 
 [[package]]
 name = "rustc_version"
