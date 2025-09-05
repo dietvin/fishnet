@@ -196,7 +196,7 @@ be any combination of the mean/median current intensity ('mean'/'median'), the s
 deviation of the current intensity ('std'), the dwell time (dwell), or the signal-to-noise 
 ratio (mean/std; 'signal-to-noise').
 
-Only regarded if --strategy is set to 'position-wise-stats'"
+Only regarded if --strategy is set to 'stats'"
                 )
         )
         .arg(
