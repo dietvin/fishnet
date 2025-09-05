@@ -10,4 +10,5 @@ clap = "4.5.47"
 log = "0.4.27"
 log4rs = "1.3.0"
 thiserror.workspace = true
-arrow2 = "0.18.0"
+arrow2 = { version = "0.18.0", features = ["io_parquet", "io_parquet_compression"] }
+console = "0.16.0"
