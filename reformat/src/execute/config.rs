@@ -156,7 +156,7 @@ pub struct ConfigReformat {
     /// Whether to use dRNA-specific processing (affects POD5 signal extraction)
     is_drna: bool,
     /// Which alignment type to process (None means auto-detect if possible)
-    alignment_type: Option<AlignmentType>,
+    alignment_type: AlignmentType,
     /// How to reformat the signal data
     filter_source: FilterSource,
     // To determine which reformatting strategy gets perfromed
@@ -240,15 +240,11 @@ impl ConfigReformat {
         // === Filter Configuration ===
 
         let filter_source = Self::parse_filter_source(matches)?;
-
-        let alignment_type = match matches.get_one::<String>("alignment-type") {
-            Some(s) => match s.as_str() {
-                "query" => Some(AlignmentType::Query),
-                "reference" => Some(AlignmentType::Reference),
-                _ => unreachable!()
-            }
-            None => None
-        };
+        
+        let alignment_type = Self::determine_alignment_type(
+            matches,
+            &alignment_content
+        )?;
 
         // Validate that the filter and alignment configurations are compatible
         validate_filter_compatibility(
@@ -419,6 +415,47 @@ impl ConfigReformat {
         }
     }
 
+    /// Determines which alignment type will actually be used for processing.
+    ///
+    /// When the user doesn't specify an alignment type explicitly, this function
+    /// auto-detects based on what's available in the data. If both alignment types
+    /// are present, the user must explicitly choose.
+    ///
+    /// # Logic
+    ///
+    /// - If user specified a type explicitly -> use that
+    /// - If only query alignment present -> use Query
+    /// - If only reference alignment present -> use Reference  
+    /// - If both present and user didn't specify -> error (ambiguous)
+    /// - If neither present -> error (no data)
+    fn determine_alignment_type(
+        matches: &ArgMatches,
+        alignment_content: &AlignmentContent
+    ) -> Result<AlignmentType, CliError> {
+        match matches.get_one::<String>("alignment-type") {
+            Some(s) => match s.as_str() {
+                "query" => Ok(AlignmentType::Query),
+                "reference" => Ok(AlignmentType::Reference),
+                _ => unreachable!("Invalid alignment type should be caught by CLI validation")
+            },
+            None => {
+                match (alignment_content.has_query_alignment, alignment_content.has_ref_alignment) {
+                    (true, true) => Err(CliError::InvalidArgument(
+                        "alignment-type".to_string(),
+                        "Input contains both query and reference alignments. Please specify which to use with '--alignment-type'".to_string()
+                    )),
+                    (true, false) => Ok(AlignmentType::Query),
+                    (false, true) => Ok(AlignmentType::Reference),
+                    (false, false) => Err(CliError::InvalidArgument(
+                        "alignment".to_string(), 
+                        "No alignment data found in input file".to_string()
+                    ))
+                }
+            }
+        }
+    }
+
+
     /// Parses the reformatting strategy from command line arguments.
     fn parse_reformat_strategy(matches: &ArgMatches) -> Result<ReformatStrategy, CliError> {
         let reformat_strategy_raw = matches.get_one::<String>("strategy").ok_or(
@@ -467,7 +504,7 @@ impl ConfigReformat {
     }
 
     /// Returns the alignment type to process (None means auto-detect).
-    pub fn alignment_type(&self) -> &Option<AlignmentType> {
+    pub fn alignment_type(&self) -> &AlignmentType {
         &self.alignment_type
     }
 

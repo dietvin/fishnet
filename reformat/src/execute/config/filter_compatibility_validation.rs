@@ -61,53 +61,15 @@ use crate::execute::config::{AlignmentContent, AlignmentType, FilterSource};
 pub(super) fn validate_filter_compatibility(
     filter_source: &FilterSource,
     alignment_content: &AlignmentContent,
-    alignment_type: &Option<AlignmentType>
+    alignment_type: &AlignmentType
 ) -> Result<(), CliError> {
-    let target_alignment = determine_alignment_type(alignment_content, alignment_type)?;
-
-    validate_alignment_exists(alignment_content, &target_alignment)?;
+    validate_alignment_exists(alignment_content, &alignment_type)?;
     
-    validate_filter_alignment_compatibility(filter_source, &target_alignment)?;
+    validate_filter_alignment_compatibility(filter_source, &alignment_type)?;
 
-    validate_sequence_requirements(filter_source, alignment_content, &target_alignment)?;
+    validate_sequence_requirements(filter_source, alignment_content, &alignment_type)?;
 
     Ok(())
-}
-
-/// Determines which alignment type will actually be used for processing.
-///
-/// When the user doesn't specify an alignment type explicitly, this function
-/// auto-detects based on what's available in the data. If both alignment types
-/// are present, the user must explicitly choose.
-///
-/// # Logic
-///
-/// - If user specified a type explicitly -> use that
-/// - If only query alignment present -> use Query
-/// - If only reference alignment present -> use Reference  
-/// - If both present and user didn't specify -> error (ambiguous)
-/// - If neither present -> error (no data)
-fn determine_alignment_type(
-    alignment_content: &AlignmentContent,
-    alignment_type: &Option<AlignmentType>
-) -> Result<AlignmentType, CliError> {
-    match alignment_type {
-        Some(t) => Ok(t.clone()),
-        None => {
-            match (alignment_content.has_query_alignment, alignment_content.has_ref_alignment) {
-                (true, true) => Err(CliError::InvalidArgument(
-                    "alignment-type".to_string(),
-                    "Input contains both query and reference alignments. Please specify which to use with '--alignment-type'".to_string()
-                )),
-                (true, false) => Ok(AlignmentType::Query),
-                (false, true) => Ok(AlignmentType::Reference),
-                (false, false) => Err(CliError::InvalidArgument(
-                    "alignment".to_string(), 
-                    "No alignment data found in input file".to_string()
-                ))
-            }
-        }
-    }
 }
 
 /// Validates that the requested alignment type actually exists in the input data.
@@ -223,29 +185,6 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_determine_alignment_type_auto_detect() {
-        // Only query present -> should auto-select Query
-        let content = create_test_content(true, false, false, false);
-        assert_eq!(
-            determine_alignment_type(&content, &None).unwrap(),
-            AlignmentType::Query
-        );
-
-        // Only reference present -> should auto-select Reference
-        let content = create_test_content(false, true, false, false);
-        assert_eq!(
-            determine_alignment_type(&content, &None).unwrap(),
-            AlignmentType::Reference
-        );
-    }
-
-    #[test]
-    fn test_determine_alignment_type_ambiguous() {
-        // Both present, no user choice -> should error
-        let content = create_test_content(true, true, false, false);
-        assert!(determine_alignment_type(&content, &None).is_err());
-    }
 
     #[test]
     fn test_validate_filter_alignment_compatibility() {
