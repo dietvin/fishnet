@@ -79,6 +79,7 @@ pub struct Pod5File {
     run_info : RunInfo,
     signal_table_reader: FeatherReader,
     signal_table_index: SignalTableIndex,
+    signal_table_batch_size: u64,
     footer: Pod5Footer
 }
 
@@ -106,7 +107,16 @@ impl Pod5File {
         // Parse the reads table and extract the data into the read_ids vector and the reads hashmap
         let (read_ids, reads, signal_table_index) = Self::parse_reads_table(&file, &footer)?;
         // Initialize the signal table reader without accessing the data at this point
-        let signal_table_reader = Self::init_signal_table_reader(&file, &footer)?;
+        let mut signal_table_reader = Self::init_signal_table_reader(&file, &footer)?;
+        
+        // Infer the signal table batch size from the first batch of the signal table
+        // This assumes that all batches have the same length (which should be the case
+        // for pod5 files generated from the official API)
+        let signal_table_batch_size =  signal_table_reader
+            .iter_chunks()?
+            .next()
+            .ok_or(Pod5FileError::SignalTableChunkSizeError)??
+            .len() as u64;
 
         Ok(Pod5File { 
             path, 
@@ -115,6 +125,7 @@ impl Pod5File {
             run_info,
             signal_table_reader,
             signal_table_index,
+            signal_table_batch_size,
             footer
         })
     } 
@@ -287,8 +298,8 @@ impl Pod5File {
             .signal_indices()
             .iter()
             .map(|idx| {ChunkRowIndex { 
-                chunk: (idx / 100) as usize,
-                row: (idx % 100) as usize
+                chunk: (idx / self.signal_table_batch_size) as usize,
+                row: (idx % self.signal_table_batch_size) as usize
             }})
             .collect::<Vec<ChunkRowIndex>>();
 
@@ -415,5 +426,7 @@ pub enum Pod5FileError {
     #[error("Read iterator error: {0}")]
     ReadIteratorError(#[from] ReadIteratorError),
     #[error("Signal table index error: {0}")]
-    SignalTableIndexError(#[from] SignalTableIndexError)
+    SignalTableIndexError(#[from] SignalTableIndexError),
+    #[error("Could not determine the chunk size for the signal table")]
+    SignalTableChunkSizeError
 }
