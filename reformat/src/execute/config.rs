@@ -13,6 +13,20 @@ use log::LevelFilter;
 use helper::{errors::CliError, file_handling::{check_and_get_pod5_input, check_input_file, check_output_file}, io::OutputFormat};
 use crate::execute::config::filter_compatibility_validation::validate_filter_compatibility;
 
+
+/// Represents all columns that can occur in an alignment input
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub(crate) enum Column {
+    ReadId,
+    QueryAlignment,
+    QuerySequence,
+    RefAlignment,
+    RefSequence,
+    RefName,
+    RefStart,
+    Signal
+}
+
 /// Defines the source of filtering criteria for selecting which reads to process.
 ///
 /// The filtering can be based on genomic coordinates (reference-based) or 
@@ -60,7 +74,7 @@ impl FilterSource {
 ///
 /// Signal data can either be embedded in the alignment file itself,
 /// or loaded separately from POD5 files.
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum SignalSource {
     /// Load signal data from separate POD5 files
     SignalFromFiles {
@@ -142,10 +156,46 @@ pub struct AlignmentContent {
     pub has_signal: bool
 }
 
-/// Complete configuration for the signal reformatting operation.
+/// Complete configuration for nanopore signal reformatting operations.
 ///
-/// This struct contains all the parameters needed to perform signal reformatting,
-/// including input/output file paths, processing options, and validation settings.
+/// This struct encapsulates all parameters required to perform signal reformatting,
+/// from input file paths to processing strategies to output formatting. It serves
+/// as the single source of truth for configuration throughout the application lifecycle.
+///
+/// # Configuration Categories
+///
+/// ## Input/Output
+/// - File paths for alignment data, POD5 files, and output
+/// - Output format selection (Parquet/TSV)
+/// - File overwrite behavior
+///
+/// ## Data Processing  
+/// - Signal source determination (embedded vs external files)
+/// - Alignment type selection (query vs reference)
+/// - Filtering strategy (genomic regions vs sequence motifs)
+/// - Reformatting approach (statistics vs interpolation)
+///
+/// ## Performance Tuning
+/// - Thread count for parallel processing
+/// - Chunk sizes for memory management
+/// - Queue sizes for data pipeline buffering
+///
+/// ## Runtime Behavior
+/// - Logging configuration and output paths
+/// - RNA-specific processing flags
+/// - Column selection optimization
+///
+/// # Lifecycle
+///
+/// 1. **Construction**: Created via `from_argmatches()` with extensive validation
+/// 2. **Validation**: All interdependencies checked before construction completes
+/// 3. **Usage**: Immutable configuration passed to processing components
+/// 4. **Access**: Getter methods provide safe access to all configuration values
+///
+/// # Thread Safety
+///
+/// This struct is `Send + Sync` safe for sharing across threads. All contained
+/// data is either owned or safely shareable.
 #[derive(Debug)]
 pub struct ConfigReformat {
     alignment_input: PathBuf,
@@ -161,6 +211,10 @@ pub struct ConfigReformat {
     filter_source: FilterSource,
     // To determine which reformatting strategy gets perfromed
     reformat_strategy: ReformatStrategy,
+    // The columns that are actually needed for processing given the user settings
+    columns_of_interest: Vec<Column>,
+    /// The number of rows to read in each chunk
+    input_chunk_size: usize,
     /// Output file format (Parquet or TSV)
     output_format: OutputFormat,
     /// Number of records to collect before writing an output batch
@@ -258,7 +312,16 @@ impl ConfigReformat {
         let reformat_strategy = Self::parse_reformat_strategy(matches)?;
         let is_drna = matches.get_flag("rna");
 
-        // === Performance and Output Configuration ===
+        // === Determining which columns are needed for processing ===
+
+        let columns_of_interest = Self::determine_columns_of_interest(
+            &alignment_type, 
+            &filter_source, 
+            &signal_source
+        );
+
+
+        // === Performance, Input and Output Configuration ===
 
         let n_threads = matches.get_one::<usize>("threads").ok_or(
             CliError::ArgumentNone("threads".to_string()) 
@@ -286,8 +349,16 @@ impl ConfigReformat {
             );
         }
 
+        let input_chunk_size = matches.get_one::<usize>("input-chunk-size").ok_or(
+            CliError::ArgumentNone("input-chunk-size".to_string()) 
+        )?.clone();
+        if input_chunk_size == 0 {
+            return Err(CliError::InvalidArgument("input-chunk-size".to_string(), 0.to_string()));
+        }
+
+
         let output_batch_size = matches.get_one::<usize>("output-batch-size").ok_or(
-            CliError::ArgumentNone("alignment-type".to_string()) 
+            CliError::ArgumentNone("output-batch-size".to_string()) 
         )?.clone();
         if output_batch_size == 0 {
             return Err(CliError::InvalidArgument("output-batch-size".to_string(), 0.to_string()));
@@ -320,6 +391,8 @@ impl ConfigReformat {
             alignment_type,
             filter_source,
             reformat_strategy,
+            columns_of_interest,
+            input_chunk_size,
             output_format,
             output_batch_size,
             force_overwrite,
@@ -330,6 +403,35 @@ impl ConfigReformat {
         })
     }
 
+    /// Parses the Parquet schema of an alignment file to determine available data columns.
+    ///
+    /// This function inspects the metadata of a Parquet file to identify which types of
+    /// alignment data, sequences, and signals are present. This information drives
+    /// validation logic and processing decisions throughout the application.
+    ///
+    /// # Arguments
+    ///
+    /// * `alignment_input` - Path to the input Parquet alignment file
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(AlignmentContent)` - Structure describing available data columns
+    /// * `Err(CliError)` - File I/O errors, invalid Parquet format, or schema issues
+    ///
+    /// # Expected Column Names
+    ///
+    /// The function looks for these specific column names in the Parquet schema:
+    /// - `"query_to_signal"`: Query-to-signal alignment data
+    /// - `"ref_to_signal"`: Reference-to-signal alignment data  
+    /// - `"query_sequence"`: sequence of the query reads
+    /// - `"ref_sequence"`: sequence of the reference genome
+    /// - `"signal"`: Raw nanopore signal data
+    ///
+    /// # Error Conditions
+    ///
+    /// - File cannot be opened (permissions, doesn't exist)
+    /// - Invalid Parquet format or corrupted metadata
+    /// - Schema inference failures
     fn parse_alignment_schema(alignment_input: &PathBuf) -> Result<AlignmentContent, CliError> {
         let col_name_query_algn = "query_to_signal".to_string();
         let col_name_ref_algn = "ref_to_signal".to_string();
@@ -367,13 +469,42 @@ impl ConfigReformat {
         })
     }
 
+    /// Parses and validates the signal source configuration.
+    ///
+    /// Determines where raw signal data should be loaded from based on user input
+    /// and the content of the alignment file. This function implements a priority
+    /// system where embedded signal data is preferred over external POD5 files
+    /// when both are available.
+    ///
+    /// # Arguments
+    ///
+    /// * `alignment_content` - Description of data columns present in the alignment file
+    /// * `pod5_input` - Optional paths to POD5 files provided by the user
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(SignalSource::SignalFromAlignment)` - Use signal data embedded in alignment file
+    /// * `Ok(SignalSource::SignalFromFiles)` - Load signal data from the provided POD5 files
+    /// * `Err(CliError)` - No signal source is available (neither embedded nor POD5 files)
+    ///
+    /// # Decision Matrix
+    ///
+    /// | POD5 Provided | Embedded Signal | Result | Notes |
+    /// |---------------|-----------------|---------|-------|
+    /// | Yes | Yes | SignalFromAlignment | Embedded takes priority |
+    /// | Yes | No | SignalFromFiles | Use external POD5 files |
+    /// | No | Yes | SignalFromAlignment | Use embedded data |
+    /// | No | No | Error | No signal source available |
     fn parse_signal_source(
         alignment_content: &AlignmentContent,
         pod5_input: &Option<Vec<PathBuf>>
     ) -> Result<SignalSource, CliError> {
         match (pod5_input, alignment_content.has_signal) {
             // Option 1: Pod5 file(s) provided AND alignment file contains signal
-            (Some(_), true) => Ok(SignalSource::SignalFromAlignment),
+            (Some(_), true) => {
+                println!("Warning: Pod5 file(s) provided, and alignment input contains signal. Pod5 input will be ignored");
+                Ok(SignalSource::SignalFromAlignment)
+            }
             // Option 2: Pod5 file(s) provided AND alignment file does not contain signal
             (Some(paths), false) => Ok(SignalSource::SignalFromFiles { paths: paths.clone() }),
             // Option 3: Pod5 file(s) not provided AND alignment file contains signal
@@ -386,9 +517,37 @@ impl ConfigReformat {
         }
     }
 
-    /// Parses the filter source configuration from command line arguments.
+    /// Parses and validates the filtering configuration from command line arguments.
     ///
-    /// Exactly one filter option must be specified by the user.
+    /// This function ensures that exactly one filtering method is specified by the user.
+    /// Filtering determines which subset of columns will be processed based on either
+    /// genomic coordinates or sequence motifs.
+    ///
+    /// # Arguments
+    ///
+    /// * `matches` - Parsed command line arguments from clap
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(FilterSource)` - The configured filtering method
+    /// * `Err(CliError)` - No filter specified or multiple conflicting filters
+    ///
+    /// # Filter Types
+    ///
+    /// ## Reference-Based Filtering (Genomic Coordinates)
+    /// - `RefRegionFromInput`: Direct command line regions (e.g., "chr1:1000-2000")
+    /// - `RefRegionFromBed`: Genomic regions loaded from BED format file
+    /// - `PositionsOfInterest`: Specific genomic positions (e.g., "chr1:1500")
+    ///
+    /// ## Sequence-Based Filtering (Motif Matching)
+    /// - `MotifFromInput`: DNA motifs provided directly (e.g., "ATCG", "GCTA")
+    /// - `MotifFromFile`: Motifs loaded from a text file (one per line)
+    ///
+    /// # Validation
+    ///
+    /// The function enforces mutual exclusivity - exactly one filter type must be specified.
+    /// File-based filters (`RefRegionFromBed`, `MotifFromFile`) undergo basic path validation
+    /// but detailed file content validation occurs during processing.
     fn parse_filter_source(matches: &ArgMatches) -> Result<FilterSource, CliError> {
         if let Some(ref_regions) = matches.get_many::<String>("ref-regions") {
             Ok(FilterSource::RefRegionFromInput { 
@@ -415,19 +574,41 @@ impl ConfigReformat {
         }
     }
 
-    /// Determines which alignment type will actually be used for processing.
+    /// Resolves the target alignment type from user input and available data.
     ///
-    /// When the user doesn't specify an alignment type explicitly, this function
-    /// auto-detects based on what's available in the data. If both alignment types
-    /// are present, the user must explicitly choose.
+    /// This function implements an auto-detection mechanism when users don't explicitly
+    /// specify an alignment type. It prevents ambiguous configurations and ensures
+    /// that the chosen alignment type is actually present in the input data.
     ///
-    /// # Logic
+    /// # Arguments
     ///
-    /// - If user specified a type explicitly -> use that
-    /// - If only query alignment present -> use Query
-    /// - If only reference alignment present -> use Reference  
-    /// - If both present and user didn't specify -> error (ambiguous)
-    /// - If neither present -> error (no data)
+    /// * `matches` - Parsed command line arguments containing user preferences
+    /// * `alignment_content` - Description of alignment data present in the input file
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(AlignmentType)` - The resolved alignment type to use for processing
+    /// * `Err(CliError)` - Invalid configuration or ambiguous input
+    ///
+    /// # Resolution Logic
+    ///
+    /// ## Explicit User Choice
+    /// If user specifies `--alignment-type`:
+    /// - Validate that the requested type exists in the data
+    /// - Return the requested type or error if unavailable
+    ///
+    /// ## Auto-Detection
+    /// When `--alignment-type` is not specified:
+    /// 1. **Single alignment type**: Return the available type
+    /// 2. **Both types present**: Error - user must choose explicitly
+    /// 3. **No alignments**: Error - no processable data
+    ///
+    /// # Error Cases
+    ///
+    /// - User requests query alignment but file only contains reference alignment
+    /// - User requests reference alignment but file only contains query alignment  
+    /// - File contains both alignment types but user didn't specify preference
+    /// - File contains no alignment data
     fn determine_alignment_type(
         matches: &ArgMatches,
         alignment_content: &AlignmentContent
@@ -456,7 +637,48 @@ impl ConfigReformat {
     }
 
 
-    /// Parses the reformatting strategy from command line arguments.
+    /// Parses the signal reformatting strategy from command line arguments.
+    ///
+    /// This function determines how raw signal data will be transformed for output.
+    /// The strategy affects the shape and content of the final output data.
+    ///
+    /// # Arguments
+    ///
+    /// * `matches` - Parsed command line arguments from clap
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(ReformatStrategy)` - The configured reformatting approach
+    /// * `Err(CliError)` - Missing required arguments or invalid configurations
+    ///
+    /// # Strategies
+    ///
+    /// ## Statistical Summary (`"stats"`)
+    /// Computes statistical measures for each base position across signal chunks.
+    /// Reduces variable-length signal data to fixed statistical summaries.
+    /// 
+    /// **Required Arguments:** `--stats` (one or more statistics)
+    /// **Available Statistics:**
+    /// - `mean`: Average signal value
+    /// - `median`: Middle signal value  
+    /// - `std`: Standard deviation
+    /// - `dwell`: Time spent at each base
+    /// - `signal-to-noise`: Signal quality metric
+    ///
+    /// **Output Shape:** One row per base, with columns for each requested statistic
+    ///
+    /// ## Interpolation (`"interpolate"`) 
+    /// Resamples variable-length signal chunks to a fixed length using interpolation.
+    /// Preserves signal shape while standardizing length.
+    ///
+    /// **Required Arguments:** `--target-size` (positive integer)
+    /// **Output Shape:** One row per base, with `target-size` signal values per base
+    ///
+    /// # Validation
+    ///
+    /// - Strategy must be either "stats" or "interpolate"
+    /// - Stats strategy requires at least one statistic
+    /// - Interpolation strategy requires target-size > 0
     fn parse_reformat_strategy(matches: &ArgMatches) -> Result<ReformatStrategy, CliError> {
         let reformat_strategy_raw = matches.get_one::<String>("strategy").ok_or(
             CliError::ArgumentNone("strategy".to_string())
@@ -477,6 +699,77 @@ impl ConfigReformat {
             }
             _ => unreachable!("Invalid strategy should be caught by CLI validation")
         }
+    }
+
+
+    /// Determines which columns from the alignment file are required for processing.
+    ///
+    /// This function analyzes the user's configuration to identify the minimal set of
+    /// columns that must be read from the Parquet file. This optimization reduces I/O
+    /// overhead by avoiding unnecessary data loading.
+    ///
+    /// # Arguments
+    ///
+    /// * `alignment_type` - Whether to process query or reference alignments
+    /// * `filter_source` - How reads will be filtered (affects required metadata columns)
+    /// * `signal_source` - Where signal data comes from (affects whether to read signal column)
+    ///
+    /// # Returns
+    ///
+    /// A vector of `Column` enums representing the required columns. Always includes
+    /// at least `ReadId` and one alignment column.
+    ///
+    /// # Column Selection Logic
+    ///
+    /// ## Always Required
+    /// - `ReadId`: Essential for tracking individual reads
+    /// - Alignment column: Either `QueryAlignment` or `RefAlignment` based on `alignment_type`
+    ///
+    /// ## Filter-Dependent Columns
+    /// - **Reference-based filters** (genomic coordinates):
+    ///   - `RefName`: Chromosome/contig identifier
+    ///   - `RefStart`: Genomic start position
+    /// - **Motif-based filters** (sequence patterns):
+    ///   - `QuerySequence`: For query alignment processing
+    ///   - `RefSequence`: For reference alignment processing
+    ///
+    /// ## Signal Data
+    /// - `Signal`: Only included if `signal_source == SignalSource::SignalFromAlignment`
+    fn determine_columns_of_interest(
+        alignment_type: &AlignmentType,
+        filter_source: &FilterSource,
+        signal_source: &SignalSource,
+    ) -> Vec<Column> {
+        let mut columns = Vec::new();
+
+        columns.push(Column::ReadId);
+
+        match alignment_type {
+            AlignmentType::Query => columns.push(Column::QueryAlignment),
+            AlignmentType::Reference => columns.push(Column::RefAlignment)
+        }
+
+        match filter_source {
+            FilterSource::RefRegionFromInput { .. }
+            | FilterSource::RefRegionFromBed { .. }
+            | FilterSource::PositionsOfInterest { .. } => {
+                columns.push(Column::RefName);
+                columns.push(Column::RefStart);
+            }
+            FilterSource::MotifFromInput { .. }
+            | FilterSource::MotifFromFile { .. } => {
+                match alignment_type {
+                    AlignmentType::Query => columns.push(Column::QuerySequence),
+                    AlignmentType::Reference => columns.push(Column::RefSequence),
+                }
+            }
+        }
+
+        if *signal_source == SignalSource::SignalFromAlignment {
+            columns.push(Column::Signal);
+        }
+
+        columns
     }
 
     // === Getter Methods ===
@@ -516,6 +809,16 @@ impl ConfigReformat {
     /// Returns the configured reformatting strategy.
     pub fn reformat_strategy(&self) -> &ReformatStrategy {
         &self.reformat_strategy
+    }
+
+    /// Returns the columns that are needed for processing
+    pub fn columns_of_interest(&self) -> &Vec<Column> {
+        &self.columns_of_interest
+    }
+
+    /// Return the input chunk size
+    pub fn input_chunk_size(&self) -> &usize {
+        &self.input_chunk_size
     }
 
     /// Returns the output file format (Parquet or TSV).
