@@ -249,11 +249,24 @@ footprint."
         // Output options
 
         .arg(
+            Arg::new("input-chunk-size")
+                .long("input-chunk-size")
+                .value_parser(value_parser!(usize))
+                .default_value("4000")
+                .help_heading("Input/Output settings")
+                .help("Input chunk size")
+                .long_help(
+"Input chunk size. Determines the number of alignments that are read in each iteration
+while reading the alignment file. Higher values reduce the I/O overhead, potentially 
+increasing speed, while requiring more memory."
+                )
+        )
+        .arg(
             Arg::new("force-overwrite")
                 .long("force-overwrite")
                 .short('f')
                 .action(ArgAction::SetTrue)
-                .help_heading("Output settings")
+                .help_heading("Input/Output settings")
                 .help("Whether an existing output file should be overwritten.")
                 .long_help(
 "Whether existing output files should be overwritten. If the provided output path 
@@ -266,7 +279,7 @@ error is raised."
                 .long("output-batch-size")
                 .value_parser(value_parser!(usize))
                 .default_value("4000")
-                .help_heading("Output settings")
+                .help_heading("Input/Output settings")
                 .help("Output batch size")
                 .long_help(
 "Output batch size. Determines the number of alignments that are collected 
