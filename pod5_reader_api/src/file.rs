@@ -303,6 +303,9 @@ impl Pod5File {
             }})
             .collect::<Vec<ChunkRowIndex>>();
 
+        // This approach is based on the observation that the signal table rows corresponding to
+        // a single read are directly following each other, so it makes sense to keep a given 
+        // chunk in memory instead of parsing it from scratch for each lookup
         let mut current_signal_table_idx = chunk_indices[0].chunk;
         let mut signal_table = SignalTable::from_chunk(
             self.get_signal_table_chunk(current_signal_table_idx)?
