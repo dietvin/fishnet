@@ -1,4 +1,4 @@
-use crate::footer::footer_schema::minknow::reads_format::{
+use crate::core::footer::footer_schema::minknow::reads_format::{
     ContentType, 
     EmbeddedFile, 
     Format

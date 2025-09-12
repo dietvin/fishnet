@@ -5,7 +5,6 @@ use std::{fs::File, io::Read};
 use arrow2::{
     array::Array, 
     chunk::Chunk, 
-    datatypes::Schema, 
     io::ipc::read::{
         read_file_metadata, 
         FileMetadata, 
@@ -16,7 +15,10 @@ use arrow2::{
 use arrow2::error::Result as ArrowResult;
 use arrow2::error::Error;
 
-use crate::feather_reader::bounded_reader::{BoundedReader, BoundedReaderError};
+use crate::{
+    error::feather_reader::FeatherReaderError, 
+    core::feather_reader::bounded_reader::BoundedReader
+};
 
 
 /// Reader for FeatherV2 datasets embedded within pod5 files.
@@ -77,18 +79,6 @@ impl FeatherReader {
             embedded_reader, 
             metadata
         })  
-    }
-
-    /// Returns a reference to the Arrow schema of the FeatherV2 dataset.
-    /// 
-    /// The schema contains information about the column names, data types, and structure
-    /// of the data stored in the dataset.
-    /// 
-    /// # Returns
-    /// 
-    /// A reference to the Arrow `Schema` object
-    pub fn schema(&self) -> &Schema {
-        &self.metadata.schema
     }
 
     /// Resets the internal reader position to the beginning of the dataset.
@@ -163,18 +153,6 @@ impl FeatherReader {
         Err(FeatherReaderError::IndexOutOfBounds(target_index))
     }
 
-    /// Returns an immutable reference to the underlying bounded reader.
-    /// 
-    /// This provides access to the bounded reader that handles the file I/O
-    /// operations for the embedded FeatherV2 data.
-    /// 
-    /// # Returns
-    /// 
-    /// An immutable reference to the `BoundedReader<File>`
-    pub fn embedded_reader(&self) -> &BoundedReader<File> {
-        &self.embedded_reader
-    }
-
     /// Returns a mutable reference to the underlying bounded reader.
     /// 
     /// This provides mutable access to the bounded reader for advanced operations
@@ -225,19 +203,4 @@ impl<'a> Iterator for ChunkIterator<'a> {
     fn next(&mut self) -> Option<Self::Item> {
         self.reader.next()
     }
-}
-
-/// Error types that can occur during FeatherReader operations.
-/// Covers bounded reader errors, Arrow format errors, I/O failures,
-/// and index out of bounds conditions.
-#[derive(Debug, thiserror::Error)]
-pub enum FeatherReaderError {
-    #[error("Embedded feather reader error: {0}")]
-    EmbeddedFeatherReaderError(#[from] BoundedReaderError),
-    #[error("Arrow2 error: {0}")]
-    Arrow2Error(#[from] arrow2::error::Error),
-    #[error("IO error: {0}")]
-    IoError(#[from] std::io::Error),
-    #[error("Index out of bounds: {0}")]
-    IndexOutOfBounds(usize),
 }

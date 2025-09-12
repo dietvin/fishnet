@@ -3,25 +3,18 @@ use std::collections::HashMap;
 use uuid::Uuid;
 
 use crate::{
-    feather_reader::{
-        ChunkIterator, 
-        FeatherReaderError
-    }, 
+    error::file::ReadIteratorError, 
     file::{
-        signal_table_index::{
-            SignalTableIndex, 
-            SignalTableIndexError
-        }, 
-        Pod5File
+        Pod5File, 
+        signal_table_index::SignalTableIndex
     }, 
-    read::{
-        Pod5Read, 
-        Pod5ReadError
-    }, 
-    tables::signal_table::{
-        SignalTable, 
-        SignalTableError, 
-        SignalTableRow
+    read::Pod5Read, 
+    core::{
+        feather_reader::ChunkIterator, 
+        tables::signal_table::{
+            SignalTable, 
+            SignalTableRow
+        }
     }
 };
 
@@ -454,39 +447,3 @@ impl<'a> Iterator for ReadIterator<'a> {
         }
     }
 }
-
-/// Enum representing all possible errors that can occur during read iteration.
-#[derive(Debug, thiserror::Error)]
-pub enum ReadIteratorError {
-    #[error("Could not get chunk iterator: {0}")]
-    ChunkIteratorError(#[from] FeatherReaderError),
-    #[error("Arrow2 error: {0}")]
-    Arrow2Error(#[from] arrow2::error::Error),
-    #[error("No chunks found in iterator")]
-    EmptyIterator,
-    #[error("Signal table error: {0}")]
-    SignalTableError(#[from] SignalTableError),
-    #[error("Read '{0}' was not found in the read index")]
-    ReadNotFoundInIndex(Uuid),
-    #[error("Pod5 read error: {0}")]
-    Pod5ReadError(#[from] Pod5ReadError),
-    #[error("Discordant signal lengths: {0} vs {1} (expected)")]
-    DiscordantSignalLength(usize, usize),
-    #[error("Expected signal length not set in read")]
-    ExpectedSignalLenNotFound,
-    #[error("Signal table is none")]
-    SignalTableNone,
-    #[error("Signal table index error: {0}")]
-    SignalTableIndexError(#[from] SignalTableIndexError),
-    #[error("Read id from signal table row ({0}) does not match read id from index ({1})")]
-    ReadIdMismatch(Uuid, Uuid),
-    #[error("Invalid signal chunk index {0} (must be smaller than {1})")]
-    InvalidSignalChunkIndex(usize, usize),
-    #[error("Read id {0} not found in incomplete reads")]
-    IncompleteReadsEntryNotFound(Uuid),
-    #[error("Failed to construct full signal for read {0}. Chunk {1} is missing")]
-    ConstructingIncompleteSignal(Uuid, usize),
-    #[error("Not all reads were finished while parsing the signal table ({0} unfinished reads remain)")]
-    IncompleteReadsAfterFinish(usize)
-}
-

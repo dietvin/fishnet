@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use uuid::Uuid;
 
-use crate::read::Pod5Read;
+use crate::{error::file::SignalTableIndexError, read::Pod5Read};
 
 /// Helper struct for efficiently tracking signal table row processing during iteration.
 /// 
@@ -160,18 +160,4 @@ impl SignalTableIndex {
         }
         Ok(())
     }
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum SignalTableIndexError {
-    #[error("Invalid index '{0}' with row_to_id index of length {1}")]
-    InvalidIndex(usize, usize),
-    #[error("Signal row {0} does not have a read match (row_to_id is None)")]
-    RowNotAssignable(usize),
-    #[error("All signal chunks were already processed for read {0}")]
-    ReadAlreadyFinished(Uuid),
-    #[error("Read id '{0}' not found in remaining_chunks")]
-    ReadIdNotFound(Uuid),
-    #[error("Not all reads were fully processed. {0} reads are missing chunk(s)")]
-    NotAllReadsFinished(usize)
 }

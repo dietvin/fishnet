@@ -1,6 +1,15 @@
 use uuid::Uuid;
 
-use crate::tables::reads_table::{Calibration, EndReason, Pore, PredictedScaling, TrackedScaling};
+use crate::{
+    error::read::Pod5ReadError, 
+    core::tables::reads_table::{
+        Calibration, 
+        EndReason, 
+        Pore, 
+        PredictedScaling, 
+        TrackedScaling
+    }
+};
 
 /// Represents a single read entry in a POD5 file, holding metadata parsed 
 /// from the reads table. The actual signal is not loaded initially to 
@@ -228,13 +237,4 @@ impl Pod5Read {
     pub(crate) fn set_signal(&mut self, signal: Vec<i16>) {
         self.signal = Some(signal)
     } 
-}
-
-
-/// Enumerates possible errors that can occur when attempting to access required 
-/// fields of a Pod5Read. Currently includes a variant for missing or unset fields.
-#[derive(Debug, thiserror::Error)]
-pub enum Pod5ReadError {
-    #[error("Field '{0}' is missing or null")]
-    MissingField(&'static str),
 }

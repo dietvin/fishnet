@@ -14,7 +14,7 @@ use arrow2::{
 };
 use uuid::Uuid;
 
-use crate::read::Pod5Read;
+use crate::{error::tables::ReadsTableError, read::Pod5Read};
 
 /// Intermediate helper struct that holds strongly typed references to the Arrow arrays from a chunk of the reads table.
 /// It enables safe and row-wise access to read metadata for constructing Pod5Read instances.
@@ -403,28 +403,4 @@ pub struct Calibration {
 pub struct EndReason {
     pub name: Option<String>,
     pub forced: Option<bool>
-}
-
-
-#[derive(Debug, thiserror::Error)]
-pub(crate) enum ReadsTableError {
-    #[error("UUID parsing error: {0}")]
-    UuidError(#[from] uuid::Error),
-    #[error("Invalid UUID bytes: expected 16 bytes, got {0}")]
-    InvalidUuidLength(usize),
-    #[error("Signal index out of bounds")]
-    SignalIndexOutOfBounds,
-    #[error("Invalid chunk structure: expected {expected} arrays, got {actual}")]
-    InvalidChunkStructure { expected: usize, actual: usize },
-    #[error("Array type mismatch at index {index}: expected {expected:?}, got {actual:?}")]
-    ArrayTypeMismatch {
-        index: usize,
-        expected: String,
-        actual: String,
-    },
-    #[error("Failed to cast array at index {index}: {reason}")]
-    ArrayCastError { index: usize, reason: String },
-    #[error("Could not downcast the signal indices array")]
-    SignalIndexArrayCastError,
-    
 }

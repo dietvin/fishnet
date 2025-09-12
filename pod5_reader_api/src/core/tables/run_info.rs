@@ -3,6 +3,8 @@ use std::collections::HashMap;
 use arrow2::{array::{Array, MapArray, PrimitiveArray, StructArray, Utf8Array}, chunk::Chunk};
 use chrono::{DateTime, Utc};
 
+use crate::error::tables::RunInfoError;
+
 /// Holds the information found in the run info table in the pod5 file in
 /// an easily accessible Rust-native format for easy access. 
 /// 
@@ -622,23 +624,4 @@ impl RunInfo {
         self.tracking_id.as_ref().ok_or(RunInfoError::MissingField("tracking_id"))
 
     }
-}
-
-
-#[derive(Debug, thiserror::Error)]
-pub enum RunInfoError {
-    #[error("Expected 1 row in chunk, found {0}")]
-    InvalidRowCount(usize),
-    #[error("Expected at least {expected} arrays in chunk, found {found}")]
-    InvalidArrayCount { expected: usize, found: usize },
-    #[error("Invalid acquisition id: {0}")]
-    InvalidAcquisitionId(&'static str),
-    #[error("Field '{0}' is missing or null")]
-    MissingField(&'static str),
-    #[error("Invalid type for field '{0}'")]
-    InvalidType(&'static str),
-    #[error("Invalid map array. Could not acces first value")]
-    InvalidMapArray,
-    #[error("Invalid map structure: {0}")]
-    InvalidMapStructure(&'static str),
 }

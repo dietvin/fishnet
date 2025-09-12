@@ -1,10 +1,12 @@
 use std::io::{Read, Seek, SeekFrom};
 
+use crate::error::feather_reader::BoundedReaderError;
+
 /// A bounded reader that constrains access to a specific region of an underlying reader.
 /// This ensures that only the data between `start_offset` and `start_offset + length` 
 /// can be accessed, providing a virtual "file" view of embedded data.
 #[derive(Debug)]
-pub struct BoundedReader<R: Read + Seek> {
+pub(crate) struct BoundedReader<R: Read + Seek> {
     inner: R,
     start_offset: u64,
     length: u64,
@@ -12,7 +14,7 @@ pub struct BoundedReader<R: Read + Seek> {
 }
 
 impl<R: Read + Seek> BoundedReader<R> {
-    pub fn new(mut reader: R, offset: u64, length: u64) -> Result<Self, BoundedReaderError> {
+    pub(crate) fn new(mut reader: R, offset: u64, length: u64) -> Result<Self, BoundedReaderError> {
         reader.seek(std::io::SeekFrom::Start(offset))?;
 
         Ok(BoundedReader { 
@@ -23,13 +25,9 @@ impl<R: Read + Seek> BoundedReader<R> {
         })
     }
 
-    pub fn reset(&mut self) -> std::io::Result<()> {
+    pub(crate) fn reset(&mut self) -> std::io::Result<()> {
         self.seek(SeekFrom::Start(0))?;
         Ok(())
-    }
-
-    pub fn current_pos(&self) -> u64 {
-        self.current_pos
     }
 }
 
@@ -84,11 +82,4 @@ impl<R: Read + Seek> Seek for BoundedReader<R> {
 
         Ok(new_pos)
     }
-}
-
-
-#[derive(Debug, thiserror::Error)]
-pub enum BoundedReaderError {
-    #[error("IO error: {0}")]
-    IoError(#[from] std::io::Error),
 }

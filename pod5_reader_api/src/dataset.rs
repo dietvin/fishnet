@@ -1,8 +1,16 @@
-use std::{collections::HashMap, ffi::OsString, path::PathBuf, slice::{Iter, IterMut}};
+mod dataset_sync;
+mod dataset_async;
+
+use std::{
+    collections::HashMap, 
+    ffi::OsString, 
+};
+
 
 use uuid::Uuid;
 
-use crate::{file::{Pod5File, Pod5FileError}, read::Pod5Read};
+use crate::{dataset::dataset_async::{file_shared_async::Pod5FileAsyncShared, reader_pool::FeatherReaderPoolShared}, file::Pod5File};
+
 
 /// A collection of POD5 files that can be accessed as a single dataset.
 /// 
@@ -16,165 +24,64 @@ pub struct Pod5Dataset {
     reads_index: HashMap<Uuid, usize>,
     n_reads: usize
 }
-impl Pod5Dataset {
-    /// Creates a new Pod5Dataset from a list of file paths.
-    /// 
-    /// # Arguments
-    /// * `paths` - Vector of paths to POD5 files to include in the dataset
-    /// 
-    /// # Returns
-    /// Result containing the initialized Pod5Dataset or an error
-    /// 
-    /// # Errors
-    /// Returns errors for invalid files or IO problems
-    pub fn new(paths: &Vec<PathBuf>) -> Result<Self, Pod5DatasetError> {
-        let mut files = Vec::with_capacity(paths.len()); 
-        let mut file_index = HashMap::with_capacity(paths.len());
-        let mut reads_index = HashMap::new();
-        for (path_idx, path_buf) in paths.iter().enumerate() {
-            let path = path_buf.as_os_str().to_os_string();
-            let file = Pod5File::new(path_buf.to_path_buf())?;
 
-            // Keep track on which read is in which file
-            let read_ids = file.read_ids().clone();
-            for read_id in read_ids {
-                reads_index.insert(read_id, path_idx);
-            }
-
-            files.push(file);
-            file_index.insert(path, path_idx);
-        }
-
-        let n_files = files.len();
-        let n_reads = reads_index.len();
-        Ok(Pod5Dataset { 
-            files, 
-            file_index,
-            n_files,
-            reads_index,
-            n_reads,        
-        })
-    }
-
-    /// Gets a reference to a Pod5File by its path key.
-    /// 
-    /// # Arguments
-    /// * `key` - The path key (as OsString) of the file to retrieve
-    /// 
-    /// # Returns
-    /// Result containing reference to the requested Pod5File or an error
-    /// 
-    /// # Errors
-    /// Returns InvalidKey if the key doesn't exist in the dataset
-    pub fn get_file(&self, key: &OsString) -> Result<&Pod5File, Pod5DatasetError> {
-        let index = self.file_index.get(key).ok_or(
-            Pod5DatasetError::InvalidKey(key.clone())
-        )?;
-        
-        self.get_file_by_index(*index)
-    }
-
-    /// Gets a reference to a Pod5File by its index.
-    /// 
-    /// # Arguments
-    /// * `index` - The numerical index of the file to retrieve
-    /// 
-    /// # Returns
-    /// Result containing reference to the requested Pod5File or an error
-    /// 
-    /// # Errors
-    /// Returns FileIndexError if the index is out of bounds
-    pub fn get_file_by_index(&self, index: usize) -> Result<&Pod5File, Pod5DatasetError> {
-        self.files.get(index).ok_or(
-            Pod5DatasetError::FileIndexError(index, self.n_files)
-        )    
-    }
-
-    /// Gets a mutable reference to a Pod5File by its path key.
-    /// 
-    /// # Arguments
-    /// * `key` - The path key (as OsString) of the file to retrieve
-    /// 
-    /// # Returns
-    /// Result containing mutable reference to the requested Pod5File or an error
-    /// 
-    /// # Errors
-    /// Returns InvalidKey if the key doesn't exist in the dataset
-    pub fn get_file_mut(&mut self, key: &OsString) -> Result<&mut Pod5File, Pod5DatasetError> {
-        let index = self.file_index.get(key).ok_or(
-            Pod5DatasetError::InvalidKey(key.clone())
-        )?;
-        
-        self.get_file_by_index_mut(*index)
-    }
-
-    /// Gets a mutable reference to a Pod5File by its index.
-    /// 
-    /// # Arguments
-    /// * `index` - The numerical index of the file to retrieve
-    /// 
-    /// # Returns
-    /// Result containing mutable reference to the requested Pod5File or an error
-    /// 
-    /// # Errors
-    /// Returns FileIndexError if the index is out of bounds
-    pub fn get_file_by_index_mut(&mut self, index: usize) -> Result<&mut Pod5File, Pod5DatasetError> {
-        self.files.get_mut(index).ok_or(
-            Pod5DatasetError::FileIndexError(index, self.n_files)
-        )    
-    }
-
-    /// Returns a vector of references to all Pod5Files in the dataset.
-    pub fn files(&self) -> Vec<&Pod5File> {
-        self.files.iter().collect()
-    }
-
-    /// Returns an iterator over references to all Pod5Files in the dataset.
-    pub fn iter_files(&self) -> Iter<'_, Pod5File> {
-        self.files.iter()
-    }
-
-    /// Returns a mutable iterator over all Pod5Files in the dataset.
-    pub fn iter_files_mut(&mut self) -> IterMut<'_, Pod5File> {
-        self.files.iter_mut()
-    }
-
-    /// Returns the number of files in the dataset.
-    pub fn n_files(&self) -> usize {
-        self.n_files
-    }
-
-    pub fn get_read(&mut self, read_id: &Uuid) -> Result<Pod5Read, Pod5DatasetError> {
-        let file_idx = self.reads_index.get(read_id)
-            .ok_or(Pod5DatasetError::ReadIdNotFound(*read_id))?;
-
-        let file = self.get_file_by_index_mut(*file_idx)?;
-        let read = file.get(read_id)?;
-        Ok(read)
-    }
-
-    pub fn n_reads(&self) -> usize {
-        self.n_reads
-    }
-}
-
-
-/// Error type for Pod5Dataset operations.
+/// Thread-safe dataset for efficient random access across multiple Pod5 files.
 /// 
-/// Includes variants for:
-/// - Underlying Pod5File errors
-/// - Invalid key access
-/// - Index out of bounds errors
-#[derive(Debug, thiserror::Error)]
-pub enum Pod5DatasetError {
-    #[error("Pod5File error: {0}")]
-    Pod5FileError(#[from] Pod5FileError),
-    #[error("Key {0:?} not found in dataset")]
-    InvalidKey(OsString),
-    #[error("File index out of bounds: {0} (len={1})")]
-    FileIndexError(usize, usize),
-    #[error("Read index out of bounds: {0} (len={1})")]
-    ReadIndexError(usize, usize),
-    #[error("Read id {0} not found in read ids.")]
-    ReadIdNotFound(Uuid)
+/// `Pod5DatasetAsync` provides high-performance, concurrent access to reads distributed
+/// across multiple Pod5 files. It's designed for applications that need to randomly access
+/// reads by ID without the overhead of managing individual file readers.
+/// 
+/// ## Key Features
+/// 
+/// - **Thread-Safe**: Supports concurrent read access from multiple threads
+/// - **Memory Efficient**: Uses a shared reader pool instead of per-file readers
+/// - **Random Access**: O(1) lookup of reads by UUID across all files
+/// - **Optimized Buffering**: Intelligent reader caching for common access patterns
+/// 
+/// ## Performance Characteristics
+/// 
+/// The dataset is optimized for applications where:
+/// - Reads are accessed randomly by ID rather than sequentially by file
+/// - The same file tends to be accessed repeatedly (reader pool optimization)
+/// - Memory usage needs to be controlled even with hundreds of files
+/// 
+/// ## Usage Example
+/// 
+/// ```rust,ignore
+/// use std::path::PathBuf;
+/// 
+/// // Initialize dataset with multiple Pod5 files
+/// let paths = vec![
+///     PathBuf::from("file1.pod5"),
+///     PathBuf::from("file2.pod5"),
+/// ];
+/// let dataset = Pod5DatasetAsync::new(&paths, 4)?;
+/// 
+/// // Random access to reads by ID
+/// let read = dataset.get_read(&read_id)?;
+/// let signal_data = read.signal().unwrap();
+/// ```
+/// 
+/// ## Memory Management
+/// 
+/// The dataset maintains a bounded pool of file readers (default: 2 × n_workers)
+/// to balance memory usage with performance. Readers are allocated on-demand and
+/// cached using an LRU eviction policy.
+pub struct Pod5DatasetAsync {
+    /// Lightweight representations of all Pod5 files in the dataset
+    files: Vec<Pod5FileAsyncShared>,
+    /// Map from filename to file index for path-based lookups
+    file_index: HashMap<OsString, usize>,
+    /// Total number of files in the dataset
+    n_files: usize,
+
+    /// Combined read IDs from all files, maintaining file order
+    read_ids: Vec<Uuid>,
+    /// Map from read ID to file index for O(1) read location
+    reads_index: HashMap<Uuid, usize>,
+    /// Total number of reads across all files
+    n_reads: usize,
+
+    /// Shared reader pool for efficient file access
+    reader_pool: FeatherReaderPoolShared
 }

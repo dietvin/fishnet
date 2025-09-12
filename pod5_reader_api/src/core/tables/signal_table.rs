@@ -1,7 +1,7 @@
 use arrow2::{array::{Array, BinaryArray, FixedSizeBinaryArray, UInt32Array}, chunk::Chunk};
 use uuid::Uuid;
 
-use crate::tables::decompression::decode;
+use crate::{error::tables::SignalTableError, core::tables::decompression::decode};
 
 /// A single row of decompressed signal data.
 /// 
@@ -23,7 +23,7 @@ pub struct SignalTableRow {
 /// and the number of samples. Data is lazily decompressed when accessed
 /// via `get()` or the iterator interface.
 #[derive(Debug)]
-pub struct SignalTable {
+pub(crate) struct SignalTable {
     read_id_array: FixedSizeBinaryArray,
     signal_array: BinaryArray<i64>,
     num_samples_array: UInt32Array,
@@ -43,7 +43,7 @@ impl SignalTable {
     /// 
     /// Returns a `SignalTableError::DowncastError` if any of the arrays
     /// cannot be downcast to their expected types.
-    pub fn from_chunk(chunk: Chunk<Box<dyn Array>>) -> Result<Self, SignalTableError> {
+    pub(crate) fn from_chunk(chunk: Chunk<Box<dyn Array>>) -> Result<Self, SignalTableError> {
         let arrays = chunk.arrays();
 
         let read_id_array = arrays[0]
@@ -75,12 +75,12 @@ impl SignalTable {
     }
 
     /// Returns the number of entries in the table.
-    pub fn len(&self) -> usize {
+    pub(crate) fn len(&self) -> usize {
         self.length
     }
 
     /// Returns `true` if the table contains no entries.
-    pub fn is_empty(&self) -> bool {
+    pub(crate) fn is_empty(&self) -> bool {
         self.length == 0
     }
 
@@ -154,17 +154,4 @@ impl Iterator for SignalTable {
         self.current_index += 1;
         Some(result)
     }
-}
-
-/// Errors that can occur during the construction or access of `SignalTable`.
-#[derive(Debug, thiserror::Error)]
-pub enum SignalTableError {
-    #[error("Failed to cast column {0} to type {1}")]
-    DowncastError(&'static str, &'static str),
-    #[error("Invalid UUID bytes: expected 16 bytes, got {0}")]
-    InvalidUuidLength(usize),
-    #[error("Signal index out of bounds ({0} with length {1}")]
-    SignalIndexOutOfBounds(usize, usize),
-    #[error("Decompress error: {0}")]
-    DecompressError(#[from] std::io::Error)
 }
