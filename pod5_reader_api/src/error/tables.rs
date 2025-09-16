@@ -1,5 +1,5 @@
 #[derive(Debug, thiserror::Error)]
-pub(crate) enum ReadsTableError {
+pub enum ReadsTableError {
     #[error("UUID parsing error: {0}")]
     UuidError(#[from] uuid::Error),
     #[error("Invalid UUID bytes: expected 16 bytes, got {0}")]
@@ -8,12 +8,6 @@ pub(crate) enum ReadsTableError {
     SignalIndexOutOfBounds,
     #[error("Invalid chunk structure: expected {expected} arrays, got {actual}")]
     InvalidChunkStructure { expected: usize, actual: usize },
-    #[error("Array type mismatch at index {index}: expected {expected:?}, got {actual:?}")]
-    ArrayTypeMismatch {
-        index: usize,
-        expected: String,
-        actual: String,
-    },
     #[error("Failed to cast array at index {index}: {reason}")]
     ArrayCastError { index: usize, reason: String },
     #[error("Could not downcast the signal indices array")]
