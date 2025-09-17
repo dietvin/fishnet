@@ -1,5 +1,8 @@
 use std::{io::Error, path::PathBuf};
 
+use log::SetLoggerError;
+use log4rs::config::runtime::ConfigErrors;
+
 use crate::io::OutputFormat;
 
 
@@ -49,4 +52,14 @@ pub enum CliError {
     InvalidArgument(String, String),
     #[error("Io error: {0}")]
     IoError(#[from] std::io::Error)
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum LoggerError {
+    #[error("IO error: {0}")]
+    IoError(#[from] std::io::Error),
+    #[error("Log error: {0}")]
+    LogError(#[from] SetLoggerError),
+    #[error("Log4rs error: {0}")]
+    ConfigError(#[from] ConfigErrors)
 }

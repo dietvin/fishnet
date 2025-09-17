@@ -1,4 +1,4 @@
-use pod5_reader_api::read::Pod5ReadError;
+use pod5_reader_api::error::read::Pod5ReadError;
 
 use crate::error::alignment_errors::AlignedReadError;
 

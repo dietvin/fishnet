@@ -90,18 +90,12 @@ pub fn run_alignment_multi_threaded(input: ConfigAlign) -> Result<(), AlignmentE
     // Initialize the logger
     if *input.log_level() != LevelFilter::Off {
         progress_bar_init.set_message("Initializing logging...");
-        if let Err(e) = setup_logger(
+        setup_logger(
             input.log_path(), 
             *input.log_level(), 
             vec![], 
             false
-        ) {
-            eprintln!(
-                "Failed to initialize logger: {}",
-                format!("{}", style(e).red())
-            );
-            std::process::exit(1);
-        }
+        )?;
     }
 
     // Initialize and load the BAM file
@@ -111,11 +105,7 @@ pub fn run_alignment_multi_threaded(input: ConfigAlign) -> Result<(), AlignmentE
         Ok(v) => v,
         Err(e) => {
             log::error!("Failed to read Bam file: {e}");
-            eprintln!(
-                "Failed to read Bam file: {}",
-                format!("{}", style(e).red())
-            );
-            std::process::exit(1);
+            return Err(AlignmentError::BamFileError(e));
         }
     };
 
@@ -126,11 +116,7 @@ pub fn run_alignment_multi_threaded(input: ConfigAlign) -> Result<(), AlignmentE
         Ok(v) => v,
         Err(e) => {
             log::error!("Failed to read pod5 files: {e}");
-            eprintln!(
-                "Failed to read pod5 files: {}",
-                format!("{}", style(e).red())
-            );
-            std::process::exit(1);
+            return Err(AlignmentError::Pod5DatasetError(e));
         }
     };
 
@@ -144,22 +130,14 @@ pub fn run_alignment_multi_threaded(input: ConfigAlign) -> Result<(), AlignmentE
         Ok(v) => v,
         Err(e) => {
             log::error!("Failed to load kmer table: {e}");
-            eprintln!(
-                "Failed to load kmer table: {}",
-                format!("{}", style(e).red())
-            );
-            std::process::exit(1);
+            return Err(AlignmentError::KmerTableError(e));
         }
     };
 
     if *refine_settings.normalize_levels() {
         if let Err(e) = kmer_table.fix_gauge() {
             log::error!("Failed to normalize kmer table levels: {e}");
-            eprintln!(
-                "Failed to normalize kmer table levels: {}",
-                format!("{}", style(e).red())
-            );
-            std::process::exit(1);
+            return Err(AlignmentError::KmerTableError(e));
         }
     }
 
@@ -190,11 +168,7 @@ pub fn run_alignment_multi_threaded(input: ConfigAlign) -> Result<(), AlignmentE
         Ok(v) => v,
         Err(e) => {
             log::error!("Failed to initialize the output writer: {e}");
-            eprintln!(
-                "Failed to initialize the output writer: {}",
-                format!("{}", style(e).red())
-            );
-            std::process::exit(1);
+            return Err(AlignmentError::OutputError(e));
         }
     };
 
@@ -256,11 +230,7 @@ pub fn run_alignment_multi_threaded(input: ConfigAlign) -> Result<(), AlignmentE
             Ok(v) => v,
             Err(e) => {
                 log::error!("Failed to spawn progress thread: {e}");
-                eprintln!(
-                    "Failed to spawn progress thread: {}",
-                    format!("{}", style(e).red())
-                );
-                std::process::exit(1);
+                return Err(AlignmentError::IoError(e));
             }
         };
 
@@ -283,21 +253,15 @@ pub fn run_alignment_multi_threaded(input: ConfigAlign) -> Result<(), AlignmentE
 
             if let Err(e) = output_writer.finalize() {
                 log::error!("Failed to write the remaining buffer to file: {e}");
-                eprintln!(
-                    "Failed to write the remaining buffer to file: {}",
-                    format!("{}", style(e).red())
-                );
-                std::process::exit(1);
+                return Err(AlignmentError::OutputError(e));
             }
+
+            Ok(())
         }) {
             Ok(v) => v,
             Err(e) => {
                 log::error!("Failed to spawn writer thread: {e}");
-                eprintln!(
-                    "Failed to spawn writer thread: {}",
-                    format!("{}", style(e).red())
-                );
-                std::process::exit(1);
+                return Err(AlignmentError::IoError(e));
             }
         };
 
@@ -446,11 +410,7 @@ pub fn run_alignment_multi_threaded(input: ConfigAlign) -> Result<(), AlignmentE
                 Ok(v) => v,
                 Err(e) => {
                     log::error!("Failed to spawn worker thread {thread_id}: {e}");
-                    eprintln!(
-                        "Failed to spawn worker thread {thread_id}: {}",
-                        format!("{}", style(e).red())
-                    );
-                    std::process::exit(1);
+                    return Err(AlignmentError::IoError(e));
                 }
             };
 
@@ -512,25 +472,19 @@ pub fn run_alignment_multi_threaded(input: ConfigAlign) -> Result<(), AlignmentE
             Ok(v) => v,
             Err(e) => {
                 log::error!("Failed to spawn producer thread: {e}");
-                eprintln!(
-                    "Failed to spawn producer thread: {}",
-                    format!("{}", style(e).red())
-                );
-                std::process::exit(1);
+                return Err(AlignmentError::IoError(e));
             }
         };
 
     // Join all threads
     if let Err(e) = producer_handle.join() {
         log::error!("Failed to join producer thread: {:?}", e);
-        eprintln!("Failed to join producer thread: {:?}", e);
-        std::process::exit(1);
+        return Err(AlignmentError::ThreadJoinError("producer"));
     }
     for handle in worker_handles {
         if let Err(e) = handle.join() {
             log::error!("Failed to join worker threads: {:?}", e);
-            eprintln!("Failed to join worker threads: {:?}", e);
-            std::process::exit(1);
+            return Err(AlignmentError::ThreadJoinError("worker"));
         }
     }
 
@@ -539,8 +493,7 @@ pub fn run_alignment_multi_threaded(input: ConfigAlign) -> Result<(), AlignmentE
 
     if let Err(e) = progress_handler.join() {
         log::error!("Failed to join progress thread: {:?}", e);
-        eprintln!("Failed to join progress thread: {:?}", e);
-        std::process::exit(1);
+        return Err(AlignmentError::ThreadJoinError("progress"));
     }
 
     let progress_bar_finishing = ProgressBar::new_spinner();
@@ -555,8 +508,7 @@ pub fn run_alignment_multi_threaded(input: ConfigAlign) -> Result<(), AlignmentE
 
     if let Err(e) = writer_handle.join() {
         log::error!("Failed to join writer thread: {:?}", e);
-        eprintln!("Failed to join writer thread: {:?}", e);
-        std::process::exit(1);
+        return Err(AlignmentError::ThreadJoinError("writer"));
     }
 
     progress_bar_finishing.finish_with_message(format!("{}", style("Finished.").green()));

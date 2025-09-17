@@ -138,7 +138,7 @@ fn test_with_data_from(dirname: &str) {
     let dir = format!("tests/{}/full_process", dirname);
 
     let path = PathBuf::from("../example_data/can_reads.pod5");
-    let mut pod5_file = Pod5File::new(path).unwrap();
+    let mut pod5_file = Pod5File::new(&path).unwrap();
 
     let path = "../example_data/can_mappings.bam";
     let mut bam_file = BamFileLazy::new(&PathBuf::from(path)).unwrap();

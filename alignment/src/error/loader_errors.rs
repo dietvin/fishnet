@@ -1,5 +1,13 @@
-use bam_errors::{BamFileError, BamReadError, RefSeqReconstructError};
-use pod5_reader_api::{dataset::Pod5DatasetError, file::Pod5FileError, read::Pod5ReadError};
+use bam_errors::{
+    BamFileError, 
+    BamReadError, 
+    RefSeqReconstructError
+};
+use pod5_reader_api::error::{
+    dataset::Pod5DatasetError, 
+    file::Pod5FileError, 
+    read::Pod5ReadError
+};
 
 pub mod bam_errors;
 pub mod file_handling_errors;

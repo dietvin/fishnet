@@ -51,18 +51,12 @@ pub fn run_alignment_single_threaded(input: ConfigAlign) -> Result<(), Alignment
 
     if *input.log_level() != LevelFilter::Off {
         progress_bar_init.set_message("Initializing logging...");
-        if let Err(e) = setup_logger(
+        setup_logger(
             input.log_path(), 
             *input.log_level(), 
             vec![], 
             false
-        ) {
-            eprintln!(
-                "Failed to initialize logger: {}",
-                format!("{}", style(e).red())
-            );
-            std::process::exit(1);
-        }
+        )?;
     }
 
     progress_bar_init.set_message("Loading the BAM file...");
@@ -71,11 +65,7 @@ pub fn run_alignment_single_threaded(input: ConfigAlign) -> Result<(), Alignment
         Ok(v) => v,
         Err(e) => {
             log::error!("Failed to read Bam file: {e}");
-            eprintln!(
-                "Failed to read Bam file: {}",
-                format!("{}", style(e).red())
-            );
-            std::process::exit(1);
+            return Err(AlignmentError::BamFileError(e));
         }
     };
 
@@ -85,11 +75,7 @@ pub fn run_alignment_single_threaded(input: ConfigAlign) -> Result<(), Alignment
         Ok(v) => v,
         Err(e) => {
             log::error!("Failed to read pod5 files: {e}");
-            eprintln!(
-                "Failed to read pod5 files: {}",
-                format!("{}", style(e).red())
-            );
-            std::process::exit(1);
+            return Err(AlignmentError::Pod5DatasetError(e));
         }
     };
 
@@ -102,22 +88,14 @@ pub fn run_alignment_single_threaded(input: ConfigAlign) -> Result<(), Alignment
         Ok(v) => v,
         Err(e) => {
             log::error!("Failed to load kmer table: {e}");
-            eprintln!(
-                "Failed to load kmer table: {}",
-                format!("{}", style(e).red())
-            );
-            std::process::exit(1);
+            return Err(AlignmentError::KmerTableError(e));
         }
     };
 
     if *refine_settings.normalize_levels() {
         if let Err(e) = kmer_table.fix_gauge() {
             log::error!("Failed to normalize kmer table levels: {e}");
-            eprintln!(
-                "Failed to normalize kmer table levels: {}",
-                format!("{}", style(e).red())
-            );
-            std::process::exit(1);
+            return Err(AlignmentError::KmerTableError(e));
         }
     }
 
@@ -130,18 +108,14 @@ pub fn run_alignment_single_threaded(input: ConfigAlign) -> Result<(), Alignment
             .map(|w| Box::new(w) as Box<dyn AlignmentWriter>),
         OutputFormat::Json => OutputWriterJsonl::new(&output_path, input.force_overwrite(), input.output_batch_size(), input.output_config().clone())
             .map(|w| Box::new(w) as Box<dyn AlignmentWriter>),
-        _ => unreachable!()
+        _ => unreachable!("CLI restricts output formats to Parquet and JSONL")
     };
     
     let mut output_writer = match output_writer_res {
         Ok(v) => v,
         Err(e) => {
             log::error!("Failed to initialize the output writer: {e}");
-            eprintln!(
-                "Failed to initialize the output writer: {}",
-                format!("{}", style(e).red())
-            );
-            std::process::exit(1);
+            return Err(AlignmentError::OutputError(e));
         }
     };
 
@@ -286,11 +260,7 @@ pub fn run_alignment_single_threaded(input: ConfigAlign) -> Result<(), Alignment
 
     if let Err(e) = output_writer.finalize() {
         log::error!("Failed to write the remaining buffer to file: {e}");
-        eprintln!(
-            "Failed to write the remaining buffer to file: {}",
-            format!("{}", style(e).red())
-        );
-        std::process::exit(1);
+        return Err(AlignmentError::OutputError(e));
     }
 
     progress_bar.set_style(

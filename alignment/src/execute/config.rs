@@ -7,7 +7,6 @@ use clap::ArgMatches;
 use helper::{
     errors::CliError, 
     file_handling::{
-        calc_quantiles, 
         check_and_get_pod5_input, 
         check_input_file, 
         check_output_file
@@ -282,7 +281,7 @@ impl ConfigAlign {
 
             // TODO: Check that rough_rescale_quants_min < rough_rescale_quants_max and rough_rescale_quants_steps > 2
 
-            let quantiles = calc_quantiles(
+            let quantiles = helpers::calc_quantiles(
                 rough_rescale_quants_min, 
                 rough_rescale_quants_max,
                 rough_rescale_quants_steps

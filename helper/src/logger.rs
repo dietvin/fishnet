@@ -21,7 +21,18 @@
 use std::path::PathBuf;
 
 use log::LevelFilter;
-use log4rs::{append::file::FileAppender, config::{Appender, Logger, Root}, encode::pattern::PatternEncoder, Config};
+use log4rs::{
+    append::file::FileAppender, 
+    config::{
+        Appender, 
+        Logger, 
+        Root
+    }, 
+    encode::pattern::PatternEncoder, 
+    Config
+};
+
+use crate::errors::LoggerError;
 
 
 /// Sets up a file-based logging system using log4rs.
@@ -42,7 +53,7 @@ pub fn setup_logger(
     default_level: LevelFilter,
     module_filters: Vec<(&str, LevelFilter)>,
     include_function_name: bool
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<(), LoggerError> {
     let pattern = if include_function_name {
         "{d(%Y-%m-%d %H:%M:%S)}\t{l}\t{M}:{L}\t{T}\t{m}\n"
     } else {
