@@ -324,6 +324,8 @@ The filtering flag for reference regions follow the following
 coordinate systems:
 
 Example sequence chrA:  A C G T A T A C C T
+                        0 1 2 3 4 5 6 7 8 9  (0-based index)
+                        1 2 3 4 5 6 7 8 9 10 (1-based index)
 
 1. BED file (--bed-file):
    - Coordinates follow BED conventions

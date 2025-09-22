@@ -1,5 +1,6 @@
 pub mod init_cli;
 pub(crate) mod config;
+pub(crate) mod output;
 mod execute_single_threaded;
 mod execute_multi_threaded;
 
@@ -22,7 +23,7 @@ pub fn execute(input_args: &ArgMatches) {
         }
     };
 
-    if *config.n_threads() <= 1 {
+    if config.n_threads() <= 1 {
         if let Err(e) = run_reformat_single_threaded(config) {
             eprintln!(
                 "Failed to reformat the alignment: {}",

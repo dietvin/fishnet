@@ -31,7 +31,7 @@ pub(crate) enum Column {
 ///
 /// The filtering can be based on genomic coordinates (reference-based) or 
 /// sequence motifs (sequence-based).
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FilterSource {
     /// Filter by reference genomic regions provided directly as command line arguments
     RefRegionFromInput {
@@ -205,7 +205,7 @@ pub struct ConfigReformat {
     signal_source: SignalSource,
     /// Whether to use dRNA-specific processing (affects POD5 signal extraction)
     is_drna: bool,
-    /// Which alignment type to process (None means auto-detect if possible)
+    /// Which alignment type to process
     alignment_type: AlignmentType,
     /// How to reformat the signal data
     filter_source: FilterSource,
@@ -817,8 +817,8 @@ impl ConfigReformat {
     }
 
     /// Return the input chunk size
-    pub fn input_chunk_size(&self) -> &usize {
-        &self.input_chunk_size
+    pub fn input_chunk_size(&self) -> usize {
+        self.input_chunk_size
     }
 
     /// Returns the output file format (Parquet or TSV).
@@ -827,8 +827,8 @@ impl ConfigReformat {
     }
 
     /// Returns the number of records to write per output batch.
-    pub fn output_batch_size(&self) -> &usize {
-        &self.output_batch_size
+    pub fn output_batch_size(&self) -> usize {
+        self.output_batch_size
     }
 
     /// Returns whether existing output files should be overwritten.
@@ -837,13 +837,13 @@ impl ConfigReformat {
     }
 
     /// Returns the number of processing threads to use.
-    pub fn n_threads(&self) -> &usize {
-        &self.n_threads
+    pub fn n_threads(&self) -> usize {
+        self.n_threads
     }
 
     /// Returns the size of the processing queue.
-    pub fn queue_size(&self) -> &usize {
-        &self.queue_size
+    pub fn queue_size(&self) -> usize {
+        self.queue_size
     }
 
     /// Returns the configured logging level.
