@@ -329,14 +329,14 @@ Example sequence chrA:  A C G T A T A C C T
 
 1. BED file (--bed-file):
    - Coordinates follow BED conventions
-   - Start is 0-based (inclusive), end is 1-based (exclusive)
+   - Coordinates are 0-based, start is inclusive, end is exclusive
    - Example line:   chrA   1   9
    - Covers bases 2 through 9 of:  A C G T A T A C C T
                                      C G T A T A C C
 
 2. Region string (--ref-regions):
    - Coordinates follow samtools-style conventions
-   - Both start and end are 1-based (inclusive)
+   - Coordinates are 1-based, and both start and end are inclusive
    - Example:        chrA:2-9
    - Covers bases 2 through 9 of:  A C G T A T A C C T
                                      C G T A T A C C
@@ -349,7 +349,6 @@ Example sequence chrA:  A C G T A T A C C T
                                      C G T A T A C
 "
         );
-
 
     command
 }
