@@ -114,13 +114,13 @@ impl ReferenceRegions {
         Ok(Self { regions })
     }
 
-    /// Checks if the given ReferenceRegion is fully contained in one the regions at 
-    /// hand. If so, returns a String representation of the matching region. Otherwise
+    /// Checks if one of the regions at hand is fully contained in the given reference
+    /// region. If so, returns a String representation of the matching region. Otherwise
     /// returns None.
-    pub(crate) fn contains(&self, other: &ReferenceRegion) -> Option<String> {
+    pub(crate) fn self_in_other(&self, other: &ReferenceRegion) -> Option<String> {
         if let Some(regions) = self.regions.get(other.name()) {
             for region in regions {
-                if region.fully_contains(other) {
+                if region.self_fully_in_other(other) {
                     return Some(region.to_samtools_string());
                 }
             }
@@ -190,7 +190,7 @@ mod tests {
         rr.regions.insert("chr1".into(), vec![make_region("chr1", 100, 200)]);
 
         let contained = make_region("chr1", 120, 150);
-        assert_eq!(rr.contains(&contained), Some("chr1:100-200".to_string()));
+        assert_eq!(rr.self_in_other(&contained), Some("chr1:100-200".to_string()));
     }
 
     #[test]
@@ -199,7 +199,7 @@ mod tests {
         rr.regions.insert("chr1".into(), vec![make_region("chr1", 100, 200)]);
 
         let other = make_region("chr2", 120, 150);
-        assert_eq!(rr.contains(&other), None);
+        assert_eq!(rr.self_in_other(&other), None);
     }
 
     #[test]
@@ -208,6 +208,6 @@ mod tests {
         rr.regions.insert("chr1".into(), vec![make_region("chr1", 100, 200)]);
 
         let outside = make_region("chr1", 201, 250);
-        assert_eq!(rr.contains(&outside), None);
+        assert_eq!(rr.self_in_other(&outside), None);
     }
 }

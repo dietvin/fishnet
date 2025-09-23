@@ -107,6 +107,10 @@ pub(crate) mod filter {
         MotifsError(#[from] MotifsError),
         #[error("Reference regions error: {0}")]
         RefRegionsError(#[from] ReferenceRegionsError),
+        #[error("Filtering for reference regions, but no region was found in the current row")]
+        NoRegionInTarget,
+        #[error("Filtering for motifs, but only a placeholder sequence was found in the current row")]
+        NoSequenceInTarget
     }
 
 }

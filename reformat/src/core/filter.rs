@@ -1,11 +1,11 @@
-use crate::{core::filter::{motifs::Motifs, reference_regions::ReferenceRegions}, error::core::filter::FilterError, execute::config::FilterSource};
+use crate::{core::{alignment_loader::Row, filter::{motifs::Motifs, reference_regions::ReferenceRegions}}, error::core::filter::FilterError, execute::config::FilterSource};
 
 pub(crate) mod reference_region;
 pub(crate) mod reference_regions;
 pub(crate) mod motif;
 pub(crate) mod motifs;
 
-
+#[derive(Debug)]
 pub(crate) enum Filter {
     ReferenceRegions { regions: ReferenceRegions },
     Motifs { motifs: Motifs}
@@ -23,6 +23,22 @@ impl Filter {
             FilterSource::MotifFromInput { .. } => Ok(Self::Motifs { 
                 motifs: Motifs::from_filter_source(filter_source)?
             })
+        }
+    }
+
+    pub(crate) fn passes(&self, row: &Row) -> Result<Option<String>, FilterError> {
+        match self {
+            Filter::ReferenceRegions { regions } => {
+                let row_region = row.ref_region()
+                    .ok_or(FilterError::NoRegionInTarget)?;
+
+                Ok(regions.self_in_other(row_region))
+            }
+            Filter::Motifs { motifs } => {
+                // Note that if the sequence was not available, it was filled with N, so it
+                // will always return None in this case
+                Ok(motifs.self_in_other(row.sequence()))
+            }
         }
     }
 }

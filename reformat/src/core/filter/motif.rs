@@ -1,5 +1,6 @@
 use crate::error::core::filter::MotifError;
 
+#[derive(Debug)]
 pub(crate) struct Motif {
     name: String,
     motif: String

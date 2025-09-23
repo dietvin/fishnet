@@ -2,6 +2,7 @@ use std::{fs::File, io::{BufRead, BufReader}, path::PathBuf};
 
 use crate::{core::filter::motif::Motif, error::core::filter::MotifsError, execute::config::FilterSource};
 
+#[derive(Debug)]
 pub(crate) struct Motifs {
     motifs: Vec<Motif>
 }
@@ -63,7 +64,7 @@ impl Motifs {
         Ok(Self { motifs })
     }
 
-    pub(crate) fn contains(&self, other: &str) -> Option<String> {
+    pub(crate) fn self_in_other(&self, other: &str) -> Option<String> {
         for motif in &self.motifs {
             if motif.is_in(other) {
                 return Some(motif.name().to_string());

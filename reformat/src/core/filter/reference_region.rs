@@ -175,8 +175,8 @@ impl ReferenceRegion {
     /// Returns `true` if `other` is fully contained within this region.
     ///
     /// Both regions must be on the same sequence (`name`).
-    pub(crate) fn fully_contains(&self, other: &ReferenceRegion) -> bool {
-        other.name == self.name && other.start >= self.start && other.end <= self.end
+    pub(crate) fn self_fully_in_other(&self, other: &ReferenceRegion) -> bool {
+        other.name == self.name && other.start <= self.start && other.end >= self.end
     }
 
     /// Retrieves the sequence name of the region
@@ -303,20 +303,20 @@ mod tests {
     fn test_fully_contains_true() {
         let outer = ReferenceRegion::from_bed_entry("chr1".into(), 2, 10).unwrap();
         let inner = ReferenceRegion::from_bed_entry("chr1".into(), 4, 7).unwrap();
-        assert!(outer.fully_contains(&inner));
+        assert!(outer.self_fully_in_other(&inner));
     }
 
     #[test]
     fn test_fully_contains_false_different_seq() {
         let outer = ReferenceRegion::from_bed_entry("chr1".into(), 2, 10).unwrap();
         let inner = ReferenceRegion::from_bed_entry("chr2".into(), 4, 7).unwrap();
-        assert!(!outer.fully_contains(&inner));
+        assert!(!outer.self_fully_in_other(&inner));
     }
 
     #[test]
     fn test_fully_contains_false_partial_overlap() {
         let outer = ReferenceRegion::from_bed_entry("chr1".into(), 2, 10).unwrap();
         let inner = ReferenceRegion::from_bed_entry("chr1".into(), 8, 12).unwrap();
-        assert!(!outer.fully_contains(&inner));
+        assert!(!outer.self_fully_in_other(&inner));
     }
 }
