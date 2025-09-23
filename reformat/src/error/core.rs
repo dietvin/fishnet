@@ -1,7 +1,7 @@
 pub(crate) mod loader {
     use pod5_reader_api::error::{dataset::Pod5DatasetError, read::Pod5ReadError};
 
-    use crate::execute::config::Column;
+    use crate::{error::core::filter::ReferenceRegionError, execute::config::Column};
 
     #[derive(Debug, thiserror::Error)]
     pub(crate) enum ColumnIndexError {
@@ -52,14 +52,61 @@ pub(crate) mod loader {
         #[error("Alignment chunk error: {0}")]
         AlignmentChunkError(#[from] AlignmentChunkError)
     }
+}
+
+pub(crate) mod filter {
+    use std::num::ParseIntError;
 
     #[derive(Debug, thiserror::Error)]
     pub(crate) enum ReferenceRegionError {
-
+        #[error("Invalid coordinates. Start ({0}) must be smaller than end ({1})")]
+        InvalidCoordinatesBedStyle(usize, usize),
+        #[error("Invalid coordinates. Start ({0}) must be smaller than or equal to end ({1})")]
+        InvalidCoordinatesSamStyle(usize, usize),
+        #[error("Failed to parse reference region from string '{0}': {1}")]
+        FromStringInvalidFormat(String, &'static str),
+        #[error("Sam-style coordinates can not start with 0, since they are 1-based")]
+        InvalidSamStart,
+        #[error("Length must be larger than 0")]
+        InvalidLength
     }
 
     #[derive(Debug, thiserror::Error)]
     pub(crate) enum ReferenceRegionsError {
-
+        #[error("Invalid filter source. Can not parse reference regions from motifs")]
+        InvalidFilterSource,
+        #[error("IO error: {0}")]
+        IoError(#[from] std::io::Error),
+        #[error("Invalid bed line: {0}")]
+        InvalidBedLine(String),
+        #[error("Failed to parse bed entry to usize")]
+        ParseUsizeError(#[from] ParseIntError),
+        #[error("Reference region error: {0}")]
+        RefRegionError(#[from] ReferenceRegionError),
     }
+
+    #[derive(Debug, thiserror::Error)]
+    pub(crate) enum MotifError {
+        #[error("Motif contains invalid characters. Only 'A', 'C', 'G' and 'U'/'T' is allowed.")]
+        InvalidChars
+    }
+
+    #[derive(Debug, thiserror::Error)]
+    pub(crate) enum MotifsError {
+        #[error("Invalid filter source. Can not parse motifs from reference regions")]
+        InvalidFilterSource,
+        #[error("IO error: {0}")]
+        IoError(#[from] std::io::Error),
+        #[error("Motif error: {0}")]
+        MotifError(#[from] MotifError)
+    }
+
+    #[derive(Debug, thiserror::Error)]
+    pub(crate) enum FilterError {
+        #[error("Motifs error: {0}")]
+        MotifsError(#[from] MotifsError),
+        #[error("Reference regions error: {0}")]
+        RefRegionsError(#[from] ReferenceRegionsError),
+    }
+
 }

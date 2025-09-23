@@ -14,3 +14,4 @@ arrow2 = { version = "0.18.0", features = ["io_parquet", "io_parquet_compression
 console = "0.16.0"
 indicatif = "0.18.0"
 uuid.workspace = true
+tempfile = "3.22.0"

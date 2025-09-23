@@ -5,7 +5,7 @@ use indicatif::{ProgressBar, ProgressStyle};
 use log::LevelFilter;
 use pod5_reader_api::dataset::Pod5Dataset;
 
-use crate::{core::loader::alignment::RowIterator, error::ReformatError, execute::config::{ConfigReformat, SignalSource}};
+use crate::{core::alignment_loader::RowIterator, error::ReformatError, execute::config::{ConfigReformat, SignalSource}};
 
 pub(super) fn run_reformat_single_threaded(config: ConfigReformat) -> Result<(), ReformatError> {
     let progress_bar_init = ProgressBar::new_spinner();

@@ -28,8 +28,12 @@ use pod5_reader_api::dataset::Pod5Dataset;
 use uuid::Uuid;
 
 use crate::{
-    core::loader::reference_regions::ReferenceRegion, error::core::loader::{
-        AlignmentChunkError, ColumnIndexError, RowError, RowIteratorError
+    core::filter::reference_region::ReferenceRegion, 
+    error::core::loader::{
+        AlignmentChunkError, 
+        ColumnIndexError, 
+        RowError, 
+        RowIteratorError
     }, execute::config::Column
 };
 
