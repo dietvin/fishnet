@@ -2,12 +2,12 @@ use std::{collections::HashMap, fs::File, io::{BufRead, BufReader}, path::PathBu
 
 use crate::{core::filter::{reference_region::ReferenceRegion, ChunkInfo}, error::core::filter::ReferenceRegionsError, execute::config::FilterSource};
 
-/// A collection of `ReferenceRegion`s, grouped by reference sequence name.
+/// A collection of genomic regions grouped by reference sequence name.
 ///
 /// This struct is constructed from a `FilterSource` such as a BED file,
 /// a list of SAM-style region strings, or positions of interest. Regions are stored
 /// in a `HashMap` keyed by their reference sequence name (`ref_name`), allowing
-/// efficient grouping and lookups.
+/// efficient grouping and lookups by chromosome/scaffold.
 #[derive(Debug)]
 pub(crate) struct ReferenceRegions {
     /// Groups regions by their sequence name 
@@ -15,12 +15,23 @@ pub(crate) struct ReferenceRegions {
 }
 
 impl ReferenceRegions {
-    /// Constructs a new [`ReferenceRegions`] instance from a given [`FilterSource`].
+    /// Constructs a new `ReferenceRegions` instance from a given `FilterSource`.
     ///
-    /// - `FilterSource::RefRegionFromBed` -> Reads regions from a BED file.
-    /// - `FilterSource::RefRegionFromInput` -> Parses SAM-style region strings (e.g., `"chr1:100-200"`).
-    /// - `FilterSource::PositionsOfInterest` -> Parses from a set window around positions of interest.
+    /// Automatically determines the appropriate parsing method based on the
+    /// FilterSource variant and constructs the region collection.
     ///
+    /// # Arguments
+    /// * `filter_source` - The source configuration specifying how to load regions
+    ///
+    /// # Returns
+    /// * `Result<Self, ReferenceRegionsError>` - The constructed regions collection or an error
+    ///
+    /// # Supported Sources
+    /// - `FilterSource::RefRegionFromBed` -> Reads regions from a BED file
+    /// - `FilterSource::RefRegionFromInput` -> Parses SAM-style region strings
+    /// - `FilterSource::PositionsOfInterest` -> Creates windowed regions around positions
+    ///
+    /// # Errors
     /// Returns an error if the filter source is invalid or parsing fails.
     pub(crate) fn from_filter_source(filter_source: &FilterSource) -> Result<Self, ReferenceRegionsError> {
         match filter_source {
@@ -31,11 +42,19 @@ impl ReferenceRegions {
         }
     }
 
-    /// Reads regions from a BED file at the given path.
+    /// Reads regions from a BED file at the specified path.
     ///
-    /// Each non-comment, non-empty line must contain at least three fields:
-    /// `<chrom> <start> <end>`. Additional fields are ignored.
+    /// Parses a standard BED format file where each non-comment, non-empty line
+    /// contains at least three tab/space-separated fields: `<chrom> <start> <end>`.
+    /// Additional fields beyond the first three are ignored. Comments start with '#'.
     ///
+    /// # Arguments
+    /// * `path` - Path to the BED format file
+    ///
+    /// # Returns
+    /// * `Result<Self, ReferenceRegionsError>` - The constructed regions collection or an error
+    ///
+    /// # Errors
     /// Returns an error if the file cannot be read, a line cannot be parsed,
     /// or the coordinates are invalid.
     fn from_bed(path: &PathBuf) -> Result<Self, ReferenceRegionsError> {
@@ -72,13 +91,20 @@ impl ReferenceRegions {
         Ok(Self { regions })
     }
 
-    /// Parses a list of SAM-style region strings (e.g., `"chr1:100-200"`).
+    /// Parses a list of SAM-style region strings.
     ///
-    /// Each string is parsed into a `ReferenceRegion` using
-    /// `ReferenceRegion::from_region_string`. Regions are grouped
-    /// by their reference sequence name.
+    /// Each string should be in the format `"<seq_name>:<start>-<end>"` with
+    /// 1-based inclusive coordinates. Regions are grouped by their reference
+    /// sequence name for efficient lookups.
     ///
-    /// Returns an error if any region string is malformed.
+    /// # Arguments
+    /// * `region_strings` - Vector of SAM-style region strings to parse
+    ///
+    /// # Returns
+    /// * `Result<Self, ReferenceRegionsError>` - The constructed regions collection or an error
+    ///
+    /// # Errors
+    /// Returns an error if any region string is malformed or contains invalid coordinates.
     fn from_samstyle_regions(region_strings: &Vec<String>) -> Result<Self, ReferenceRegionsError> {
         let mut regions: HashMap<String, Vec<ReferenceRegion>> = HashMap::new();
 
@@ -93,13 +119,20 @@ impl ReferenceRegions {
         Ok(Self { regions })
     }
 
-    /// Parses a list of positions of interest and expands them into `ReferenceRegion`s.
+    /// Creates windowed regions around positions of interest.
     ///
-    /// Each string is parsed into a `ReferenceRegion` using
-    /// `ReferenceRegion::from_position_with_window`, which expands
-    /// the position into a windowed region.
+    /// Each position string should be in the format `"<seq_name>:<position>-<window_size>"`
+    /// where position is 1-based and window_size defines the number of bases to
+    /// include upstream and downstream of the center position.
     ///
-    /// Returns an error if parsing fails.
+    /// # Arguments
+    /// * `poi_strings` - Vector of position strings with window specifications
+    ///
+    /// # Returns
+    /// * `Result<Self, ReferenceRegionsError>` - The constructed regions collection or an error
+    ///
+    /// # Errors
+    /// Returns an error if parsing fails or coordinates are invalid.
     fn from_positions_of_interest(poi_strings: &Vec<String>) -> Result<Self, ReferenceRegionsError> {
         let mut regions: HashMap<String, Vec<ReferenceRegion>> = HashMap::new();
 
@@ -114,9 +147,22 @@ impl ReferenceRegions {
         Ok(Self { regions })
     }
 
-    /// Checks if one of the regions at hand is fully contained in the given reference
-    /// region. If so, returns a String representation of the matching region. Otherwise
-    /// returns None.
+    /// Checks if any stored regions are fully contained within the given region.
+    ///
+    /// Searches for regions on the same reference sequence that are completely
+    /// contained within the bounds of the provided region. Returns information
+    /// about all matching regions including their relative positions.
+    ///
+    /// # Arguments
+    /// * `other` - The potentially containing region to check against
+    ///
+    /// # Returns
+    /// * `Option<Vec<ChunkInfo>>` - Vector of information about contained regions
+    ///   if any matches are found, None if no regions are contained
+    ///
+    /// # Notes
+    /// The returned ChunkInfo objects contain start and end positions relative
+    /// to the start of the `other` region (i.e., offset coordinates).
     pub(crate) fn self_in_other(&self, other: &ReferenceRegion) -> Option<Vec<ChunkInfo>> {
         let mut hits: Vec<ChunkInfo> = Vec::new();
 

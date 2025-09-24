@@ -24,7 +24,18 @@ pub(crate) struct ReferenceRegion {
 }
 
 impl ReferenceRegion {
-    /// Construct a region from a BED entry (`0-based`, half-open interval).
+    /// Constructs a region from BED-style coordinates.
+    ///
+    /// Creates a region using 0-based indexing with a half-open interval
+    /// [start, end) where start is inclusive and end is exclusive.
+    ///
+    /// # Arguments
+    /// * `name` - Reference sequence name (e.g., "chr1", "scaffold_1")
+    /// * `start` - 0-based start position (inclusive)
+    /// * `end` - 0-based end position (exclusive)
+    ///
+    /// # Returns
+    /// * `Result<Self, ReferenceRegionError>` - The constructed region or an error
     ///
     /// # Errors
     /// Returns `ReferenceRegionError::InvalidCoordinatesBedStyle` if
@@ -41,23 +52,28 @@ impl ReferenceRegion {
         })
     }
 
-    /// Construct a region from a SAM-style region string of the form
-    /// `"<SEQ-NAME>:<START>-<END>"`.
+    /// Constructs a region from a SAM-style region string.
     ///
-    /// SAM-style coordinates are:
-    /// - 1-based
-    /// - inclusive on both ends
+    /// Parses strings of the form `"<SEQ-NAME>:<START>-<END>"` where coordinates
+    /// are 1-based and inclusive on both ends. These are internally converted
+    /// to BED-style (0-based, half-open) coordinates.
     ///
-    /// These are internally converted into BED-style coordinates.
+    /// # Arguments
+    /// * `region_string` - SAM-style region string (e.g., "chr1:100-200")
     ///
-    /// Example:
-    /// - Input: `"chr1:2-7"` → bases 2..=7 (inclusive)
-    /// - Output: `start = 1`, `end = 7` (0-based half-open)
+    /// # Returns
+    /// * `Result<Self, ReferenceRegionError>` - The constructed region or an error
+    ///
+    /// # Example
+    /// ```text
+    /// Input: "chr1:2-7" → bases 2..=7 (1-based inclusive)
+    /// Output: start = 1, end = 7 (0-based half-open)
+    /// ```
     ///
     /// # Errors
-    /// - `ReferenceRegionError::InvalidSamStart` if `start == 0`.
-    /// - `ReferenceRegionError::InvalidCoordinatesSamStyle` if `start > end`.
-    /// - `ReferenceRegionError::FromStringInvalidFormat` if parsing fails.
+    /// * `ReferenceRegionError::InvalidSamStart` if `start == 0`
+    /// * `ReferenceRegionError::InvalidCoordinatesSamStyle` if `start > end`
+    /// * `ReferenceRegionError::FromStringInvalidFormat` if parsing fails
     pub(crate) fn from_region_string(region_string: String) -> Result<Self, ReferenceRegionError> {
         let (name, start, end) = Self::parse_string(region_string)?;
 
@@ -70,28 +86,33 @@ impl ReferenceRegion {
 
         Ok(Self { 
             name, 
-            start: start - 1, // 1-based inclusive → 0-based inclusive
-            end               // 1-based inclusive → 0-based exclusive (same value)
+            start: start - 1, // 1-based inclusive -> 0-based inclusive
+            end               // 1-based inclusive -> 0-based exclusive (same value)
         })
     }
 
-    /// Construct a region from a SAM-style position string of the form
-    /// `"<SEQ-NAME>:<SITE>-<WINDOW-HALF-SIZE>"`.
+    /// Constructs a region from a position with a symmetric window.
     ///
-    /// - `SITE` is the 1-based index of the center position.
-    /// - `WINDOW-HALF-SIZE` defines how many bases upstream and downstream
-    ///   from the center site should be included.
+    /// Parses strings of the form `"<SEQ-NAME>:<SITE>-<WINDOW-HALF-SIZE>"` where
+    /// SITE is the 1-based center position and WINDOW-HALF-SIZE defines how many
+    /// bases upstream and downstream to include.
     ///
-    /// The resulting region is converted to BED-style coordinates.
+    /// # Arguments
+    /// * `pos_with_window` - Position string with window size (e.g., "chr1:100-4")
     ///
-    /// Example:
-    /// - Input: `"chr1:5-2"` → center = 5, window half size = 2
-    /// - Output: region covering bases 3..=7 (1-based),
-    ///           which corresponds to `start = 2`, `end = 7` (0-based).
+    /// # Returns
+    /// * `Result<Self, ReferenceRegionError>` - The constructed region or an error
+    ///
+    /// # Example
+    /// ```text
+    /// Input: "chr1:5-2" → center = 5, window half size = 2
+    /// Output: region covering bases 3..=7 (1-based)
+    ///         which corresponds to start = 2, end = 7 (0-based)
+    /// ```
     ///
     /// # Errors
-    /// - `ReferenceRegionError::InvalidSamStart` if `SITE == 0`.
-    /// - `ReferenceRegionError::FromStringInvalidFormat` if parsing fails.
+    /// * `ReferenceRegionError::InvalidSamStart` if `SITE == 0`
+    /// * `ReferenceRegionError::FromStringInvalidFormat` if parsing fails
     pub(crate) fn from_position_with_window(pos_with_window: String) -> Result<Self, ReferenceRegionError> {
         let (name, start, size) = Self::parse_string(pos_with_window)?;
 
@@ -110,20 +131,29 @@ impl ReferenceRegion {
         })
     }
 
-    /// Construct a region from a 1-based start coordinate and a length.
+    /// Constructs a region from a 1-based start position and length.
     ///
-    /// - The start is 1-based and inclusive.
-    /// - Length must be greater than 0.
-    /// - Internally converted to 0-based, half-open.
+    /// The start coordinate is 1-based and inclusive. The length must be greater
+    /// than 0. Coordinates are internally converted to BED-style.
     ///
-    /// Example:
-    /// - Input: `name = "chr1", start = 3, length = 4`
-    /// - Output: region covering bases 3..=6 (1-based),
-    ///           which corresponds to `start = 2`, `end = 6` (0-based).
+    /// # Arguments
+    /// * `name` - Reference sequence name
+    /// * `start` - 1-based start position (inclusive)
+    /// * `length` - Length of the region in bases
+    ///
+    /// # Returns
+    /// * `Result<Self, ReferenceRegionError>` - The constructed region or an error
+    ///
+    /// # Example
+    /// ```text
+    /// Input: name = "chr1", start = 3, length = 4
+    /// Output: region covering bases 3..=6 (1-based)
+    ///         which corresponds to start = 2, end = 6 (0-based)
+    /// ```
     ///
     /// # Errors
-    /// - `ReferenceRegionError::InvalidSamStart` if `start == 0`.
-    /// - `ReferenceRegionError::InvalidLength` if `length == 0`.
+    /// * `ReferenceRegionError::InvalidSamStart` if `start == 0`
+    /// * `ReferenceRegionError::InvalidLength` if `length == 0`
     pub(crate) fn from_start_and_length(name: String, start: usize, length: usize) -> Result<Self, ReferenceRegionError> {
         if start == 0 {
             return Err(ReferenceRegionError::InvalidSamStart);
@@ -143,13 +173,21 @@ impl ReferenceRegion {
         })
     }
 
-    /// Parse a region string of the form `"<SEQ-NAME>:<START>-<END>"`.
+    /// Parses a region string into its components.
     ///
-    /// Returns a tuple `(name, start, end)` where `start` and `end` are `usize`.
+    /// Extracts sequence name and coordinate values from strings of the form
+    /// `"<SEQ-NAME>:<START>-<END>"`. Does not perform coordinate validation.
+    ///
+    /// # Arguments
+    /// * `region_string` - The region string to parse
+    ///
+    /// # Returns
+    /// * `Result<(String, usize, usize), ReferenceRegionError>` - Tuple of
+    ///   (sequence_name, start, end) or an error
     ///
     /// # Errors
-    /// - `ReferenceRegionError::FromStringInvalidFormat` if the format
-    ///   is invalid or parsing fails.
+    /// Returns `ReferenceRegionError::FromStringInvalidFormat` if the format
+    /// is invalid or numeric parsing fails.
     fn parse_string(region_string: String) -> Result<(String, usize, usize), ReferenceRegionError> {
         let (seq_name, range_part) = region_string
             .split_once(":")
@@ -172,35 +210,61 @@ impl ReferenceRegion {
         Ok((seq_name.to_string(), start, end))
     }
 
-    /// Returns `true` if `other` is fully contained within this region.
+    /// Checks if this region is fully contained within another region.
     ///
-    /// Both regions must be on the same sequence (`name`).
+    /// Both regions must be on the same reference sequence. This region is
+    /// considered contained if its start >= other.start and its end <= other.end.
+    ///
+    /// # Arguments
+    /// * `other` - The potentially containing region to check against
+    ///
+    /// # Returns
+    /// * `bool` - True if this region is fully contained within `other`
     pub(crate) fn self_fully_in_other(&self, other: &ReferenceRegion) -> bool {
         other.name == self.name && other.start <= self.start && other.end >= self.end
     }
 
-    /// Retrieves the sequence name of the region
+    /// Returns the reference sequence name.
+    ///
+    /// # Returns
+    /// * `&str` - Reference to the sequence name
     pub(crate) fn name(&self) -> &str {
         &self.name
     }
 
-    /// Retrieves the start coordinate of the region
+    /// Returns the start coordinate (0-based, inclusive).
+    ///
+    /// # Returns
+    /// * `usize` - The start position in BED-style coordinates
     pub(crate) fn start(&self) -> usize {
         self.start
     }
 
-    /// Retrieves the end coordinate of the region
+    /// Returns the end coordinate (0-based, exclusive).
+    ///
+    /// # Returns
+    /// * `usize` - The end position in BED-style coordinates
     pub(crate) fn end(&self) -> usize {
         self.end
     }
 
-    /// Retrieves the length of the region
+    /// Returns the length of the region in bases.
+    ///
+    /// # Returns
+    /// * `usize` - The length calculated as `end - start`
     pub(crate) fn length(&self) -> usize {
         self.end - self.start
     }
 
+    /// Formats the region as a samtools-style string.
+    ///
+    /// Creates a string representation using 0-based coordinates in the format
+    /// `"<name>:<start>-<end>"`.
+    ///
+    /// # Returns
+    /// * `String` - The formatted region string
     pub(crate) fn to_samtools_string(&self) -> String {
-        format!("{}:{}-{}", self.name, self.start, self.end)
+        format!("{}:{}-{}", self.name, self.start+1, self.end)
     }
 }
 
