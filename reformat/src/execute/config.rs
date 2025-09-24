@@ -792,8 +792,8 @@ impl ConfigReformat {
     /// Returns whether dRNA-specific processing should be used.
     /// 
     /// This affects how POD5 signal data is extracted and processed.
-    pub fn is_drna(&self) -> &bool {
-        &self.is_drna
+    pub fn is_drna(&self) -> bool {
+        self.is_drna
     }
 
     /// Returns the alignment type to process (None means auto-detect).
@@ -832,8 +832,8 @@ impl ConfigReformat {
     }
 
     /// Returns whether existing output files should be overwritten.
-    pub fn force_overwrite(&self) -> &bool {
-        &self.force_overwrite
+    pub fn force_overwrite(&self) -> bool {
+        self.force_overwrite
     }
 
     /// Returns the number of processing threads to use.

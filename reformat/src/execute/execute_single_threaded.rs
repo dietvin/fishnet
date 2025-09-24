@@ -51,7 +51,8 @@ pub(super) fn run_reformat_single_threaded(config: ConfigReformat) -> Result<(),
         config.alignment_input(),
         config.input_chunk_size(),
         config.columns_of_interest(),
-        pod5_dataset
+        pod5_dataset,
+        config.is_drna()
     )?;
 
 
