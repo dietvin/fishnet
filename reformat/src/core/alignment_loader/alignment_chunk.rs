@@ -229,7 +229,9 @@ impl AlignmentChunk {
         let alignment = self.alignment[idx].clone();
 
         let sequence = match &self.sequences {
-            Some(seq) => seq[idx].clone(),
+            Some(seq) => seq[idx].clone()
+                .to_uppercase()
+                .replace("U", "T"),
             None => {
                 let seq_len = alignment.len().saturating_sub(1).max(1);
                 "N".repeat(seq_len).to_string()
