@@ -30,7 +30,9 @@ pub(crate) mod loader {
         #[error("Pod5Read error: {0}")]
         Pod5ReadError(#[from] Pod5ReadError),
         #[error("Row error: {0}")]
-        RowError(#[from] RowError)
+        RowError(#[from] RowError),
+        #[error("0-division occured during normalization")]
+        ZeroDivision
     }
 
     #[derive(Debug, thiserror::Error)]
@@ -113,4 +115,9 @@ pub(crate) mod filter {
         NoSequenceInTarget
     }
 
+}
+
+pub(crate) mod reformat {
+    #[derive(Debug, thiserror::Error)]
+    pub(crate) enum ReformatError {}
 }

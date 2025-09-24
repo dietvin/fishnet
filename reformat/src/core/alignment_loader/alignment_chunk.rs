@@ -265,6 +265,17 @@ impl AlignmentChunk {
             }
         };
 
+        // Performing z-standardization here, so the 
+        // signal only needs to be cloned once
+        let signal_mean = mean_i16(&signal)?;
+        let signal_std = std_i16(&signal)?;
+        if signal_std == 0.0 {
+            return Err(AlignmentChunkError::ZeroDivision);
+        }
+        let signal = signal.iter()
+            .map(|&el| (el as f32 - signal_mean)/signal_std)
+            .collect::<Vec<f32>>();
+
         let row = Row::new(
             read_id, 
             alignment, 
@@ -275,4 +286,29 @@ impl AlignmentChunk {
         )?;
         Ok(row)
     }
+}
+
+
+fn mean_i16(values: &[i16]) -> Result<f32, AlignmentChunkError> {
+    if values.is_empty() {
+        return Err(AlignmentChunkError::ZeroDivision);
+    }
+    let sum = values.iter().map(|&x| x as f32).sum::<f32>();
+    let n = values.len() as f32;
+    Ok(sum / n)
+}
+
+fn std_i16(values: &[i16]) -> Result<f32, AlignmentChunkError> {
+    if values.is_empty() {
+        return Err(AlignmentChunkError::ZeroDivision);
+    }
+
+    let mean = values.iter().map(|&x| x as f32).sum::<f32>() / values.len() as f32;
+    let variance = values.iter()
+        .map(|&el| {
+            let diff = el as f32 - mean;
+            diff * diff
+        })
+        .sum::<f32>() / values.len() as f32;
+    Ok(variance.sqrt())
 }

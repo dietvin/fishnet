@@ -50,8 +50,8 @@ pub(crate) struct Row {
     sequence: String,
     /// Reference sequence name this read aligns to (if applicable)
     ref_region: Option<ReferenceRegion>,
-    /// Raw current measurements
-    signal: Vec<i16>
+    /// Z-standardized raw current measurements
+    signal: Vec<f32>
 }
 
 
@@ -69,7 +69,7 @@ impl Row {
         read_id: Uuid,
         alignment: Vec<usize>,
         sequence: String,
-        signal: Vec<i16>,
+        signal: Vec<f32>,
         ref_name: Option<String>,
         ref_start: Option<usize> 
     ) -> Result<Self, RowError> {
@@ -112,7 +112,7 @@ impl Row {
     }
 
     /// Returns the raw signal data.
-    pub(crate) fn signal(&self) -> &[i16] {
+    pub(crate) fn signal(&self) -> &[f32] {
         &self.signal
     }
 }
