@@ -22,12 +22,16 @@ impl Motif {
         }
     }
 
-    pub(crate) fn is_in(&self, other: &str) -> Option<usize> {
+    pub(crate) fn is_in(&self, other: &str) -> Option<Vec<usize>> {
         if other.len() < self.motif.len() {
             return None;
         }
-
-        other.find(&self.motif)
+        let matches = other.match_indices(&self.motif).map(|(idx, _)| idx).collect::<Vec<usize>>();
+        if matches.is_empty() {
+            None
+        } else {
+            Some(matches)
+        }
     }
 
     pub(crate) fn name(&self) -> &str {

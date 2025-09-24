@@ -26,7 +26,7 @@ impl Filter {
         }
     }
 
-    pub(crate) fn passes(&self, row: &Row) -> Result<Option<ChunkInfo>, FilterError> {
+    pub(crate) fn passes(&self, row: &Row) -> Result<Option<Vec<ChunkInfo>>, FilterError> {
         match self {
             Filter::ReferenceRegions { regions } => {
                 let row_region = row.ref_region()

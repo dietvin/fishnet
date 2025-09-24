@@ -64,17 +64,26 @@ impl Motifs {
         Ok(Self { motifs })
     }
 
-    pub(crate) fn self_in_other(&self, other: &str) -> Option<ChunkInfo> {
+    pub(crate) fn self_in_other(&self, other: &str) -> Option<Vec<ChunkInfo>> {
+        let mut hits: Vec<ChunkInfo> = Vec::new();
+        
         for motif in &self.motifs {
-            if let Some(start_index) = motif.is_in(other) {
-                let chunk_info = ChunkInfo::new(
-                    motif.name().to_string(),
-                    start_index,
-                    start_index + motif.len()
-                );
-                return Some(chunk_info);
+            if let Some(start_indices) = motif.is_in(other) {
+                for start_index in start_indices {
+                    let chunk_info = ChunkInfo::new(
+                        motif.name().to_string(),
+                        start_index,
+                        start_index + motif.len()
+                    );
+                    hits.push(chunk_info);
+                }
             }
         }
-        None
+
+        if hits.is_empty() {
+            None
+        } else {
+            Some(hits)
+        }
     }
 }

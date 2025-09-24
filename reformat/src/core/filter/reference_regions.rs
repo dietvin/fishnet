@@ -117,7 +117,9 @@ impl ReferenceRegions {
     /// Checks if one of the regions at hand is fully contained in the given reference
     /// region. If so, returns a String representation of the matching region. Otherwise
     /// returns None.
-    pub(crate) fn self_in_other(&self, other: &ReferenceRegion) -> Option<ChunkInfo> {
+    pub(crate) fn self_in_other(&self, other: &ReferenceRegion) -> Option<Vec<ChunkInfo>> {
+        let mut hits: Vec<ChunkInfo> = Vec::new();
+
         if let Some(regions) = self.regions.get(other.name()) {
             for region in regions {
                 if region.self_fully_in_other(other) {
@@ -126,11 +128,16 @@ impl ReferenceRegions {
                         region.start() - other.start(), 
                         region.end() - other.start() 
                     );
-                    return Some(chunk_info);
+                    hits.push(chunk_info);
                 }
             }
         }
-        None
+
+        if hits.is_empty() {
+            None
+        } else {
+            Some(hits)
+        }
     }
 }
 
@@ -195,7 +202,7 @@ mod tests {
         rr.regions.insert("chr1".into(), vec![make_region("chr1", 120, 150)]);
 
         let contained = make_region("chr1", 100, 200);
-        assert_eq!(rr.self_in_other(&contained), Some(ChunkInfo::new("chr1:120-150".to_string(), 20, 50)));
+        assert_eq!(rr.self_in_other(&contained), Some(vec![ChunkInfo::new("chr1:120-150".to_string(), 20, 50)]));
     }
 
     #[test]

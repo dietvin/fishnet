@@ -5,7 +5,7 @@ use indicatif::{ProgressBar, ProgressStyle};
 use log::LevelFilter;
 use pod5_reader_api::dataset::Pod5Dataset;
 
-use crate::{core::{alignment_loader::RowIterator, filter::Filter}, error::ReformatError, execute::config::{ConfigReformat, FilterSource, SignalSource}};
+use crate::{core::{alignment_loader::RowIterator, filter::Filter, reformater::reformat}, error::ReformatError, execute::config::{ConfigReformat, FilterSource, SignalSource}};
 
 pub(super) fn run_reformat_single_threaded(config: ConfigReformat) -> Result<(), ReformatError> {
     let progress_bar_init = ProgressBar::new_spinner();
@@ -77,13 +77,28 @@ pub(super) fn run_reformat_single_threaded(config: ConfigReformat) -> Result<(),
 
     for row_res in alignment_iter {
         let row: crate::core::alignment_loader::Row = row_res?;
-        if let Some(chunk_info) = filter.passes(&row)? {
-            let sequence_slice = &row.sequence()[chunk_info.start_index..chunk_info.end_index];
-            let alignment_slice = &row.alignment()[chunk_info.start_index..chunk_info.end_index+1];
-
-
-            update_progress_success(&mut progress_bar, &mut n_successful_reads, &n_filtered_reads, &n_failed_reads);
-            
+        
+        if let Some(filter_hits) = filter.passes(&row)? {
+            for chunk_info in filter_hits {
+                let sequence_slice = &row.sequence()[chunk_info.start_index..chunk_info.end_index];
+                let alignment_slice = &row.alignment()[chunk_info.start_index..chunk_info.end_index+1];
+    
+                match reformat(
+                    sequence_slice,
+                    alignment_slice,
+                    row.signal(),
+                    config.reformat_strategy()
+                ) {
+                    Ok(output_row) => {
+                        // Add output row to output handler
+                        update_progress_success(&mut progress_bar, &mut n_successful_reads, &n_filtered_reads, &n_failed_reads);
+                    }
+                    Err(e) => {
+                        // Log error
+                        update_progress_fail(&mut progress_bar, &n_successful_reads, &n_filtered_reads, &mut n_failed_reads);
+                    }
+                }            
+            }
         } else {
             update_progress_filter(&mut progress_bar, &n_successful_reads, &mut n_filtered_reads, &n_failed_reads);
         }
