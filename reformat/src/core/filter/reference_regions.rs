@@ -1,6 +1,6 @@
 use std::{collections::HashMap, fs::File, io::{BufRead, BufReader}, path::PathBuf};
 
-use crate::{core::filter::reference_region::ReferenceRegion, error::core::filter::ReferenceRegionsError, execute::config::FilterSource};
+use crate::{core::filter::{reference_region::ReferenceRegion, ChunkInfo}, error::core::filter::ReferenceRegionsError, execute::config::FilterSource};
 
 /// A collection of `ReferenceRegion`s, grouped by reference sequence name.
 ///
@@ -117,11 +117,16 @@ impl ReferenceRegions {
     /// Checks if one of the regions at hand is fully contained in the given reference
     /// region. If so, returns a String representation of the matching region. Otherwise
     /// returns None.
-    pub(crate) fn self_in_other(&self, other: &ReferenceRegion) -> Option<String> {
+    pub(crate) fn self_in_other(&self, other: &ReferenceRegion) -> Option<ChunkInfo> {
         if let Some(regions) = self.regions.get(other.name()) {
             for region in regions {
                 if region.self_fully_in_other(other) {
-                    return Some(region.to_samtools_string());
+                    let chunk_info = ChunkInfo::new(
+                        region.to_samtools_string(), 
+                        region.start() - other.start(), 
+                        region.end() - other.start() 
+                    );
+                    return Some(chunk_info);
                 }
             }
         }
@@ -187,10 +192,10 @@ mod tests {
     #[test]
     fn test_contains_true() {
         let mut rr = ReferenceRegions { regions: HashMap::new() };
-        rr.regions.insert("chr1".into(), vec![make_region("chr1", 100, 200)]);
+        rr.regions.insert("chr1".into(), vec![make_region("chr1", 120, 150)]);
 
-        let contained = make_region("chr1", 120, 150);
-        assert_eq!(rr.self_in_other(&contained), Some("chr1:100-200".to_string()));
+        let contained = make_region("chr1", 100, 200);
+        assert_eq!(rr.self_in_other(&contained), Some(ChunkInfo::new("chr1:120-150".to_string(), 20, 50)));
     }
 
     #[test]

@@ -76,7 +76,11 @@ pub(super) fn run_reformat_single_threaded(config: ConfigReformat) -> Result<(),
 
     for row_res in alignment_iter {
         let row: crate::core::alignment_loader::Row = row_res?;
-        if let Some(label) = filter.passes(&row)? {
+        if let Some(chunk_info) = filter.passes(&row)? {
+            let sequence_slice = &row.sequence()[chunk_info.start_index..chunk_info.end_index];
+            let alignment_slice = &row.alignment()[chunk_info.start_index..chunk_info.end_index+1];
+
+
             update_progress_success(&mut progress_bar, &mut n_successful_reads, &n_filtered_reads, &n_failed_reads);
             
         } else {

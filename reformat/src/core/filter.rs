@@ -26,7 +26,7 @@ impl Filter {
         }
     }
 
-    pub(crate) fn passes(&self, row: &Row) -> Result<Option<String>, FilterError> {
+    pub(crate) fn passes(&self, row: &Row) -> Result<Option<ChunkInfo>, FilterError> {
         match self {
             Filter::ReferenceRegions { regions } => {
                 let row_region = row.ref_region()
@@ -40,5 +40,18 @@ impl Filter {
                 Ok(motifs.self_in_other(row.sequence()))
             }
         }
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub(crate) struct ChunkInfo {
+    pub(crate) matched_element_name: String,
+    pub(crate) start_index: usize, // Inclusive
+    pub(crate) end_index: usize    // Exclusive
+}
+
+impl ChunkInfo {
+    pub(crate) fn new(matched_element_name: String, start_index: usize, end_index: usize) -> Self {
+        Self { matched_element_name, start_index, end_index }
     }
 }

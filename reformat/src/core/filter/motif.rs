@@ -22,12 +22,12 @@ impl Motif {
         }
     }
 
-    pub(crate) fn is_in(&self, other: &str) -> bool {
+    pub(crate) fn is_in(&self, other: &str) -> Option<usize> {
         if other.len() < self.motif.len() {
-            return false;
+            return None;
         }
 
-        other.contains(&self.motif)
+        other.find(&self.motif)
     }
 
     pub(crate) fn name(&self) -> &str {
@@ -36,5 +36,9 @@ impl Motif {
 
     pub(crate) fn motif(&self) -> &str {
         &self.motif
+    }
+
+    pub(crate) fn len(&self) -> usize {
+        self.motif.len()
     }
 }

@@ -1,6 +1,6 @@
 use std::{fs::File, io::{BufRead, BufReader}, path::PathBuf};
 
-use crate::{core::filter::motif::Motif, error::core::filter::MotifsError, execute::config::FilterSource};
+use crate::{core::filter::{motif::Motif, ChunkInfo}, error::core::filter::MotifsError, execute::config::FilterSource};
 
 #[derive(Debug)]
 pub(crate) struct Motifs {
@@ -64,10 +64,15 @@ impl Motifs {
         Ok(Self { motifs })
     }
 
-    pub(crate) fn self_in_other(&self, other: &str) -> Option<String> {
+    pub(crate) fn self_in_other(&self, other: &str) -> Option<ChunkInfo> {
         for motif in &self.motifs {
-            if motif.is_in(other) {
-                return Some(motif.name().to_string());
+            if let Some(start_index) = motif.is_in(other) {
+                let chunk_info = ChunkInfo::new(
+                    motif.name().to_string(),
+                    start_index,
+                    start_index + motif.len()
+                );
+                return Some(chunk_info);
             }
         }
         None

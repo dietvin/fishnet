@@ -301,22 +301,22 @@ mod tests {
 
     #[test]
     fn test_fully_contains_true() {
-        let outer = ReferenceRegion::from_bed_entry("chr1".into(), 2, 10).unwrap();
-        let inner = ReferenceRegion::from_bed_entry("chr1".into(), 4, 7).unwrap();
+        let outer = ReferenceRegion::from_bed_entry("chr1".into(), 4, 7).unwrap();
+        let inner = ReferenceRegion::from_bed_entry("chr1".into(), 2, 10).unwrap();
         assert!(outer.self_fully_in_other(&inner));
     }
 
     #[test]
     fn test_fully_contains_false_different_seq() {
-        let outer = ReferenceRegion::from_bed_entry("chr1".into(), 2, 10).unwrap();
-        let inner = ReferenceRegion::from_bed_entry("chr2".into(), 4, 7).unwrap();
+        let outer = ReferenceRegion::from_bed_entry("chr2".into(), 4, 7).unwrap();
+        let inner = ReferenceRegion::from_bed_entry("chr1".into(), 2, 10).unwrap();
         assert!(!outer.self_fully_in_other(&inner));
     }
 
     #[test]
     fn test_fully_contains_false_partial_overlap() {
-        let outer = ReferenceRegion::from_bed_entry("chr1".into(), 2, 10).unwrap();
-        let inner = ReferenceRegion::from_bed_entry("chr1".into(), 8, 12).unwrap();
+        let outer = ReferenceRegion::from_bed_entry("chr1".into(), 8, 12).unwrap();
+        let inner = ReferenceRegion::from_bed_entry("chr1".into(), 2, 10).unwrap();
         assert!(!outer.self_fully_in_other(&inner));
     }
 }
