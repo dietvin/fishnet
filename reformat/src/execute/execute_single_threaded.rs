@@ -80,13 +80,11 @@ pub(super) fn run_reformat_single_threaded(config: ConfigReformat) -> Result<(),
         
         if let Some(filter_hits) = filter.hits(&row)? {
             for chunk_info in filter_hits {
-                let sequence_slice = &row.sequence()[chunk_info.start_index..chunk_info.end_index];
-                let alignment_slice = &row.alignment()[chunk_info.start_index..chunk_info.end_index+1];
-    
                 match reformat(
-                    sequence_slice,
-                    alignment_slice,
+                    row.sequence(),
+                    row.alignment(),
                     row.signal(),
+                    &chunk_info,
                     config.reformat_strategy()
                 ) {
                     Ok(output_row) => {

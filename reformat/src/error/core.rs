@@ -119,5 +119,28 @@ pub(crate) mod filter {
 
 pub(crate) mod reformat {
     #[derive(Debug, thiserror::Error)]
-    pub(crate) enum ReformatError {}
+    pub(crate) enum StatError {
+        #[error("Empty vector")]
+        VecEmpty
+    }
+
+    #[derive(Debug, thiserror::Error)]
+    pub(crate) enum ReadWiseStatsError {
+
+    }
+
+    #[derive(Debug, thiserror::Error)]
+    pub(crate) enum InterpolationError {
+
+    }
+
+    #[derive(Debug, thiserror::Error)]
+    pub(crate) enum ReformatError {
+        #[error("Stat error: {0}")]
+        StatError(#[from] StatError),
+        #[error("Read wise stats error: {0}")]
+        ReadWiseStatsError(#[from] ReadWiseStatsError),
+        #[error("Interpolation error: {0}")]
+        InterpolationError(#[from] InterpolationError),
+    }
 }
