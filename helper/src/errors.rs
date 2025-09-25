@@ -63,3 +63,13 @@ pub enum LoggerError {
     #[error("Log4rs error: {0}")]
     ConfigError(#[from] ConfigErrors)
 }
+
+#[derive(Debug, thiserror::Error)]
+pub enum InterpolationError {
+    #[error("X and Y references must have the same length (X: {0} vs Y: {1})")]
+    DifferentLength(usize, usize),
+    #[error("Reference vectors must not be empty")]
+    EmptyReference,
+    #[error("Reference vectors must be sorted")]
+    ReferenceUnsorted
+}

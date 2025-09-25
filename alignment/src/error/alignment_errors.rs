@@ -1,3 +1,4 @@
+use helper::errors::InterpolationError;
 use pod5_reader_api::error::read::Pod5ReadError;
 
 use super::loader_errors::bam_errors::BamReadError;
@@ -27,8 +28,8 @@ pub enum RefToSignalError {
     NoMatchOps,
     #[error("Length of alignment ({0} - 1) discordant with reference length ({1})")]
     DiscordantToSequence(usize, usize),
-    #[error("Interpolation failed: {0}")]
-    LinInterpError(String)
+    #[error("Interpolation error: {0}")]
+    InterpolationError(#[from] InterpolationError)
 }
 
 #[derive(Debug, thiserror::Error)]

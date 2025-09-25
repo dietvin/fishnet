@@ -2,10 +2,11 @@
  * This module contains the function that starts the reference to signal alignment.
  */
 
+use helper::interpolation::interpolate;
 use noodles::sam::alignment::record::cigar::Op;
 use crate::error::alignment_errors::RefToSignalError;
 
-use super::helpers::{is_match_ops, calculate_knots, interpolate};
+use super::helpers::{is_match_ops, calculate_knots};
 
 /// Aligns a reference sequence to raw signal measurements.
 ///
