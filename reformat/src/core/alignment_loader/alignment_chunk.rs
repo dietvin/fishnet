@@ -29,7 +29,7 @@ pub(super) struct AlignmentChunk {
     /// Vector of alignment coordinate vectors
     alignment: Vec<Vec<usize>>,
     /// Optional vector of sequence strings
-    sequences: Option<Vec<String>>,
+    sequences: Option<Vec<Vec<u8>>>,
     /// Optional vector of reference names
     ref_name: Option<Vec<String>>,
     /// Optional vector of reference start positions
@@ -71,7 +71,7 @@ impl AlignmentChunk {
 
         let sequences = column_index.sequence
             .map(|idx| {
-                Self::parse_string_col(
+                Self::parse_sequence_col(
                     arrays.get(idx)
                         .ok_or_else(|| AlignmentChunkError::ColumnIndexError(
                             "sequence", idx
@@ -82,7 +82,7 @@ impl AlignmentChunk {
 
         let ref_name = column_index.ref_name
             .map(|idx| {
-                Self::parse_string_col(
+                Self::parse_ref_name_col(
                     arrays.get(idx)
                         .ok_or_else(|| AlignmentChunkError::ColumnIndexError(
                             "ref_name", idx
@@ -155,7 +155,22 @@ impl AlignmentChunk {
     }
 
     /// Parses a column containing string values.
-    fn parse_string_col(array: &Box<dyn Array>) -> Result<Vec<String>, AlignmentChunkError> {
+    fn parse_sequence_col(array: &Box<dyn Array>) -> Result<Vec<Vec<u8>>, AlignmentChunkError> {
+        array
+            .as_any()
+            .downcast_ref::<Utf8Array<i32>>()
+            .ok_or_else(|| AlignmentChunkError::DowncastError("Utf8Array<i32>"))?
+            .iter()
+            .map(|el_opt| {
+                el_opt
+                    .ok_or(AlignmentChunkError::ValueNone)
+                    .map(|s| s.as_bytes().to_vec())
+            })
+            .collect()
+    }
+
+    /// Parses a column containing string values.
+    fn parse_ref_name_col(array: &Box<dyn Array>) -> Result<Vec<String>, AlignmentChunkError> {
         array
             .as_any()
             .downcast_ref::<Utf8Array<i32>>()
@@ -229,12 +244,22 @@ impl AlignmentChunk {
         let alignment = self.alignment[idx].clone();
 
         let sequence = match &self.sequences {
-            Some(seq) => seq[idx].clone()
-                .to_uppercase()
-                .replace("U", "T"),
+            Some(seq) => {
+                let mut bases = seq[idx].clone();
+                bases.iter_mut().map(|c| {
+                    *c = match c {
+                        b'a'..b'z' => c.to_ascii_uppercase(),
+                        _ => *c
+                    };
+                    if *c == b'U' {
+                        *c = b'T'
+                    }
+                });
+                bases
+            }
             None => {
                 let seq_len = alignment.len().saturating_sub(1).max(1);
-                "N".repeat(seq_len).to_string()
+                vec![b'N'; seq_len]
             }
         };
 

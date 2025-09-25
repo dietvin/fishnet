@@ -47,7 +47,7 @@ pub(crate) struct Row {
     /// Alignment coordinates mapping query to signal or reference to signal
     alignment: Vec<usize>,
     /// DNA/RNA sequence (or N-filled placeholder if not available)
-    sequence: String,
+    sequence: Vec<u8>,
     /// Reference sequence name this read aligns to (if applicable)
     ref_region: Option<ReferenceRegion>,
     /// Z-standardized raw current measurements
@@ -68,7 +68,7 @@ impl Row {
     pub(super) fn new(
         read_id: Uuid,
         alignment: Vec<usize>,
-        sequence: String,
+        sequence: Vec<u8>,
         signal: Vec<f32>,
         ref_name: Option<String>,
         ref_start: Option<usize> 
@@ -102,7 +102,7 @@ impl Row {
     }
 
     /// Returns the sequence string.
-    pub(crate) fn sequence(&self) -> &str {
+    pub(crate) fn sequence(&self) -> &[u8] {
         &self.sequence
     }
 

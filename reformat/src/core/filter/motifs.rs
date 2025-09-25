@@ -120,7 +120,7 @@ impl Motifs {
     /// # Returns
     /// * `Option<Vec<ChunkInfo>>` - Vector of match information if any motifs are found,
     ///   None if no matches are found
-    pub(crate) fn self_in_other(&self, other: &str) -> Option<Vec<ChunkInfo>> {
+    pub(crate) fn self_in_other(&self, other: &[u8]) -> Option<Vec<ChunkInfo>> {
         let mut hits: Vec<ChunkInfo> = Vec::new();
 
         for motif in &self.motifs {

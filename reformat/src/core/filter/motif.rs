@@ -2,12 +2,13 @@ use crate::error::core::filter::MotifError;
 
 /// A single sequence motif pattern for sequence matching.
 ///
-/// Motifs are stored as uppercase strings containing only A, C, G, T characters.
-/// RNA sequences (containing U) are automatically converted to DNA (U -> T).
+/// Motifs are stored as vectors of uppercase ASCII characters containing 
+/// only A, C, G, T characters. RNA sequences (containing U) are automatically 
+/// converted to DNA (U -> T).
 #[derive(Debug)]
 pub(crate) struct Motif {
     name: String,
-    motif: String
+    motif: Vec<u8>
 }
 
 impl Motif {
@@ -26,28 +27,32 @@ impl Motif {
     /// # Errors
     /// Returns an error if the motif contains invalid characters.
     pub(crate) fn new(name: &str, motif: &str) -> Result<Self, MotifError> {
-        let motif = motif.to_uppercase().replace("U", "T");
-        Self::is_valid_motif(&motif)?;
+        let mut motif_bytes = motif.as_bytes().to_vec();
+        motif_bytes.iter_mut().map(|c| {
+            *c = c.to_ascii_uppercase();
+            if *c == b'U' {
+                *c = b'T';
+            }
+        });
+        Self::is_valid_motif(&motif_bytes)?;
 
-        Ok(Self { name: name.to_string(), motif })
+        Ok(Self { name: name.to_string(), motif: motif_bytes })
     }
 
-    /// Creates a new motif with the given name and sequence pattern.
+    /// Validates a given motif
     ///
-    /// The motif sequence is normalized to uppercase and U characters are
-    /// converted to T. The sequence is validated to contain only A, C, G, T.
+    /// Checks if the given motif contains only A, C, G and T ASCII characters
     ///
     /// # Arguments
-    /// * `name` - Name/identifier for this motif
-    /// * `motif` - The motif sequence pattern
+    /// * `motif` - The ASCII vector encoding the motif
     ///
     /// # Returns
-    /// * `Result<Self, MotifError>` - The constructed Motif instance or an error
+    /// * `Result<(), MotifError>` - Ok if the motif is valid
     ///
     /// # Errors
-    /// Returns an error if the motif contains invalid characters.
-    fn is_valid_motif(motif_uppercase: &String) -> Result<(), MotifError> {
-        if motif_uppercase.chars().all(|c| ['A', 'C', 'G', 'T'].contains(&c)) {
+    /// Returns an error if the motif contains chars other that A, C, G or T.
+    fn is_valid_motif(motif: &Vec<u8>) -> Result<(), MotifError> {
+        if motif.iter().all(|&c| matches!(c, b'A' | b'C' | b'G' | b'T')) {
             Ok(())
         } else {
             Err(MotifError::InvalidChars)
@@ -64,11 +69,23 @@ impl Motif {
     /// # Returns
     /// * `Option<Vec<usize>>` - Vector of starting positions if matches found,
     ///   None if no matches or target is too short
-    pub(crate) fn is_in(&self, other: &str) -> Option<Vec<usize>> {
+    pub(crate) fn is_in(&self, other: &[u8]) -> Option<Vec<usize>> {
         if other.len() < self.motif.len() {
             return None;
         }
-        let matches = other.match_indices(&self.motif).map(|(idx, _)| idx).collect::<Vec<usize>>();
+
+        let matches = other
+            .windows(self.motif.len())
+            .enumerate()
+            .filter_map(|(i, window)| {
+                if window == self.motif.as_slice() {
+                    Some(i)
+                } else {
+                    None
+                }
+            })
+            .collect::<Vec<usize>>();
+
         if matches.is_empty() {
             None
         } else {
@@ -88,7 +105,7 @@ impl Motif {
     ///
     /// # Returns
     /// * `&str` - Reference to the motif sequence
-    pub(crate) fn motif(&self) -> &str {
+    pub(crate) fn motif(&self) -> &[u8] {
         &self.motif
     }
 

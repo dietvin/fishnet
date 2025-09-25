@@ -5,7 +5,7 @@ mod interpolation;
 use crate::{core::{filter::ChunkInfo, reformater::{interpolation::reformat_interpolate, read_wise_stats::reformat_read_wise_stats, stats::{mean_f32, std_f32}}}, error::core::reformat::ReformatError, execute::{config::{ReformatStrategy, Stats}, output::output_data::OutputRow}};
 
 pub(crate) fn reformat(
-    sequence: &str,
+    sequence: &[u8],
     alignment: &[usize],
     signal: &[f32],
     chunk_info: &ChunkInfo,
