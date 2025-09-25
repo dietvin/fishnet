@@ -1,4 +1,4 @@
-use crate::errors::InterpolationError;
+use crate::errors::{InterpolationError, LinspaceError};
 
 /// Performs linear interpolation similar to NumPy's `interp` function.
 ///
@@ -122,9 +122,31 @@ pub fn interpolate(x_ref: &[f64], y_ref: &[f64], x_query: &[f64]) -> Result<Vec<
 }
 
 
+pub fn linspace(start: f64, stop: f64, num: usize) -> Result<Vec<f64>, LinspaceError> {
+    if num == 0 {
+        return Err(LinspaceError::ZeroElements);
+    } else if num == 1 {
+        return Ok(vec![start]);
+    }
+
+    let mut result = Vec::with_capacity(num);
+    // Calculate step size 
+    let step = (stop - start) / (num - 1) as f64;
+
+    // Generate the sequence
+    for i in 0..num {
+        let value = start + step * i as f64;
+        result.push(value);
+    }
+    result[num-1] = stop;
+
+    Ok(result)
+}
+
+
 #[cfg(test)]
 mod test {
-    use super::interpolate;
+    use super::{interpolate, linspace};
 
     #[test]
     fn test_interpolate() {
@@ -133,5 +155,23 @@ mod test {
         let x_query = vec![0.0, 0.5, 1.0, 1.5, 2.0];
         let result = interpolate(&x_ref, &y_ref, &x_query).unwrap();
         assert_eq!(result, vec![10.0, 15.0, 20.0, 25.0, 30.0]);
+    }
+
+    #[test]
+    fn test_linspace_basic() {
+        let result = linspace(0.0, 1.0, 5).unwrap();
+        assert_eq!(result, vec![0.0, 0.25, 0.5, 0.75, 1.0]);
+    }
+
+    #[test]
+    fn test_linspace_single_point() {
+        let result = linspace(5.0, 10.0, 1).unwrap();
+        assert_eq!(result, vec![5.0]);
+    }
+
+    #[test]
+    fn test_linspace_reverse() {
+        let result = linspace(10.0, 0.0, 5).unwrap();
+        assert_eq!(result, vec![10.0, 7.5, 5.0, 2.5, 0.0]);
     }
 }

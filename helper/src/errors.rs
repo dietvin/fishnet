@@ -73,3 +73,9 @@ pub enum InterpolationError {
     #[error("Reference vectors must be sorted")]
     ReferenceUnsorted
 }
+
+#[derive(Debug, thiserror::Error)]
+pub enum LinspaceError {
+    #[error("The num argument must be larger than 0")]
+    ZeroElements
+}
