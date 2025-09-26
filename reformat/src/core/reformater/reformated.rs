@@ -1,6 +1,6 @@
 use uuid::Uuid;
 
-use crate::{error::core::reformat::{ReformatedRowInterpError, ReformatedRowStatError}, execute::config::Stats};
+use crate::{core::filter::{reference_region::ReferenceRegion, ChunkInfo}, error::core::reformat::ReformatedRowStatError, execute::config::Stats};
 
 /// Container for per-base statistics of a read.
 ///
@@ -15,7 +15,7 @@ use crate::{error::core::reformat::{ReformatedRowInterpError, ReformatedRowStatE
 /// * `std` - Optional per-base standard deviations of the signal slice.
 /// * `dwell` - Optional per-base dwell times.
 /// * `signal_to_noise` - Optional per-base signal-to-noise ratios.
-pub(crate) struct ReformatedRowStat {
+pub(crate) struct ReformatedBaseStat {
     bases: Vec<u8>,
     length: usize,
     mean: Option<Vec<f64>>,
@@ -25,7 +25,7 @@ pub(crate) struct ReformatedRowStat {
     signal_to_noise: Option<Vec<f64>>
 }
 
-impl ReformatedRowStat {
+impl ReformatedBaseStat {
     /// Initializes an empty `ReformatedRowStat` for a given set of statistics.
     ///
     /// Allocates vectors with capacity equal to the number of bases, only
@@ -157,38 +157,77 @@ impl ReformatedRowStat {
 }
 
 
-pub(crate) struct ReformatedRowInterp {
+pub(crate) struct ReformatedInterp {
     bases: Vec<u8>,
     length: usize,
-    signal_interp: Vec<Vec<f64>>
+    signal_interp: Vec<Vec<f64>>,
+    dwells: Vec<f64>
 }
 
-impl ReformatedRowInterp {
-    pub(super) fn new(bases: &[u8]) -> Self {
+impl ReformatedInterp {
+    pub(super) fn new(bases: &[u8], dwells: &[f64]) -> Self {
         let length = bases.len();
         let signal_interp = Vec::with_capacity(length);
         Self { 
             bases: bases.to_vec(), 
             length, 
-            signal_interp
+            signal_interp,
+            dwells: dwells.to_vec()
         }
     }
 
-    pub(super) fn push_signal(&mut self, singal_interp: &[f64]) -> Result<(), ReformatedRowInterpError> {
+    pub(super) fn push_signal(&mut self, singal_interp: Vec<f64>) {
         self.signal_interp.push(singal_interp.to_vec());
     }
 }
 
 
 pub(crate) enum ReformatedData {
-    Stats(ReformatedRowStat),
-    Interp(ReformatedRowInterp)
+    Stats(ReformatedBaseStat),
+    Interp(ReformatedInterp)
+}
+
+impl ReformatedData {
+    pub(super) fn from_basestat(data: ReformatedBaseStat) -> Self {
+        Self::Stats(data)
+    }
+
+    pub(super) fn from_interp(data: ReformatedInterp) -> Self {
+        Self::Interp(data)
+    }
 }
 
 pub(crate) struct ReformatedRow {
     read_id: Uuid,
-    ref_name: Option<usize>,
+    ref_name: Option<String>,
     ref_start: Option<usize>,
-    matched_filter_name: String,
-    bases: ReformatedData
+    matched_region_name: String,
+    matched_region_start: usize,
+    reformated_data: ReformatedData
+}
+
+impl ReformatedRow {
+    pub(super) fn new(
+        read_id: Uuid,
+        reference_region: Option<ReferenceRegion>,
+        chunk_info: ChunkInfo,
+        reformated_data: ReformatedData
+    ) -> Self {
+        let (ref_name, ref_start) = match reference_region {
+            Some(region) => (Some(region.name().to_string()), Some(region.start())),
+            None => (None, None)
+        };
+
+        let matched_region_name = chunk_info.matched_element_name.clone();
+        let matched_region_start = chunk_info.start_index;
+
+        Self { 
+            read_id: read_id, 
+            ref_name,
+            ref_start,
+            matched_region_name,
+            matched_region_start,
+            reformated_data
+        }
+    }
 }

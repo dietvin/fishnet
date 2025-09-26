@@ -101,7 +101,7 @@ impl Filter {
 /// Stores the name of the matched element and its position coordinates.
 /// Coordinates use a half-open interval [start, end) where start is inclusive
 /// and end is exclusive.
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub(crate) struct ChunkInfo {
     pub(crate) matched_element_name: String,
     pub(crate) start_index: usize, // Inclusive

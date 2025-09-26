@@ -162,5 +162,7 @@ pub(crate) mod reformat {
         StatError(#[from] StatError),
         #[error("Read wise stats error: {0}")]
         ReadWiseStatsError(#[from] ReadWiseStatsError),
+        #[error("Interpolation error: {0}")]
+        InterpolationError(#[from] InterpolationError)
     }
 }

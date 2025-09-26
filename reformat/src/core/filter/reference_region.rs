@@ -16,7 +16,7 @@ use crate::error::core::filter::ReferenceRegionError;
 ///
 /// Region: 2-7             G T A T A
 /// ```
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct ReferenceRegion {
     name: String,
     start: usize,

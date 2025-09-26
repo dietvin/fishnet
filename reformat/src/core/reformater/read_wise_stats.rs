@@ -1,13 +1,12 @@
 use crate::{
-    core::reformater::{reformated::ReformatedRowStat, stats::{
+    core::reformater::{reformated::ReformatedBaseStat, stats::{
         mean, 
         median, 
         signal_to_noise, 
         std_dev
     }}, 
     error::core::reformat::{
-        ReadWiseStatsError, 
-        StatOutputRowError
+        ReadWiseStatsError
     }, 
     execute::config::Stats
 };
@@ -38,8 +37,8 @@ pub(super) fn reformat_read_wise_stats(
     dwells_slice: &[f64],
     full_signal: &[f64],
     stats: &[Stats]
-) -> Result<ReformatedRowStat, ReadWiseStatsError> {
-    let mut output_row = ReformatedRowStat::from_stats_empty(
+) -> Result<ReformatedBaseStat, ReadWiseStatsError> {
+    let mut output_row = ReformatedBaseStat::from_stats_empty(
         stats, 
         sequence_slice
     );

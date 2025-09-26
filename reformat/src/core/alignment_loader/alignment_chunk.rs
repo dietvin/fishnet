@@ -246,7 +246,7 @@ impl AlignmentChunk {
         let sequence = match &self.sequences {
             Some(seq) => {
                 let mut bases = seq[idx].clone();
-                bases.iter_mut().map(|c| {
+                bases.iter_mut().for_each(|c| {
                     *c = match c {
                         b'a'..b'z' => c.to_ascii_uppercase(),
                         _ => *c

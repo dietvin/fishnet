@@ -28,7 +28,7 @@ impl Motif {
     /// Returns an error if the motif contains invalid characters.
     pub(crate) fn new(name: &str, motif: &str) -> Result<Self, MotifError> {
         let mut motif_bytes = motif.as_bytes().to_vec();
-        motif_bytes.iter_mut().map(|c| {
+        motif_bytes.iter_mut().for_each(|c| {
             *c = c.to_ascii_uppercase();
             if *c == b'U' {
                 *c = b'T';

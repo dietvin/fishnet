@@ -101,6 +101,8 @@ pub(super) fn run_reformat_single_threaded(config: ConfigReformat) -> Result<(),
         if let Some(filter_hits) = filter.hits(&row)? {
             for chunk_info in filter_hits {
                 match reformat(
+                    row.read_id(),
+                    row.ref_region(),
                     row.sequence(),
                     row.alignment(),
                     row.signal(),
