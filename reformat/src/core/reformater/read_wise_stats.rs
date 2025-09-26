@@ -1,13 +1,8 @@
 use crate::{
     core::reformater::{reformated::ReformatedBaseStat, stats::{
-        mean, 
-        median, 
-        signal_to_noise, 
-        std_dev
+        mean, mean_and_stdev, median, signal_to_noise, std_dev
     }}, 
-    error::core::reformat::{
-        ReadWiseStatsError
-    }, 
+    error::core::reformat::ReadWiseStatsError, 
     execute::config::Stats
 };
 
@@ -54,9 +49,12 @@ pub(super) fn reformat_read_wise_stats(
         let need_stdev = stats.contains(&Stats::StDev);
         let need_snr = stats.contains(&Stats::SignalToNoise);
     
-        let (mean_val, stdev_val, signal_to_noise_val) = if need_snr || (need_mean && need_stdev) {
+        let (mean_val, stdev_val, signal_to_noise_val) = if need_snr && need_mean && need_stdev {
             let (mean_tmp, stdev_tmp, stn_tmp) = signal_to_noise(signal_slice)?;
             (Some(mean_tmp), Some(stdev_tmp), Some(stn_tmp)) 
+        } else if need_mean && need_stdev {
+            let (mean_tmp, stdev_tmp) = mean_and_stdev(signal_slice)?;
+            (Some(mean_tmp), Some(stdev_tmp), None)
         } else {
             (None, None, None)
         };

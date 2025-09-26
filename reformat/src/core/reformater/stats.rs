@@ -125,3 +125,43 @@ pub(super) fn signal_to_noise(values: &[f64]) -> Result<(f64, f64, f64), StatErr
     Ok((mean, stdev, mean / stdev))
 }
 
+/// Computes the mean and standard deviation in a single pass 
+/// using Welford’s algorithm.
+/// 
+/// Implemented if signal to noise ratio is not needed to 
+/// potentially avoid the zero division error while still only
+/// requiring one pass for both stats.
+/// 
+/// Skips calculation of 
+/// 
+/// # Arguments
+/// * `values` - Slice of input values.
+///
+/// # Returns
+/// The mean and standard deviation.
+///
+/// # Errors
+/// * `StatError::VecEmpty` if input is empty.
+pub(super) fn mean_and_stdev(values: &[f64]) -> Result<(f64, f64), StatError> {
+    if values.is_empty() {
+        return Err(StatError::VecEmpty);
+    }
+
+    let mut mean = 0.0f64;
+    let mut sum_sq_dev = 0.0f64;
+    let mut count = 0usize;
+
+    values.iter().for_each(|&el| {
+        count += 1;
+        let delta = el - mean;
+        mean += delta / count as f64;
+        let delta2 = el - mean;
+        sum_sq_dev += delta * delta2;
+    });
+
+    let variance = sum_sq_dev / count as f64;
+    let stdev = variance.sqrt();
+    
+    Ok((mean, stdev))
+}
+
