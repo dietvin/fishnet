@@ -298,8 +298,8 @@ impl AlignmentChunk {
             return Err(AlignmentChunkError::ZeroDivision);
         }
         let signal = signal.iter()
-            .map(|&el| (el as f32 - signal_mean)/signal_std)
-            .collect::<Vec<f32>>();
+            .map(|&el| (el as f64 - signal_mean)/signal_std)
+            .collect::<Vec<f64>>();
 
         let row = Row::new(
             read_id, 
@@ -314,26 +314,26 @@ impl AlignmentChunk {
 }
 
 
-fn mean_i16(values: &[i16]) -> Result<f32, AlignmentChunkError> {
+fn mean_i16(values: &[i16]) -> Result<f64, AlignmentChunkError> {
     if values.is_empty() {
         return Err(AlignmentChunkError::ZeroDivision);
     }
-    let sum = values.iter().map(|&x| x as f32).sum::<f32>();
-    let n = values.len() as f32;
+    let sum = values.iter().map(|&x| x as f64).sum::<f64>();
+    let n = values.len() as f64;
     Ok(sum / n)
 }
 
-fn std_i16(values: &[i16]) -> Result<f32, AlignmentChunkError> {
+fn std_i16(values: &[i16]) -> Result<f64, AlignmentChunkError> {
     if values.is_empty() {
         return Err(AlignmentChunkError::ZeroDivision);
     }
 
-    let mean = values.iter().map(|&x| x as f32).sum::<f32>() / values.len() as f32;
+    let mean = values.iter().map(|&x| x as f64).sum::<f64>() / values.len() as f64;
     let variance = values.iter()
         .map(|&el| {
-            let diff = el as f32 - mean;
+            let diff = el as f64 - mean;
             diff * diff
         })
-        .sum::<f32>() / values.len() as f32;
+        .sum::<f64>() / values.len() as f64;
     Ok(variance.sqrt())
 }

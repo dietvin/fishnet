@@ -51,7 +51,9 @@ pub enum CliError {
     #[error("Invalid value for argument {0}: {1}")]
     InvalidArgument(String, String),
     #[error("Io error: {0}")]
-    IoError(#[from] std::io::Error)
+    IoError(#[from] std::io::Error),
+    #[error("Nested output is only available for parquet output.")]
+    InvalidOutputShape
 }
 
 #[derive(Debug, thiserror::Error)]

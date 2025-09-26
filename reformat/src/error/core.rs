@@ -112,27 +112,49 @@ pub(crate) mod filter {
         #[error("Filtering for reference regions, but no region was found in the current row")]
         NoRegionInTarget,
         #[error("Filtering for motifs, but only a placeholder sequence was found in the current row")]
-        NoSequenceInTarget
+        NoSequenceInTarget,
+        #[error("The length of the contained filter elements differs")]
+        DifferentLengths
     }
 
 }
 
 pub(crate) mod reformat {
+    use helper::errors::LinspaceError;
+    use crate::execute::config::Stats;
+
     #[derive(Debug, thiserror::Error)]
     pub(crate) enum StatError {
         #[error("Empty vector")]
-        VecEmpty
+        VecEmpty,
+        #[error("Zero division encountered")]
+        ZeroDivision
+    }
+
+    #[derive(Debug, thiserror::Error)]
+    pub(crate) enum ReformatedRowStatError {
+        #[error("Unexpected stat {0:?}")]
+        UnexpectedStat(Stats),
     }
 
     #[derive(Debug, thiserror::Error)]
     pub(crate) enum ReadWiseStatsError {
-
+        #[error("Stat error: {0}")]
+        StatError(#[from] StatError),
+        #[error("Stat output row error: {0}")]
+        ReformatedRowStatError(#[from] ReformatedRowStatError)
     }
 
     #[derive(Debug, thiserror::Error)]
     pub(crate) enum InterpolationError {
-
+        #[error("Linspace error: {0}")]
+        LinspaceError(#[from] LinspaceError),
+        #[error("Interpolation error: {0}")]
+        InterpError(#[from] helper::errors::InterpolationError)
     }
+
+    #[derive(Debug, thiserror::Error)]
+    pub(crate) enum ReformatedRowInterpError {}
 
     #[derive(Debug, thiserror::Error)]
     pub(crate) enum ReformatError {
@@ -140,7 +162,5 @@ pub(crate) mod reformat {
         StatError(#[from] StatError),
         #[error("Read wise stats error: {0}")]
         ReadWiseStatsError(#[from] ReadWiseStatsError),
-        #[error("Interpolation error: {0}")]
-        InterpolationError(#[from] InterpolationError),
     }
 }
