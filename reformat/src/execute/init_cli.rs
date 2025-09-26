@@ -245,22 +245,23 @@ if number of threads is larger than 3. Decrease queue size for a reduced memory
 footprint."
                 )
         )
-
-        // Output options
+        
+        // Input/Output options
 
         .arg(
             Arg::new("input-chunk-size")
-                .long("input-chunk-size")
-                .value_parser(value_parser!(usize))
-                .default_value("4000")
-                .help_heading("Input/Output settings")
-                .help("Input chunk size")
-                .long_help(
-"Input chunk size. Determines the number of alignments that are read in each iteration
-while reading the alignment file. Higher values reduce the I/O overhead, potentially 
-increasing speed, while requiring more memory."
-                )
+            .long("input-chunk-size")
+            .value_parser(value_parser!(usize))
+            .default_value("4000")
+            .help_heading("Input/Output settings")
+            .help("Input chunk size")
+            .long_help(
+                "Input chunk size. Determines the number of alignments that are read in each iteration
+                while reading the alignment file. Higher values reduce the I/O overhead, potentially 
+                increasing speed, while requiring more memory."
+            )
         )
+                
         .arg(
             Arg::new("force-overwrite")
                 .long("force-overwrite")
@@ -272,6 +273,21 @@ increasing speed, while requiring more memory."
 "Whether existing output files should be overwritten. If the provided output path 
 already exists and the flag is set the existing file is overwritten. Otherwise an 
 error is raised."
+                )
+        )
+        .arg(
+            Arg::new("output-shape")
+                .long("output-shape")
+                .value_parser(["melted", "exploded", "nested"])
+                .default_value("nested")
+                .help_heading("Input/Output settings")
+                .help("Output data shape")
+                .long_help(
+"Output data shape. Determines how the reformated data is written to file.
+The options are melted, exploded or nested formats. Exploded format is only
+available if all regions of interest have the same length. Nested is only
+available when writing to parquet files. 
+An explanation of each is given at the end of the help message."
                 )
         )
         .arg(
@@ -347,6 +363,35 @@ Example sequence chrA:  A C G T A T A C C T
    - Example:        chrA:5-3
    - Covers bases 2 through 8 of:  A C G T A T A C C T
                                      C G T A T A C
+
+Notes about the output shape:
+------------------------------
+Example dataset: Two reads (A & B) aligned to the reference, two reference 
+regions of length 2, two statistics (mean, std)
+
+1. Melted - long format:
+read_id | ref_region | ref_name | base_position | base | mean  | std
+--------+------------+----------+---------------+------+-------+------
+readA   | motif1     | chr1     | 1             | C    | 0.52  | 0.10
+readA   | motif1     | chr1     | 2             | G    | 0.61  | 0.12
+readB   | motif1     | chr1     | 1             | C    | 0.48  | 0.09
+readB   | motif1     | chr1     | 2             | G    | 0.58  | 0.15
+
+2. Exploded - wide format:
+read_id | ref_region | ref_name | read_start | base_1 | base_2 | mean_1 | mean_2 | std_1 | std_2
+--------+------------+----------+------------+--------+--------+--------+--------+-------+-------
+readA   | motif1     | chr1     | 100        | C      | G      | 0.52   | 0.61   | 0.10  | 0.12
+readB   | motif1     | chr1     | 200        | C      | G      | 0.48   | 0.58   | 0.09  | 0.15
+
+Note that all regions of interests must be the same length here!
+
+3. Nested - list format: 
+read_id | ref_region | ref_name | read_start | bases   | mean        | std
+--------+------------+----------+------------+---------+-------------+-------------
+readA   | motif1     | chr1     | 100        | [C, G]  | [0.52, 0.61]| [0.10, 0.12]
+readB   | motif1     | chr1     | 200        | [C, G]  | [0.48, 0.58]| [0.09, 0.15]
+
+Note that the nested format is only available for parquet output!
 "
         );
 

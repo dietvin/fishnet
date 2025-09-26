@@ -97,11 +97,11 @@ pub enum AlignmentType {
 }
 
 /// Statistical measures that can be computed from signal data.
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Stats {
     Mean,
     Median,
-    Std,
+    StDev,
     Dwell,
     SignalToNoise
 }
@@ -117,7 +117,7 @@ impl Stats {
         match s.as_str() {
             "mean" => Stats::Mean,
             "median" => Stats::Median,
-            "std" => Stats::Std,
+            "std" => Stats::StDev,
             "dwell" => Stats::Dwell,
             "signal-to-noise" => Stats::SignalToNoise,
             _ => unreachable!("Invalid statistic name should be caught by CLI validation")
@@ -154,6 +154,14 @@ pub struct AlignmentContent {
     pub has_ref_sequence: bool,
     /// Whether raw signal data is embedded in the file
     pub has_signal: bool
+}
+
+/// The available output data shapes
+#[derive(Debug, PartialEq, Eq)]
+pub enum OutputShape {
+    Melted,
+    Exploded,
+    Nested
 }
 
 /// Complete configuration for nanopore signal reformatting operations.
@@ -217,6 +225,8 @@ pub struct ConfigReformat {
     input_chunk_size: usize,
     /// Output file format (Parquet or TSV)
     output_format: OutputFormat,
+    /// Output data shape (Melted / exploded / nested)
+    output_shape: OutputShape,
     /// Number of records to collect before writing an output batch
     output_batch_size: usize,
     /// Whether to overwrite existing output files
@@ -356,6 +366,20 @@ impl ConfigReformat {
             return Err(CliError::InvalidArgument("input-chunk-size".to_string(), 0.to_string()));
         }
 
+        let output_shape_raw = matches.get_one::<String>("output-shape").ok_or(
+            CliError::ArgumentNone("output-shape".to_string()) 
+        )?.clone();
+        let output_shape = match output_shape_raw.as_str() {
+            "melted" => OutputShape::Melted,
+            "exploded" => {
+                if output_format != OutputFormat::Parquet {
+                    return Err(CliError::InvalidOutputShape);
+                }
+                OutputShape::Exploded
+            }
+            "nested" => OutputShape::Nested,
+            _ => unreachable!("Constrained by the CLI")
+        };
 
         let output_batch_size = matches.get_one::<usize>("output-batch-size").ok_or(
             CliError::ArgumentNone("output-batch-size".to_string()) 
@@ -394,6 +418,7 @@ impl ConfigReformat {
             columns_of_interest,
             input_chunk_size,
             output_format,
+            output_shape,
             output_batch_size,
             force_overwrite,
             n_threads,
@@ -824,6 +849,11 @@ impl ConfigReformat {
     /// Returns the output file format (Parquet or TSV).
     pub fn output_format(&self) -> &OutputFormat {
         &self.output_format
+    }
+
+    /// Returns the output shape (melted / exploded / nested).
+    pub fn output_shape(&self) -> &OutputShape {
+        &self.output_shape
     }
 
     /// Returns the number of records to write per output batch.

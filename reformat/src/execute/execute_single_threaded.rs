@@ -5,7 +5,19 @@ use indicatif::{ProgressBar, ProgressStyle};
 use log::LevelFilter;
 use pod5_reader_api::dataset::Pod5Dataset;
 
-use crate::{core::{alignment_loader::RowIterator, filter::Filter, reformater::reformat}, error::ReformatError, execute::config::{ConfigReformat, FilterSource, SignalSource}};
+use crate::{
+    core::{
+        alignment_loader::RowIterator, 
+        filter::Filter, 
+        reformater::reformat
+    }, 
+    error::ReformatError, 
+    execute::config::{
+        ConfigReformat, 
+        OutputShape, 
+        SignalSource
+    }
+};
 
 pub(super) fn run_reformat_single_threaded(config: ConfigReformat) -> Result<(), ReformatError> {
     let progress_bar_init = ProgressBar::new_spinner();
@@ -15,7 +27,6 @@ pub(super) fn run_reformat_single_threaded(config: ConfigReformat) -> Result<(),
             .template("{spinner} [{elapsed_precise}] {msg}")                    
             .unwrap()            
     );
-
 
     if *config.log_level() != LevelFilter::Off {
         progress_bar_init.set_message("Initializing logging...");
@@ -45,6 +56,15 @@ pub(super) fn run_reformat_single_threaded(config: ConfigReformat) -> Result<(),
 
     progress_bar_init.set_message("Initializing the read filtering...");
     let filter = Filter::from_filter_source(config.filter_source())?;
+    if *config.output_shape() == OutputShape::Exploded {
+        if let Err(e) = filter.require_all_lengths_equal() {
+            eprintln!(
+                "All filter regions must have the same length with 'exploded' output shape: {}",
+                format!("{}", style(e).red())
+            );
+            std::process::exit(1);
+        }
+    }
 
     progress_bar_init.set_message("Initializing the alignment file iterator...");
     let alignment_iter = RowIterator::new(
@@ -76,7 +96,7 @@ pub(super) fn run_reformat_single_threaded(config: ConfigReformat) -> Result<(),
     );
 
     for row_res in alignment_iter {
-        let row: crate::core::alignment_loader::Row = row_res?;
+        let row = row_res?;
         
         if let Some(filter_hits) = filter.hits(&row)? {
             for chunk_info in filter_hits {
