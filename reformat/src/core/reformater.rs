@@ -18,29 +18,37 @@ pub(crate) fn reformat(
     signal: &[f64],
     chunk_info: &ChunkInfo,
     reformat_strategy: &ReformatStrategy,
+    norm_dwells: bool
 ) -> Result<ReformatedRow, ReformatError> {
     // Slice sequence and alignment
     let sequence_slice = &sequence[chunk_info.start_index..chunk_info.end_index];
     let alignment_slice = &alignment[chunk_info.start_index..chunk_info.end_index+1];
     
-    // Calculate, normalize and slice the dwell times
+    // Calculate, normalize (unless specified otherwise) and slice the dwell times
+    // This could also be moved to the main function in case a read contains multiple
+    // regions. But this seems a bit cleaner so I'll leave it here for now
     let dwells = alignment
         .windows(2)
         .map(|window| (window[1] - window[0]) as f64)
         .collect::<Vec<f64>>();
-    let dwells_mean = mean(&dwells)?;
-    let dwells_std = std_dev(&dwells)?;
-    let dwells_norm_slice = dwells[chunk_info.start_index..chunk_info.end_index]
-        .iter()
-        .map(|&el| (el - dwells_mean) / dwells_std)
-        .collect::<Vec<f64>>();
+
+    let dwells = if norm_dwells {
+        let dwells_mean = mean(&dwells)?;
+        let dwells_std = std_dev(&dwells)?;
+        dwells[chunk_info.start_index..chunk_info.end_index]
+            .iter()
+            .map(|&el| (el - dwells_mean) / dwells_std)
+            .collect::<Vec<f64>>()
+    } else {
+        dwells[chunk_info.start_index..chunk_info.end_index].to_vec()
+    };
 
     let reformated_data = match reformat_strategy {
         ReformatStrategy::ReadWiseStats { stats } => {
             let row = reformat_read_wise_stats(
                 sequence_slice, 
                 alignment_slice, 
-                &dwells_norm_slice,
+                &dwells,
                 signal,
                 stats
             )?;
@@ -51,7 +59,7 @@ pub(crate) fn reformat(
             let row = reformat_interpolate(
                 sequence_slice, 
                 alignment_slice, 
-                &dwells_norm_slice,
+                &dwells,
                 signal, 
                 *target_len
             )?;

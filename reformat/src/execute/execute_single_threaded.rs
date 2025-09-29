@@ -75,7 +75,8 @@ pub(super) fn run_reformat_single_threaded(config: ConfigReformat) -> Result<(),
         config.input_chunk_size(),
         config.columns_of_interest(),
         pod5_dataset,
-        config.is_drna()
+        config.is_drna(),
+        config.norm_signal()
     ) {
         Ok(alignment_iter) => alignment_iter,
         Err(e) => {
@@ -126,7 +127,8 @@ pub(super) fn run_reformat_single_threaded(config: ConfigReformat) -> Result<(),
                     row.alignment(),
                     row.signal(),
                     &chunk_info,
-                    config.reformat_strategy()
+                    config.reformat_strategy(),
+                    config.norm_dwells()
                 ) {
                     Ok(output_row) => {
                         // Add output row to output handler

@@ -166,7 +166,6 @@ can be set via the --stats flag.
 measurements can be set via the --target-size flag."
                 )
         )
-
         .arg(
             Arg::new("alignment-type")
                 .long("alignment-type")
@@ -179,6 +178,28 @@ reference and query alignments. Note that 'query' is incompatible with the --ref
 --bed-file and --positions-of-interest flags."
                 )                
         )
+        .arg(
+            Arg::new("skip-signal-norm")
+                .long("skip-signal-norm")
+                .action(ArgAction::SetTrue)
+                .help_heading("Processing strategy")
+                .help("Skip signal normalization")
+                .long_help(
+"Skip signal normalization. If set, the z-standardization of the signal measurements
+gets skipped during processing."
+                )
+            )
+        .arg(
+            Arg::new("skip-dwell-norm")
+                .long("skip-dwell-norm")
+                .action(ArgAction::SetTrue)
+                .help_heading("Processing strategy")
+                .help("Skip dwell-time normalization")
+                .long_help(
+"Skip dwell-time normalization. If set, the z-standardization of the dwell times
+gets skipped during processing."
+                )
+            )
 
         // Processing strategy options
 

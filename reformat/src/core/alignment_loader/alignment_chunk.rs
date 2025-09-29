@@ -235,7 +235,7 @@ impl AlignmentChunk {
     /// - If signal data is embedded in parquet, uses that
     /// - If signal data is missing and pod5_dataset is available, fetches from Pod5
     /// - If sequence data is missing, generates N-filled placeholder
-    pub(super) fn get_row(&mut self, idx: usize, pod5_dataset: &mut Option<Pod5Dataset>, is_rna: bool) -> Result<Row, AlignmentChunkError> {
+    pub(super) fn get_row(&mut self, idx: usize, pod5_dataset: &mut Option<Pod5Dataset>, is_rna: bool, norm_signal: bool) -> Result<Row, AlignmentChunkError> {
         if idx >= self.length {
             return Err(AlignmentChunkError::InvalidIndex(idx, self.length));
         }
@@ -297,9 +297,16 @@ impl AlignmentChunk {
         if signal_std == 0.0 {
             return Err(AlignmentChunkError::ZeroDivision);
         }
-        let signal = signal.iter()
-            .map(|&el| (el as f64 - signal_mean)/signal_std)
-            .collect::<Vec<f64>>();
+
+        let signal = if norm_signal {
+            signal.iter()
+                .map(|&el| (el as f64 - signal_mean)/signal_std)
+                .collect::<Vec<f64>>()
+        } else {
+            signal.iter()
+                .map(|&el| el as f64)
+                .collect()
+        };
 
         let row = Row::new(
             read_id, 
