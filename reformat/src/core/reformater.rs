@@ -35,6 +35,10 @@ pub(crate) fn reformat(
     let dwells = if norm_dwells {
         let dwells_mean = mean(&dwells)?;
         let dwells_std = std_dev(&dwells)?;
+        if dwells_std == 0.0 {
+            return Err(ReformatError::ZeroDivision);
+        }
+
         dwells[chunk_info.start_index..chunk_info.end_index]
             .iter()
             .map(|&el| (el - dwells_mean) / dwells_std)
