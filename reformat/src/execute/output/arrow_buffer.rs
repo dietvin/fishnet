@@ -182,7 +182,7 @@ impl ArrowBuffer {
     /// Panics if `output_shape` is `Exploded` but `uniform_roi_length` is `None`
     /// This should never happen, since it gets ensured before processing start
     /// that all regions of interest have the same length.
-    pub(crate) fn new(
+    pub(super) fn new(
         reformat_strategy: &ReformatStrategy, 
         output_shape: &OutputShape,
         buffer_size: usize,
@@ -287,7 +287,7 @@ impl ArrowBuffer {
     /// # Returns
     /// * `Ok(())` if data was successfully added to the buffer
     /// * `Err(ArrowBufferError)` if there was a type mismatch, index error, or other issue
-    pub(crate) fn push_data(
+    pub(super) fn push_data(
         &mut self,
         output_data: OutputData
     ) -> Result<(), ArrowBufferError> {
@@ -765,7 +765,7 @@ impl ArrowBuffer {
     /// * Column count doesn't match schema
     /// * Statistics are missing from dynamic buffers
     /// * Arrow conversion fails
-    pub(crate) fn buffer_to_rowgroupiter(
+    pub(super) fn buffer_to_rowgroupiter(
         &mut self,
         schema: &Schema,
         encodings: &Vec<Vec<Encoding>>,
