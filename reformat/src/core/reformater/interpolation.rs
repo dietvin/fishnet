@@ -28,9 +28,3 @@ pub(super) fn reformat_interpolate(
     }
     Ok(output_row)
 }
-
-pub(crate) struct InterpOutputRow {
-    bases: Vec<u8>,
-    length: usize,
-    interpolated_signal: Vec<Vec<f32>>
-}

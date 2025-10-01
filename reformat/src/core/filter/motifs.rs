@@ -146,11 +146,21 @@ impl Motifs {
     /// Checks if all motifs have the same length
     /// 
     /// # Returns 
-    /// True is all motifs have the same length
-    pub(crate) fn all_equal_len(&self) -> bool {
-        let first_len = self.motifs[0].len();
-        self.motifs
+    /// The length of the motifs is all motifs have the same length,
+    /// None otherwise
+    pub(crate) fn equal_len(&self) -> Option<usize> {
+        let first_len = match self.motifs.get(0) {
+            Some(motif) => motif.len(),
+            None => return None
+        };
+
+        if self.motifs
             .iter()
-            .all(|m| m.len() == first_len)
+            .all(|m| m.len() == first_len) 
+        {
+            Some(first_len)
+        } else {
+            None
+        }
     }
 }

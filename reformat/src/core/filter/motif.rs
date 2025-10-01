@@ -101,13 +101,13 @@ impl Motif {
         &self.name
     }
 
-    /// Returns the motif sequence pattern.
-    ///
-    /// # Returns
-    /// * `&str` - Reference to the motif sequence
-    pub(crate) fn motif(&self) -> &[u8] {
-        &self.motif
-    }
+    // /// Returns the motif sequence pattern.
+    // ///
+    // /// # Returns
+    // /// * `&str` - Reference to the motif sequence
+    // pub(crate) fn motif(&self) -> &[u8] {
+    //     &self.motif
+    // }
 
     /// Returns the length of the motif sequence.
     ///

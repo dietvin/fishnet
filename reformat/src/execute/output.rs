@@ -1,8 +1,11 @@
 use std::path::PathBuf;
 
-use crate::{error::execute::OutputError, execute::{config::ReformatStrategy, output::output_data::OutputData}};
+use crate::{error::execute::OutputError, execute::{config::{OutputShape, ReformatStrategy}, output::output_data::OutputData}};
 
 pub(crate) mod output_data;
+pub(crate) mod output_arrow;
+pub(crate) mod output_tsv;
+mod arrow_buffer;
 
  /// Trait for alignment output writers
  ///
@@ -22,10 +25,12 @@ pub(crate) mod output_data;
      ///
      /// A new writer instance or an error if initialization fails
      fn new(
-         path: &PathBuf, 
-         force_overwrite: bool, 
-         batch_size: usize, 
-         reformat_strategy: &ReformatStrategy
+        path: &PathBuf,
+        force_overwrite: bool,
+        batch_size: usize,
+        reformat_strategy: &ReformatStrategy,
+        output_shape: &OutputShape,
+        uniform_roi_length: Option<usize>
      ) -> Result<Self, OutputError> 
      where 
          Self: Sized;

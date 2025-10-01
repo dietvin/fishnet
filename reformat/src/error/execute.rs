@@ -1,4 +1,40 @@
+use std::path::PathBuf;
+
+use crate::{error::core::reformat::{ReformatedRowInterpError, ReformatedRowStatError}, execute::config::Stats};
+
 #[derive(Debug, thiserror::Error)]
 pub enum OutputError {
-    
+    #[error("File {0} already exists and overwrite is not specified.")]
+    FileExists(PathBuf),
+    #[error("IO error: {0}")]
+    IoError(#[from] std::io::Error),
+    #[error("Arrow2 error: {0}")]
+    ArrowError(#[from] arrow2::error::Error),
+    #[error("Writer already finalized")]
+    AlreadyFinalized,
+
+    #[error("Arrow buffer error: {0}")]
+    ArrowBufferError(#[from] ArrowBufferError)
+}
+
+#[derive(Debug, thiserror::Error)]
+pub(crate) enum ArrowBufferError {
+    #[error("Reformated row stat error: {0}")]
+    ReformatedRowStatError(#[from] ReformatedRowStatError),
+    #[error("Reformated row interpolation error: {0}")]
+    ReformatedRowInterpError(#[from] ReformatedRowInterpError),
+    #[error("Stats from reformated data and buffer do not match")]
+    MeltedStatsMismatch,
+    #[error("Index {0} out of bounds with length {1}")]
+    IndexError(usize, usize),
+    #[error("Key error: {0:?} not found in stats buffer")]
+    KeyError(Stats),
+    #[error("Arrow2 error: {0}")]
+    ArrowError(#[from] arrow2::error::Error),
+    #[error("Found Interpolation buffer with stats data")]
+    UnexpectedBufferTypeWithStats,
+    #[error("Found Stats buffer with interpolation data")]
+    UnexpectedBufferTypeWithInterp,
+    #[error("Stat {0:?} from schema not found in buffer")]
+    InvalidStat(Stats)
 }

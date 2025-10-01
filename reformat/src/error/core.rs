@@ -111,10 +111,10 @@ pub(crate) mod filter {
         RefRegionsError(#[from] ReferenceRegionsError),
         #[error("Filtering for reference regions, but no region was found in the current row")]
         NoRegionInTarget,
-        #[error("Filtering for motifs, but only a placeholder sequence was found in the current row")]
-        NoSequenceInTarget,
-        #[error("The length of the contained filter elements differs")]
-        DifferentLengths
+        // #[error("Filtering for motifs, but only a placeholder sequence was found in the current row")]
+        // NoSequenceInTarget,
+        // #[error("The length of the contained filter elements differs")]
+        // DifferentLengths
     }
 
 }
@@ -135,6 +135,10 @@ pub(crate) mod reformat {
     pub(crate) enum ReformatedRowStatError {
         #[error("Unexpected stat {0:?}")]
         UnexpectedStat(Stats),
+        // #[error("Unexpected None for stat: {0:?}")]
+        // UnexpectedNone(Stats),
+        #[error("Invalid length for stat {0:?}: Expected {1} values, found {2}")]
+        InvalidLength(Stats, usize, usize),
     }
 
     #[derive(Debug, thiserror::Error)]
@@ -154,7 +158,10 @@ pub(crate) mod reformat {
     }
 
     #[derive(Debug, thiserror::Error)]
-    pub(crate) enum ReformatedRowInterpError {}
+    pub(crate) enum ReformatedRowInterpError {
+        #[error("{0}: Length mismatch for {2} bases: {1}")]
+        LengthMismatch(&'static str, usize, usize)
+    }
 
     #[derive(Debug, thiserror::Error)]
     pub(crate) enum ReformatError {
@@ -163,6 +170,8 @@ pub(crate) mod reformat {
         #[error("Read wise stats error: {0}")]
         ReadWiseStatsError(#[from] ReadWiseStatsError),
         #[error("Interpolation error: {0}")]
-        InterpolationError(#[from] InterpolationError)
+        InterpolationError(#[from] InterpolationError),
+        #[error("Dwell STD is 0. Can not z-standardize the dwells")]
+        ZeroDivision
     }
 }

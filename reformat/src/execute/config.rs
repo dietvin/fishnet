@@ -97,7 +97,7 @@ pub enum AlignmentType {
 }
 
 /// Statistical measures that can be computed from signal data.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Stats {
     Mean,
     Median,
@@ -123,10 +123,20 @@ impl Stats {
             _ => unreachable!("Invalid statistic name should be caught by CLI validation")
         }
     }
+
+    pub(crate) fn to_str(&self) -> &str {
+        match self {
+            Stats::Mean => "mean",
+            Stats::Median => "median",
+            Stats::StDev => "std",
+            Stats::Dwell => "dwell",
+            Stats::SignalToNoise => "signal_to_noise"
+        }
+    }
 }
 
 /// Defines the strategy for reformatting the signal data.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum ReformatStrategy {
     /// Compute statistical summaries from signal 
     /// chunks for each base of each read
@@ -157,7 +167,7 @@ pub struct AlignmentContent {
 }
 
 /// The available output data shapes
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum OutputShape {
     Melted,
     Exploded,

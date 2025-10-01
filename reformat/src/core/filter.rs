@@ -81,16 +81,14 @@ impl Filter {
     /// 
     /// # Errors
     /// Returns an error if contained elements lengths are not equal
-    pub(crate) fn require_all_lengths_equal(&self) -> Result<(), FilterError> {
-        let all_equal = match self {
-            Filter::ReferenceRegions { regions } => regions.all_equal_len(),
-            Filter::Motifs { motifs } => motifs.all_equal_len()
-        };
-
-        if all_equal {
-            Ok(())
-        } else {
-            Err(FilterError::DifferentLengths)
+    pub(crate) fn equal_lengths(&self) -> Option<usize> {
+        match self {
+            Filter::ReferenceRegions { regions } => {
+                regions.equal_len()
+            },
+            Filter::Motifs { motifs } => {
+                motifs.equal_len()
+            }
         }
     }
 }

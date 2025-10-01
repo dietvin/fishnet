@@ -189,18 +189,23 @@ impl ReferenceRegions {
     /// Checks if all reference regions have the same length
     /// 
     /// # Returns 
-    /// True is all regions have the same length
-    pub(crate) fn all_equal_len(&self) -> bool {
+    /// The length of the regions if all regions have the same length.
+    /// None otherwise
+    pub(crate) fn equal_len(&self) -> Option<usize> {
         let first_length = match self.regions.iter().next() {
             Some((_,v)) => v[0].length(),
-            None => 0
+            None => return None
         };
 
-        self.regions.iter().all(|(_, regions)| {
+        if self.regions.iter().all(|(_, regions)| {
             regions
                 .iter()
                 .all(|reg| reg.length() == first_length)
-        })
+        }) {
+            Some(first_length)
+        } else {
+            None
+        }
     }
 }
 

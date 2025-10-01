@@ -5,8 +5,6 @@
 
 mod alignment_chunk;
 mod column_index;
-mod row;
-
 
 use std::{
     fs::File, 

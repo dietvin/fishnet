@@ -14,11 +14,11 @@ use crate::{
         reformater::reformat
     }, 
     error::ReformatError, 
-    execute::config::{
+    execute::{config::{
         ConfigReformat, 
         OutputShape, 
         SignalSource
-    }
+    }, output::{output_arrow::OutputWriterArrow, ReformatWriter}}
 };
 
 pub(super) fn run_reformat_single_threaded(config: ConfigReformat) -> Result<(), ReformatError> {
@@ -61,11 +61,12 @@ pub(super) fn run_reformat_single_threaded(config: ConfigReformat) -> Result<(),
     progress_bar_init.set_message("Initializing the read filtering...");
     log::info!("Initializing the region of interest filtering");
     let filter = Filter::from_filter_source(config.filter_source())?;
-    if *config.output_shape() == OutputShape::Exploded {
-        if let Err(e) = filter.require_all_lengths_equal() {
-            log::error!("Failed to initialize region of interest filtering");
-            return Err(ReformatError::FilterError(e));
-        }
+
+    let output_exploded_all_lengths_equal = filter.equal_lengths();
+
+    if *config.output_shape() == OutputShape::Exploded && output_exploded_all_lengths_equal.is_none() {
+        log::error!("Failed to initialize region of interest filtering");
+        return Err(ReformatError::ExplodedWithUnequalFilterLength);
     }
 
     progress_bar_init.set_message("Initializing the alignment file iterator...");
@@ -86,9 +87,24 @@ pub(super) fn run_reformat_single_threaded(config: ConfigReformat) -> Result<(),
     };
 
 
-    let _output_writer = match config.output_format() {
-        OutputFormat::Parquet => {}
-        OutputFormat::Tsv => {}
+    let mut output_writer = match config.output_format() {
+        OutputFormat::Parquet => match OutputWriterArrow::new(
+            config.output_file(), 
+            config.force_overwrite(), 
+            config.output_batch_size(), 
+            config.reformat_strategy(), 
+            config.output_shape(), 
+            output_exploded_all_lengths_equal
+        ) {
+            Ok(writer) => writer,
+            Err(e) => {
+                log::error!("Failed to initialize the arrow output writer: {}", e);
+                return Err(ReformatError::OutputError(e));
+            }
+        }
+        OutputFormat::Tsv => {
+            todo!()
+        }
         _ => unreachable!("CLI restricts output formats to Parquet and TSV")
     };
 
@@ -122,7 +138,6 @@ pub(super) fn run_reformat_single_threaded(config: ConfigReformat) -> Result<(),
             for chunk_info in filter_hits {
                 match reformat(
                     row.read_id(),
-                    row.ref_region(),
                     row.sequence(),
                     row.alignment(),
                     row.signal(),
@@ -130,10 +145,18 @@ pub(super) fn run_reformat_single_threaded(config: ConfigReformat) -> Result<(),
                     config.reformat_strategy(),
                     config.norm_dwells()
                 ) {
-                    Ok(output_row) => {
-                        // Add output row to output handler
-                        log::debug!("Successfully reformated read {}", row.read_id());
-                        update_progress_success(&mut progress_bar, &mut n_successful_reads, &n_filtered_reads, &n_failed_reads);
+                    Ok(output_data) => {
+                        
+                        match output_writer.write_record(output_data) {
+                            Ok(_) => {
+                                log::debug!("Successfully reformated read {}", row.read_id());
+                                update_progress_success(&mut progress_bar, &mut n_successful_reads, &n_filtered_reads, &n_failed_reads);
+                            }
+                            Err(e) => {
+                                log::error!("Failed to add the processed data to the output writer: {}", e);
+                                update_progress_fail(&mut progress_bar, &n_successful_reads, &n_filtered_reads, &mut n_failed_reads);
+                            }
+                        }
                     }
                     Err(e) => {
                         log::error!("Failed to reformat read {}: {}", row.read_id(), e);
@@ -147,10 +170,16 @@ pub(super) fn run_reformat_single_threaded(config: ConfigReformat) -> Result<(),
         }
     }
 
+    if let Err(e) = output_writer.finalize() {
+        log::error!("Failed to write the remaining buffer to file: {e}");
+        return Err(ReformatError::OutputError(e));
+    }
+
     log::info!(
         "Finished processing. Successful for {} reads, filtered out {} reads, failed for {} reads", 
         n_successful_reads, n_filtered_reads, n_failed_reads
     );
+
     progress_bar.finish_with_message(format!(
         "{} | {} | {}",
         style(format!("{} Success", n_successful_reads)).green(),

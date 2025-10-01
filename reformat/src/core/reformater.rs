@@ -5,21 +5,32 @@ pub(crate) mod reformated;
 
 use uuid::Uuid;
 
-use crate::{core::{filter::{reference_region::ReferenceRegion, ChunkInfo}, reformater::{interpolation::reformat_interpolate, read_wise_stats::reformat_read_wise_stats, reformated::{ReformatedData, ReformatedRow}, stats::{mean, std_dev}}}, error::core::reformat::ReformatError, execute::{config::{ReformatStrategy, Stats}, output::output_data::OutputRow}};
+use crate::{
+    core::{
+        filter::ChunkInfo, 
+        reformater::{
+            interpolation::reformat_interpolate, read_wise_stats::reformat_read_wise_stats, reformated::ReformatedData, stats::{
+                mean, 
+                std_dev
+            }
+        }
+    }, 
+    error::core::reformat::ReformatError, 
+    execute::{config::ReformatStrategy, output::output_data::OutputData}
+};
 
 /// Main reformating entry function.
 /// 
 /// Gets reference to the entier sequence, alignment,
 pub(crate) fn reformat(
     read_id: &Uuid,
-    reference_region: Option<&ReferenceRegion>,
     sequence: &[u8],
     alignment: &[usize],
     signal: &[f64],
     chunk_info: &ChunkInfo,
     reformat_strategy: &ReformatStrategy,
     norm_dwells: bool
-) -> Result<ReformatedRow, ReformatError> {
+) -> Result<OutputData, ReformatError> {
     // Slice sequence and alignment
     let sequence_slice = &sequence[chunk_info.start_index..chunk_info.end_index];
     let alignment_slice = &alignment[chunk_info.start_index..chunk_info.end_index+1];
@@ -72,9 +83,8 @@ pub(crate) fn reformat(
         }
     };
 
-    let reformated_row = ReformatedRow::new(
+    let reformated_row = OutputData::new(
         *read_id, 
-        reference_region.cloned(), 
         chunk_info.clone(), 
         reformated_data
     );
