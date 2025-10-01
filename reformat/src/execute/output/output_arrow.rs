@@ -55,7 +55,7 @@ impl OutputWriterArrow {
         match (reformat_strategy, output_shape) {
             (ReformatStrategy::ReadWiseStats { stats }, OutputShape::Melted) => {
                 fields.push(Field::new("base_index", DataType::UInt64, false));
-                fields.push(Field::new("base", DataType::UInt8, false));
+                fields.push(Field::new("base", DataType::Utf8, false));
                 for stat in stats {
                     fields.push(Field::new(stat.to_str(), DataType::Float64, false));
                 }
@@ -100,7 +100,7 @@ impl OutputWriterArrow {
             }
             (ReformatStrategy::Interpolation { target_len }, OutputShape::Melted) => {
                 fields.push(Field::new("base_index", DataType::UInt64, false));
-                fields.push(Field::new("base", DataType::UInt8, false));
+                fields.push(Field::new("base", DataType::Utf8, false));
 
                 for signal_idx in 0..*target_len {
                     fields.push(Field::new(
@@ -197,10 +197,7 @@ impl ReformatWriter for OutputWriterArrow {
         let file = File::create(path)?;
 
         let options = WriteOptions {
-            // Current workaround to avoid an arrow2 error:
-            // `Arrow2 error: External format error: File out of specification: 
-            //  The max_value of statistics MUST be plain encoded`
-            write_statistics: *output_shape != OutputShape::Melted, 
+            write_statistics: true, 
             compression: CompressionOptions::Snappy,
             version: Version::V2,
             data_pagesize_limit: None
