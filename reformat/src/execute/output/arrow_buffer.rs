@@ -305,17 +305,16 @@ impl ArrowBuffer {
         
             for i in 0..bases.len() {
                 // Append the same read ID for each row
-                buffer_read_id.try_push(Some(read_id_string.clone()))?; // TODO: Check if there is a more efficient way to get around cloning
+                buffer_read_id.try_push(Some(read_id_string.clone()))?;
                 buffer_start_index_on_read.try_push(Some(start_index_on_alignment as u64))?;
                 buffer_filter_name.try_push(Some(matched_region_name.clone()))?;
                 buffer_base_index.try_push(Some(i as u64))?;
     
-                buffer_base.try_push(Some(
-                    bases
-                        .get(i)
-                        .ok_or(ArrowBufferError::IndexError(i, bases.len()))?
-                        .to_string()
-                ))?;
+                let base = (*bases
+                    .get(i)
+                    .ok_or(ArrowBufferError::IndexError(i, bases.len()))?
+                    as char).to_string();
+                buffer_base.try_push(Some(base))?;
             }
             Ok(())
         } else {
@@ -355,7 +354,7 @@ impl ArrowBuffer {
                 dynamic_buffer_bases
                     .get_mut(i)
                     .ok_or(ArrowBufferError::IndexError(i, bases.len()))?
-                    .try_push(Some(bases[i].to_string()))?;
+                    .try_push(Some((bases[i] as char).to_string()))?;
 
                 for (stat, values) in &stat_collection {
                     dynamic_buffer_stats
@@ -447,14 +446,13 @@ impl ArrowBuffer {
                 buffer_read_id.try_push(Some(read_id_string.clone()))?; // TODO: Check if there is a more efficient way to get around cloning
                 buffer_start_index_on_read.try_push(Some(start_index_on_alignment as u64))?;
                 buffer_filter_name.try_push(Some(matched_region_name.clone()))?;
-
                 buffer_base_index.try_push(Some(i as u64))?;
-                buffer_base.try_push(Some(
-                    bases
-                        .get(i)
-                        .ok_or(ArrowBufferError::IndexError(i, bases.len()))?
-                        .to_string()
-                ))?;
+
+                let base = (*bases
+                    .get(i)
+                    .ok_or(ArrowBufferError::IndexError(i, bases.len()))?
+                    as char).to_string();
+                buffer_base.try_push(Some(base))?;
 
                 // Get the signal for base i
                 let signal = signals
@@ -509,7 +507,7 @@ impl ArrowBuffer {
                 dynamic_buffer_bases
                     .get_mut(i)
                     .ok_or(ArrowBufferError::IndexError(i, bases.len()))?
-                    .try_push(Some(bases[i].to_string()))?;
+                    .try_push(Some((bases[i] as char).to_string()))?;
 
                 // Get the signal for base i
                 let signal = signals
