@@ -44,7 +44,7 @@ pub(crate) enum ArrowBuffer {
     StatsMelted {
         buffer_read_id: MutableUtf8Array<i32>,
         buffer_start_index_on_read: MutablePrimitiveArray<u64>,
-        buffer_filter_name: MutableUtf8Array<i32>,
+        buffer_region_of_interest: MutableUtf8Array<i32>,
         buffer_base_index: MutablePrimitiveArray<u64>,
         buffer_base: MutableUtf8Array<i32>,
         dynamic_buffer_stats: HashMap<Stats, MutablePrimitiveArray<f64>>,
@@ -53,7 +53,7 @@ pub(crate) enum ArrowBuffer {
     StatsExploded {
         buffer_read_id: MutableUtf8Array<i32>,
         buffer_start_index_on_read: MutablePrimitiveArray<u64>,
-        buffer_filter_name: MutableUtf8Array<i32>,
+        buffer_region_of_interest: MutableUtf8Array<i32>,
         dynamic_buffer_bases: Vec<MutableUtf8Array<i32>>,
         // #stats (outer Vec) x #bases (inner Vec) x #reads (Primitive array)
         dynamic_buffer_stats: HashMap<Stats, Vec<MutablePrimitiveArray<f64>>>,
@@ -62,7 +62,7 @@ pub(crate) enum ArrowBuffer {
     StatsNested {
         buffer_read_id: MutableUtf8Array<i32>,
         buffer_start_index_on_read: MutablePrimitiveArray<u64>,
-        buffer_filter_name: MutableUtf8Array<i32>,
+        buffer_region_of_interest: MutableUtf8Array<i32>,
         buffer_bases: MutableUtf8Array<i32>,
         dynamic_buffer_stats: HashMap<Stats, MutableListArray<i32, MutablePrimitiveArray<f64>>>,
         stats_in_order: Vec<Stats>
@@ -70,7 +70,7 @@ pub(crate) enum ArrowBuffer {
     InterpMelted {
         buffer_read_id: MutableUtf8Array<i32>,
         buffer_start_index_on_read: MutablePrimitiveArray<u64>,
-        buffer_filter_name: MutableUtf8Array<i32>,
+        buffer_region_of_interest: MutableUtf8Array<i32>,
         buffer_base_index: MutablePrimitiveArray<u64>,
         buffer_base: MutableUtf8Array<i32>,
         dynamic_buffer_signals: Vec<MutablePrimitiveArray<f64>>,
@@ -79,7 +79,7 @@ pub(crate) enum ArrowBuffer {
     InterpExploded {
         buffer_read_id: MutableUtf8Array<i32>,
         buffer_start_index_on_read: MutablePrimitiveArray<u64>,
-        buffer_filter_name: MutableUtf8Array<i32>,
+        buffer_region_of_interest: MutableUtf8Array<i32>,
         dynamic_buffer_bases: Vec<MutableUtf8Array<i32>>,
         // #bases (outer Vec) x interpolation target size (inner Vec) x #reads (Primitive array)
         dynamic_buffer_signals: Vec<Vec<MutablePrimitiveArray<f64>>>,
@@ -88,7 +88,7 @@ pub(crate) enum ArrowBuffer {
     InterpNested {
         buffer_read_id: MutableUtf8Array<i32>,
         buffer_start_index_on_read: MutablePrimitiveArray<u64>,
-        buffer_filter_name: MutableUtf8Array<i32>,
+        buffer_region_of_interest: MutableUtf8Array<i32>,
         // Bases column contains lists of bases 
         buffer_bases: MutableUtf8Array<i32>,
         // Signals column contains nested lists (#bases (outer Vec) x interpolation target size (inner Vec))
@@ -114,7 +114,7 @@ impl ArrowBuffer {
                 Self::StatsMelted { 
                     buffer_read_id: MutableUtf8Array::<i32>::with_capacity(buffer_size), 
                     buffer_start_index_on_read: MutablePrimitiveArray::<u64>::with_capacity(buffer_size), 
-                    buffer_filter_name: MutableUtf8Array::<i32>::with_capacity(buffer_size),
+                    buffer_region_of_interest: MutableUtf8Array::<i32>::with_capacity(buffer_size),
                     buffer_base_index: MutablePrimitiveArray::<u64>::with_capacity(buffer_size), 
                     buffer_base: MutableUtf8Array::<i32>::with_capacity(buffer_size), 
                     dynamic_buffer_stats,
@@ -133,7 +133,7 @@ impl ArrowBuffer {
                     Self::StatsExploded { 
                         buffer_read_id: MutableUtf8Array::<i32>::with_capacity(buffer_size), 
                         buffer_start_index_on_read: MutablePrimitiveArray::<u64>::with_capacity(buffer_size),
-                        buffer_filter_name: MutableUtf8Array::<i32>::with_capacity(buffer_size), 
+                        buffer_region_of_interest: MutableUtf8Array::<i32>::with_capacity(buffer_size), 
                         dynamic_buffer_bases: vec![MutableUtf8Array::<i32>::with_capacity(buffer_size); num_bases], 
                         dynamic_buffer_stats: dynamic_buffer_stats,
                         stats_in_order: stats.clone()
@@ -153,7 +153,7 @@ impl ArrowBuffer {
                 Self::StatsNested { 
                     buffer_read_id: MutableUtf8Array::<i32>::with_capacity(buffer_size),
                     buffer_start_index_on_read: MutablePrimitiveArray::<u64>::with_capacity(buffer_size),
-                    buffer_filter_name: MutableUtf8Array::<i32>::with_capacity(buffer_size),
+                    buffer_region_of_interest: MutableUtf8Array::<i32>::with_capacity(buffer_size),
                     buffer_bases: MutableUtf8Array::<i32>::with_capacity(buffer_size),
                     dynamic_buffer_stats: dynamic_buffer_stats,
                     stats_in_order: stats.clone()
@@ -162,7 +162,7 @@ impl ArrowBuffer {
             (ReformatStrategy::Interpolation { target_len }, OutputShape::Melted) => Self::InterpMelted { 
                 buffer_read_id: MutableUtf8Array::<i32>::with_capacity(buffer_size),
                 buffer_start_index_on_read: MutablePrimitiveArray::<u64>::with_capacity(buffer_size),
-                buffer_filter_name: MutableUtf8Array::<i32>::with_capacity(buffer_size),
+                buffer_region_of_interest: MutableUtf8Array::<i32>::with_capacity(buffer_size),
                 buffer_base_index: MutablePrimitiveArray::<u64>::with_capacity(buffer_size),
                 buffer_base: MutableUtf8Array::<i32>::with_capacity(buffer_size),
                 dynamic_buffer_signals: vec![MutablePrimitiveArray::<f64>::with_capacity(buffer_size); *target_len],
@@ -173,7 +173,7 @@ impl ArrowBuffer {
                     Self::InterpExploded{
                         buffer_read_id: MutableUtf8Array::<i32>::with_capacity(buffer_size),
                         buffer_start_index_on_read: MutablePrimitiveArray::<u64>::with_capacity(buffer_size),
-                        buffer_filter_name: MutableUtf8Array::<i32>::with_capacity(buffer_size),
+                        buffer_region_of_interest: MutableUtf8Array::<i32>::with_capacity(buffer_size),
                         dynamic_buffer_bases: vec![MutableUtf8Array::<i32>::with_capacity(buffer_size); num_bases],
                         dynamic_buffer_signals: vec![vec![MutablePrimitiveArray::<f64>::with_capacity(buffer_size); *target_len]; num_bases],
                         dynamic_buffer_dwells: vec![MutablePrimitiveArray::<f64>::with_capacity(buffer_size); num_bases]
@@ -185,7 +185,7 @@ impl ArrowBuffer {
             (ReformatStrategy::Interpolation { .. }, OutputShape::Nested) => Self::InterpNested { 
                 buffer_read_id: MutableUtf8Array::<i32>::with_capacity(buffer_size),
                 buffer_start_index_on_read: MutablePrimitiveArray::<u64>::with_capacity(buffer_size),
-                buffer_filter_name: MutableUtf8Array::<i32>::with_capacity(buffer_size),
+                buffer_region_of_interest: MutableUtf8Array::<i32>::with_capacity(buffer_size),
                 buffer_bases: MutableUtf8Array::<i32>::with_capacity(buffer_size),
                 buffer_signals: MutableListArray::<i32, MutableListArray<i32, MutablePrimitiveArray<f64>>>::with_capacity(buffer_size),
                 buffer_dwells: MutableListArray::<i32, MutablePrimitiveArray<f64>>::with_capacity(buffer_size)
@@ -283,7 +283,7 @@ impl ArrowBuffer {
         if let ArrowBuffer::StatsMelted { 
             buffer_read_id, 
             buffer_start_index_on_read, 
-            buffer_filter_name, 
+            buffer_region_of_interest, 
             buffer_base_index, 
             buffer_base, 
             dynamic_buffer_stats ,
@@ -307,7 +307,7 @@ impl ArrowBuffer {
                 // Append the same read ID for each row
                 buffer_read_id.try_push(Some(read_id_string.clone()))?;
                 buffer_start_index_on_read.try_push(Some(start_index_on_alignment as u64))?;
-                buffer_filter_name.try_push(Some(matched_region_name.clone()))?;
+                buffer_region_of_interest.try_push(Some(matched_region_name.clone()))?;
                 buffer_base_index.try_push(Some(i as u64))?;
     
                 let base = (*bases
@@ -335,7 +335,7 @@ impl ArrowBuffer {
         if let ArrowBuffer::StatsExploded { 
             buffer_read_id, 
             buffer_start_index_on_read, 
-            buffer_filter_name, 
+            buffer_region_of_interest, 
             dynamic_buffer_bases, 
             dynamic_buffer_stats,
             ..
@@ -348,7 +348,7 @@ impl ArrowBuffer {
 
             buffer_read_id.try_push(Some(read_id_string.clone()))?; // TODO: Check if there is a more efficient way to get around cloning
             buffer_start_index_on_read.try_push(Some(start_index_on_alignment as u64))?;
-            buffer_filter_name.try_push(Some(matched_region_name.clone()))?;
+            buffer_region_of_interest.try_push(Some(matched_region_name.clone()))?;
 
             for i in 0..bases.len() {    
                 dynamic_buffer_bases
@@ -387,7 +387,7 @@ impl ArrowBuffer {
         if let ArrowBuffer::StatsNested { 
             buffer_read_id, 
             buffer_start_index_on_read, 
-            buffer_filter_name, 
+            buffer_region_of_interest, 
             buffer_bases, 
             dynamic_buffer_stats,
             ..
@@ -410,7 +410,7 @@ impl ArrowBuffer {
 
             buffer_read_id.try_push(Some(read_id_string.clone()))?; // TODO: Check if there is a more efficient way to get around cloning
             buffer_start_index_on_read.try_push(Some(start_index_on_alignment as u64))?;
-            buffer_filter_name.try_push(Some(matched_region_name.clone()))?;
+            buffer_region_of_interest.try_push(Some(matched_region_name.clone()))?;
 
             let bases = bases.iter().map(|&el| el as char).collect::<String>();
             buffer_bases.try_push(Some(bases))?;
@@ -436,7 +436,7 @@ impl ArrowBuffer {
         if let ArrowBuffer::InterpMelted { 
             buffer_read_id, 
             buffer_start_index_on_read, 
-            buffer_filter_name, 
+            buffer_region_of_interest, 
             buffer_base_index, 
             buffer_base, 
             dynamic_buffer_signals, 
@@ -445,7 +445,7 @@ impl ArrowBuffer {
             for i in 0..bases.len() {
                 buffer_read_id.try_push(Some(read_id_string.clone()))?; // TODO: Check if there is a more efficient way to get around cloning
                 buffer_start_index_on_read.try_push(Some(start_index_on_alignment as u64))?;
-                buffer_filter_name.try_push(Some(matched_region_name.clone()))?;
+                buffer_region_of_interest.try_push(Some(matched_region_name.clone()))?;
                 buffer_base_index.try_push(Some(i as u64))?;
 
                 let base = (*bases
@@ -493,7 +493,7 @@ impl ArrowBuffer {
         if let ArrowBuffer::InterpExploded { 
             buffer_read_id, 
             buffer_start_index_on_read, 
-            buffer_filter_name, 
+            buffer_region_of_interest, 
             dynamic_buffer_bases, 
             dynamic_buffer_signals, 
             dynamic_buffer_dwells 
@@ -501,7 +501,7 @@ impl ArrowBuffer {
 
             buffer_read_id.try_push(Some(read_id_string.clone()))?; // TODO: Check if there is a more efficient way to get around cloning
             buffer_start_index_on_read.try_push(Some(start_index_on_alignment as u64))?;
-            buffer_filter_name.try_push(Some(matched_region_name.clone()))?;
+            buffer_region_of_interest.try_push(Some(matched_region_name.clone()))?;
 
             for i in 0..bases.len() {    
                 dynamic_buffer_bases
@@ -552,14 +552,14 @@ impl ArrowBuffer {
         if let ArrowBuffer::InterpNested { 
             buffer_read_id, 
             buffer_start_index_on_read, 
-            buffer_filter_name, 
+            buffer_region_of_interest, 
             buffer_bases, 
             buffer_signals, 
             buffer_dwells 
         } = self {
             buffer_read_id.try_push(Some(read_id_string.clone()))?; // TODO: Check if there is a more efficient way to get around cloning
             buffer_start_index_on_read.try_push(Some(start_index_on_alignment as u64))?;
-            buffer_filter_name.try_push(Some(matched_region_name.clone()))?;
+            buffer_region_of_interest.try_push(Some(matched_region_name.clone()))?;
 
             let bases = bases.iter().map(|&el| el as char).collect::<String>();
             buffer_bases.try_push(Some(bases))?;
@@ -596,7 +596,7 @@ impl ArrowBuffer {
             ArrowBuffer::StatsMelted { 
                 buffer_read_id, 
                 buffer_start_index_on_read, 
-                buffer_filter_name, 
+                buffer_region_of_interest, 
                 buffer_base_index, 
                 buffer_base, 
                 dynamic_buffer_stats,
@@ -604,7 +604,7 @@ impl ArrowBuffer {
             } => {
                 columns.push(buffer_read_id.as_box());
                 columns.push(buffer_start_index_on_read.as_box());
-                columns.push(buffer_filter_name.as_box());
+                columns.push(buffer_region_of_interest.as_box());
                 columns.push(buffer_base_index.as_box());
                 columns.push(buffer_base.as_box());
 
@@ -619,14 +619,14 @@ impl ArrowBuffer {
             ArrowBuffer::StatsExploded { 
                 buffer_read_id, 
                 buffer_start_index_on_read, 
-                buffer_filter_name, 
+                buffer_region_of_interest, 
                 dynamic_buffer_bases, 
                 dynamic_buffer_stats,
                 stats_in_order
             } => {
                 columns.push(buffer_read_id.as_box());
                 columns.push(buffer_start_index_on_read.as_box());
-                columns.push(buffer_filter_name.as_box());
+                columns.push(buffer_region_of_interest.as_box());
 
                 // Bases buffers are stored in a vector, so they are ordered correctly
                 for buffer in dynamic_buffer_bases {
@@ -646,14 +646,14 @@ impl ArrowBuffer {
             ArrowBuffer::StatsNested { 
                 buffer_read_id, 
                 buffer_start_index_on_read, 
-                buffer_filter_name, 
+                buffer_region_of_interest, 
                 buffer_bases, 
                 dynamic_buffer_stats,
                 stats_in_order
             } => {
                 columns.push(buffer_read_id.as_box());
                 columns.push(buffer_start_index_on_read.as_box());
-                columns.push(buffer_filter_name.as_box());
+                columns.push(buffer_region_of_interest.as_box());
                 columns.push(buffer_bases.as_box());
 
                 for stat in stats_in_order {
@@ -667,7 +667,7 @@ impl ArrowBuffer {
             ArrowBuffer::InterpMelted { 
                 buffer_read_id, 
                 buffer_start_index_on_read, 
-                buffer_filter_name, 
+                buffer_region_of_interest, 
                 buffer_base_index, 
                 buffer_base, 
                 dynamic_buffer_signals, 
@@ -675,7 +675,7 @@ impl ArrowBuffer {
             } => {
                 columns.push(buffer_read_id.as_box());
                 columns.push(buffer_start_index_on_read.as_box());
-                columns.push(buffer_filter_name.as_box());
+                columns.push(buffer_region_of_interest.as_box());
                 columns.push(buffer_base_index.as_box());
                 columns.push(buffer_base.as_box());
 
@@ -689,14 +689,14 @@ impl ArrowBuffer {
             ArrowBuffer::InterpExploded { 
                 buffer_read_id, 
                 buffer_start_index_on_read, 
-                buffer_filter_name, 
+                buffer_region_of_interest, 
                 dynamic_buffer_bases, 
                 dynamic_buffer_signals, 
                 dynamic_buffer_dwells 
             } => {
                 columns.push(buffer_read_id.as_box());
                 columns.push(buffer_start_index_on_read.as_box());
-                columns.push(buffer_filter_name.as_box());
+                columns.push(buffer_region_of_interest.as_box());
 
                 for buffer in dynamic_buffer_bases {
                     columns.push(buffer.as_box());
@@ -716,14 +716,14 @@ impl ArrowBuffer {
             ArrowBuffer::InterpNested { 
                 buffer_read_id, 
                 buffer_start_index_on_read, 
-                buffer_filter_name, 
+                buffer_region_of_interest, 
                 buffer_bases, 
                 buffer_signals, 
                 buffer_dwells
             } => {
                 columns.push(buffer_read_id.as_box());
                 columns.push(buffer_start_index_on_read.as_box());
-                columns.push(buffer_filter_name.as_box());
+                columns.push(buffer_region_of_interest.as_box());
                 columns.push(buffer_bases.as_box());
                 columns.push(buffer_signals.as_box());
                 columns.push(buffer_dwells.as_box())
