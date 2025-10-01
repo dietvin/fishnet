@@ -24,7 +24,7 @@ pub(crate) enum ArrowBufferError {
     #[error("Reformated row interpolation error: {0}")]
     ReformatedRowInterpError(#[from] ReformatedRowInterpError),
     #[error("Stats from reformated data and buffer do not match")]
-    MeltedStatsMismatch,
+    StatsMismatch,
     #[error("Index {0} out of bounds with length {1}")]
     IndexError(usize, usize),
     #[error("Key error: {0:?} not found in stats buffer")]
