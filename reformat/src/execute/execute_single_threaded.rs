@@ -14,11 +14,18 @@ use crate::{
         reformater::reformat
     }, 
     error::ReformatError, 
-    execute::{config::{
-        ConfigReformat, 
-        OutputShape, 
-        SignalSource
-    }, output::{output_arrow::OutputWriterArrow, ReformatWriter}}
+    execute::{
+        config::{
+            ConfigReformat, 
+            OutputShape, 
+            SignalSource
+        }, 
+        output::{
+            output_arrow::OutputWriterArrow, 
+            output_tsv::OutputWriterTsv, 
+            ReformatWriter
+        }
+    }
 };
 
 pub(super) fn run_reformat_single_threaded(config: ConfigReformat) -> Result<(), ReformatError> {
@@ -88,22 +95,41 @@ pub(super) fn run_reformat_single_threaded(config: ConfigReformat) -> Result<(),
 
 
     let mut output_writer = match config.output_format() {
-        OutputFormat::Parquet => match OutputWriterArrow::new(
-            config.output_file(), 
-            config.force_overwrite(), 
-            config.output_batch_size(), 
-            config.reformat_strategy(), 
-            config.output_shape(), 
-            output_exploded_all_lengths_equal
-        ) {
-            Ok(writer) => writer,
-            Err(e) => {
-                log::error!("Failed to initialize the arrow output writer: {}", e);
-                return Err(ReformatError::OutputError(e));
-            }
+        OutputFormat::Parquet => {
+            let writer = match OutputWriterArrow::new(
+                config.output_file(), 
+                config.force_overwrite(), 
+                config.output_batch_size(), 
+                config.reformat_strategy(), 
+                config.output_shape(), 
+                output_exploded_all_lengths_equal
+            ) {
+                Ok(writer) => writer,
+                Err(e) => {
+                    log::error!("Failed to initialize the arrow output writer: {}", e);
+                    return Err(ReformatError::OutputError(e));
+                }
+            };
+
+            Box::new(writer) as Box<dyn ReformatWriter>
         }
         OutputFormat::Tsv => {
-            todo!()
+            let writer = match OutputWriterTsv::new(
+                config.output_file(), 
+                config.force_overwrite(), 
+                config.output_batch_size(), 
+                config.reformat_strategy(), 
+                config.output_shape(), 
+                output_exploded_all_lengths_equal
+            ) {
+                Ok(writer) => writer,
+                Err(e) => {
+                    log::error!("Failed to initialize the TSV output writer: {}", e);
+                    return Err(ReformatError::OutputError(e));
+                }
+            };
+
+            Box::new(writer) as Box<dyn ReformatWriter>
         }
         _ => unreachable!("CLI restricts output formats to Parquet and TSV")
     };

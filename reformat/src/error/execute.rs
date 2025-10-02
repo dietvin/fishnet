@@ -1,6 +1,12 @@
 use std::path::PathBuf;
 
-use crate::{error::core::reformat::{ReformatedRowInterpError, ReformatedRowStatError}, execute::config::Stats};
+use crate::{
+    error::core::reformat::{
+        ReformatedRowInterpError, 
+        ReformatedRowStatError
+    }, 
+    execute::config::Stats
+};
 
 #[derive(Debug, thiserror::Error)]
 pub enum OutputError {
@@ -14,7 +20,10 @@ pub enum OutputError {
     AlreadyFinalized,
 
     #[error("Arrow buffer error: {0}")]
-    ArrowBufferError(#[from] ArrowBufferError)
+    ArrowBufferError(#[from] ArrowBufferError),
+
+    #[error("TSV output error")]
+    TsvOutputError(#[from] TsvOutputError),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -37,4 +46,22 @@ pub(crate) enum ArrowBufferError {
     UnexpectedBufferTypeWithInterp,
     #[error("Stat {0:?} from schema not found in buffer")]
     InvalidStat(Stats)
+}
+
+#[derive(Debug, thiserror::Error)]
+pub(crate) enum TsvOutputError {
+    #[error("Data was processed via {0}, but {1} was expected")]
+    ReformatStratMismatch(&'static str, &'static str),
+    #[error("Reformated row stat error: {0}")]
+    ReformatedRowStatError(#[from] ReformatedRowStatError),
+    #[error("Nested output shape is not available for TSV output.")]
+    NestedOutputNotAvailable,
+    #[error("Reformated row interpolation error: {0}")]
+    ReformatedRowInterpError(#[from] ReformatedRowInterpError),
+    #[error("Index {0} out of bounds with length {1}")]
+    IndexError(usize, usize),
+    #[error("Key error: {0:?} not found in stats buffer")]
+    KeyError(Stats),
+    #[error("IO error: {0}")]
+    IoError(#[from] std::io::Error),
 }
