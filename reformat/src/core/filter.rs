@@ -58,7 +58,7 @@ impl Filter {
     ///
     /// # Errors
     /// Returns an error if the row lacks required information for the filter type.
-    pub(crate) fn hits(&self, row: &Row) -> Result<Option<Vec<ChunkInfo>>, FilterError> {
+    pub(crate) fn hits(&self, row: &Row) -> Result<Option<Vec<MatchedFilterInfo>>, FilterError> {
         match self {
             Filter::ReferenceRegions { regions } => {
                 let row_region = row.ref_region()
@@ -100,13 +100,13 @@ impl Filter {
 /// Coordinates use a half-open interval [start, end) where start is inclusive
 /// and end is exclusive.
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub(crate) struct ChunkInfo {
+pub(crate) struct MatchedFilterInfo {
     pub(crate) matched_element_name: String,
     pub(crate) start_index: usize, // Inclusive
     pub(crate) end_index: usize    // Exclusive
 }
 
-impl ChunkInfo {
+impl MatchedFilterInfo {
     /// Creates a new ChunkInfo instance.
     ///
     /// # Arguments

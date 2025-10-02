@@ -7,7 +7,7 @@ use uuid::Uuid;
 
 use crate::{
     core::{
-        filter::ChunkInfo, 
+        filter::MatchedFilterInfo, 
         reformater::{
             interpolation::reformat_interpolate, read_wise_stats::reformat_read_wise_stats, reformated::ReformatedData, stats::{
                 mean, 
@@ -27,7 +27,7 @@ pub(crate) fn reformat(
     sequence: &[u8],
     alignment: &[usize],
     signal: &[f64],
-    chunk_info: &ChunkInfo,
+    chunk_info: &MatchedFilterInfo,
     reformat_strategy: &ReformatStrategy,
     norm_dwells: bool
 ) -> Result<OutputData, ReformatError> {

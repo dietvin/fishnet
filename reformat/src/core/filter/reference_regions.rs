@@ -1,10 +1,10 @@
 use std::{collections::HashMap, fs::File, io::{BufRead, BufReader}, path::PathBuf};
 
-use crate::{core::filter::{reference_region::ReferenceRegion, ChunkInfo}, error::core::filter::ReferenceRegionsError, execute::config::FilterSource};
+use crate::{core::filter::{reference_region::ReferenceRegion, MatchedFilterInfo}, error::core::filter::ReferenceRegionsError, execute::config::FilterSource};
 
 /// A collection of genomic regions grouped by reference sequence name.
 ///
-/// This struct is constructed from a `FilterSource` such as a BED file,
+/// This struct is constructed from a [`FilterSource`] such as a BED file,
 /// a list of SAM-style region strings, or positions of interest. Regions are stored
 /// in a `HashMap` keyed by their reference sequence name (`ref_name`), allowing
 /// efficient grouping and lookups by chromosome/scaffold.
@@ -15,7 +15,7 @@ pub(crate) struct ReferenceRegions {
 }
 
 impl ReferenceRegions {
-    /// Constructs a new `ReferenceRegions` instance from a given `FilterSource`.
+    /// Constructs a new `ReferenceRegions` instance from a given [`FilterSource`].
     ///
     /// Automatically determines the appropriate parsing method based on the
     /// FilterSource variant and constructs the region collection.
@@ -27,9 +27,9 @@ impl ReferenceRegions {
     /// * `Result<Self, ReferenceRegionsError>` - The constructed regions collection or an error
     ///
     /// # Supported Sources
-    /// - `FilterSource::RefRegionFromBed` -> Reads regions from a BED file
-    /// - `FilterSource::RefRegionFromInput` -> Parses SAM-style region strings
-    /// - `FilterSource::PositionsOfInterest` -> Creates windowed regions around positions
+    /// - [`FilterSource::RefRegionFromBed`] -> Reads regions from a BED file
+    /// - [`FilterSource::RefRegionFromInput`] -> Parses SAM-style region strings
+    /// - [`FilterSource::PositionsOfInterest`] -> Creates windowed regions around positions
     ///
     /// # Errors
     /// Returns an error if the filter source is invalid or parsing fails.
@@ -157,19 +157,19 @@ impl ReferenceRegions {
     /// * `other` - The potentially containing region to check against
     ///
     /// # Returns
-    /// * `Option<Vec<ChunkInfo>>` - Vector of information about contained regions
+    /// * `Option<Vec<MatchedFilterInfo>>` - Vector of information about contained regions
     ///   if any matches are found, None if no regions are contained
     ///
     /// # Notes
-    /// The returned ChunkInfo objects contain start and end positions relative
+    /// The returned MatchedFilterInfo objects contain start and end positions relative
     /// to the start of the `other` region (i.e., offset coordinates).
-    pub(crate) fn self_in_other(&self, other: &ReferenceRegion) -> Option<Vec<ChunkInfo>> {
-        let mut hits: Vec<ChunkInfo> = Vec::new();
+    pub(crate) fn self_in_other(&self, other: &ReferenceRegion) -> Option<Vec<MatchedFilterInfo>> {
+        let mut hits: Vec<MatchedFilterInfo> = Vec::new();
 
         if let Some(regions) = self.regions.get(other.name()) {
             for region in regions {
                 if region.self_fully_in_other(other) {
-                    let chunk_info = ChunkInfo::new(
+                    let chunk_info = MatchedFilterInfo::new(
                         region.to_samtools_string(), 
                         region.start() - other.start(), 
                         region.end() - other.start() 
@@ -270,7 +270,7 @@ mod tests {
         rr.regions.insert("chr1".into(), vec![make_region("chr1", 120, 150)]);
 
         let contained = make_region("chr1", 100, 200);
-        assert_eq!(rr.self_in_other(&contained), Some(vec![ChunkInfo::new("chr1:120-150".to_string(), 20, 50)]));
+        assert_eq!(rr.self_in_other(&contained), Some(vec![MatchedFilterInfo::new("chr1:120-150".to_string(), 20, 50)]));
     }
 
     #[test]

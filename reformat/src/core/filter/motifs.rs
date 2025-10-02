@@ -1,10 +1,10 @@
 use std::{fs::File, io::{BufRead, BufReader}, path::PathBuf};
 
-use crate::{core::filter::{motif::Motif, ChunkInfo}, error::core::filter::MotifsError, execute::config::FilterSource};
+use crate::{core::filter::{motif::Motif, MatchedFilterInfo}, error::core::filter::MotifsError, execute::config::FilterSource};
 
 /// A collection of sequence motifs for sequence matching.
 ///
-/// This struct is constructed from a `FilterSource` such as a FASTA file
+/// This struct is constructed from a [`FilterSource`] such as a FASTA file
 /// or a list of motif strings. Motifs are validated to contain only valid
 /// nucleotide characters (A, C, G, T) and can be searched within sequences.
 #[derive(Debug)]
@@ -13,10 +13,10 @@ pub(crate) struct Motifs {
 }
 
 impl Motifs {
-    /// Constructs a new `Motifs` instance from a given `FilterSource`.
+    /// Constructs a new `Motifs` instance from a given [`FilterSource`].
     ///
-    /// - `FilterSource::MotifFromFile` -> Reads motifs from a FASTA file.
-    /// - `FilterSource::MotifFromInput` -> Creates motifs from a list of strings.
+    /// - [`FilterSource::MotifFromFile`] -> Reads motifs from a FASTA file.
+    /// - [`FilterSource::MotifFromInput`] -> Creates motifs from a list of strings.
     ///
     /// # Arguments
     /// * `filter_source` - The source configuration specifying how to load motifs
@@ -120,13 +120,13 @@ impl Motifs {
     /// # Returns
     /// * `Option<Vec<ChunkInfo>>` - Vector of match information if any motifs are found,
     ///   None if no matches are found
-    pub(crate) fn self_in_other(&self, other: &[u8]) -> Option<Vec<ChunkInfo>> {
-        let mut hits: Vec<ChunkInfo> = Vec::new();
+    pub(crate) fn self_in_other(&self, other: &[u8]) -> Option<Vec<MatchedFilterInfo>> {
+        let mut hits: Vec<MatchedFilterInfo> = Vec::new();
 
         for motif in &self.motifs {
             if let Some(start_indices) = motif.is_in(other) {
                 for start_index in start_indices {
-                    let chunk_info = ChunkInfo::new(
+                    let chunk_info = MatchedFilterInfo::new(
                         motif.name().to_string(),
                         start_index,
                         start_index + motif.len()
