@@ -8,7 +8,7 @@ use crate::{
     execute::config::Stats
 };
 
-/// Container for per-base statistics of a read.
+/// Container for read data processed via read-wise statistics.
 ///
 /// Holds optional vectors of values for each requested statistic.
 /// Only the statistics requested by the user are allocated and filled.
@@ -161,7 +161,12 @@ impl ReformatedBaseStat {
 
     /// Consumes self and returns the contained data.
     /// 
-    /// The bases are returned 
+    /// The contained elements are:
+    /// 1. The base sequence encoded in a Vec<u8>
+    /// 2. The statistics of each base collected in a Hashmap
+    ///    where the keys are the calculated statistics. The
+    ///    values are Vec<f64> with the same length as the base
+    ///    sequence
     pub(crate) fn into_inner(self) -> Result<(
         Vec<u8>,
         HashMap<Stats, Vec<f64>>
@@ -198,6 +203,23 @@ impl ReformatedBaseStat {
 }
 
 
+/// Container for read data processed via interpolation.
+///
+/// Interpolated signals are stored in a nested vector,
+/// where the outer vector contains the interpolated signals
+/// (inner vectors) for each base.
+///
+/// # Fields
+/// * `bases` - The sequence of bases associated with this row.
+/// * `signal_interp` - The interpolated signals for each base
+/// * `dwells` - The dwells for each base
+/// 
+/// # Data shape
+/// With a region of interest of M bases and an interpolation
+/// target size of T:
+/// * `bases`: M
+/// * `singal_interp`: M x T
+/// * `dwells`: M 
 pub(crate) struct ReformatedInterp {
     bases: Vec<u8>,
     signal_interp: Vec<Vec<f64>>,
@@ -205,6 +227,15 @@ pub(crate) struct ReformatedInterp {
 }
 
 impl ReformatedInterp {
+    /// Initializes a new instance for a given read.
+    /// 
+    /// Bases and dwells are filled directly. The signals
+    /// are left empty here, and are filled base by base
+    /// afterwards.
+    /// 
+    /// # Arguments
+    /// * `bases` - The u8 encodings of the sequence
+    /// * `dwell` - The dwells for each base
     pub(super) fn new(bases: &[u8], dwells: &[f64]) -> Self {
         let length = bases.len();
         let signal_interp = Vec::with_capacity(length);
@@ -215,10 +246,30 @@ impl ReformatedInterp {
         }
     }
 
+    /// Adds the interpolated signal to the interpolated signals
+    /// 
+    /// # Arguments
+    /// * `signal_interp` - The interpolated signal for the i-th
+    ///                     base
     pub(super) fn push_signal(&mut self, singal_interp: Vec<f64>) {
         self.signal_interp.push(singal_interp.to_vec());
     }
 
+    /// Consumes self and returns the contained data.
+    /// 
+    /// The contained elements are:
+    /// 1. The base sequence encoded in a Vec<u8>
+    /// 2. The interpolated signal for each base in a nested vector
+    ///    where the inner vector at index *i* corresponds to the 
+    ///    interpolated signal for base *i*
+    /// 3. The dwells for each base
+    /// 
+    /// # Returns
+    /// * `Ok((Vec<u8>, Vec<Vec<f64>>, Vec<f64>))` - A tuple containing 
+    ///     the sequence, the interpolated signal and the dwells.
+    /// * `Err(ReformatedRowInterpError::LengthMismatch)` - If the length
+    ///     of the dwells or the signal (outer) mismatches the length of
+    ///     the sequence 
     pub(crate) fn into_inner(self) -> Result<(Vec<u8>, Vec<Vec<f64>>, Vec<f64>), ReformatedRowInterpError> {
         let n_bases = self.bases.len();
         
@@ -238,16 +289,25 @@ impl ReformatedInterp {
     }
 }
 
+/// Wrapper enum containing the reformated data
+/// from the base-wise statistics or interpolation
+/// processing approach
 pub(crate) enum ReformatedData {
+    /// Contains base-wise statistics data
     Stats(ReformatedBaseStat),
+    /// Contains interpolation data
     Interp(ReformatedInterp)
 }
 
 impl ReformatedData {
+    /// Initialize Reformated data from a [`ReformatedBaseStat`]
+    /// instance
     pub(super) fn from_basestat(data: ReformatedBaseStat) -> Self {
         Self::Stats(data)
     }
 
+    /// Initialize Reformated data from a [`ReformatedInterp`]
+    /// instance
     pub(super) fn from_interp(data: ReformatedInterp) -> Self {
         Self::Interp(data)
     }
