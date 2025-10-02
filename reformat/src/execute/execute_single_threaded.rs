@@ -29,6 +29,7 @@ use crate::{
 };
 
 pub(super) fn run_reformat_single_threaded(config: ConfigReformat) -> Result<(), ReformatError> {
+    // Initialize the initalization progress bar
     let progress_bar_init = ProgressBar::new_spinner();
     progress_bar_init.set_style(
         ProgressStyle::default_bar()
@@ -38,6 +39,7 @@ pub(super) fn run_reformat_single_threaded(config: ConfigReformat) -> Result<(),
     );
     progress_bar_init.enable_steady_tick(Duration::from_millis(100));
 
+    // Initialize logging
     if *config.log_level() != LevelFilter::Off {
         progress_bar_init.set_message("Initializing logging...");
         setup_logger(
@@ -48,6 +50,7 @@ pub(super) fn run_reformat_single_threaded(config: ConfigReformat) -> Result<(),
         )?;
     }
 
+    // Load the pod5 file(s) if needed
     let pod5_dataset = match config.signal_source() {
         SignalSource::SignalFromAlignment => None,
         SignalSource::SignalFromFiles { paths } => {
@@ -65,17 +68,19 @@ pub(super) fn run_reformat_single_threaded(config: ConfigReformat) -> Result<(),
         }
     };
 
+    // Load the regions of interest for filtering
     progress_bar_init.set_message("Initializing the read filtering...");
     log::info!("Initializing the region of interest filtering");
     let filter = Filter::from_filter_source(config.filter_source())?;
 
+    // Check if all regions of interest have the same length in case of exploded output shape
     let output_exploded_all_lengths_equal = filter.equal_lengths();
-
     if *config.output_shape() == OutputShape::Exploded && output_exploded_all_lengths_equal.is_none() {
         log::error!("Failed to initialize region of interest filtering");
         return Err(ReformatError::ExplodedWithUnequalFilterLength);
     }
 
+    // Initialize the alignment reader
     progress_bar_init.set_message("Initializing the alignment file iterator...");
     log::info!("Initializing the alignment file iterator");
     let alignment_iter = match RowIterator::new(
@@ -93,7 +98,7 @@ pub(super) fn run_reformat_single_threaded(config: ConfigReformat) -> Result<(),
         }
     };
 
-
+    // Initialize the output writer
     let mut output_writer = match config.output_format() {
         OutputFormat::Parquet => {
             let writer = match OutputWriterArrow::new(
@@ -136,6 +141,7 @@ pub(super) fn run_reformat_single_threaded(config: ConfigReformat) -> Result<(),
 
     progress_bar_init.finish_with_message(format!("{}", style("Finished initialization. Starting reformating...").green()));
 
+    // Initialize the processing progress bar
     let mut n_successful_reads = 0;
     let mut n_filtered_reads = 0;
     let mut n_failed_reads = 0;
@@ -147,6 +153,7 @@ pub(super) fn run_reformat_single_threaded(config: ConfigReformat) -> Result<(),
             .unwrap()
     );
 
+    // Iterate each row in the alignment input file
     for row_res in alignment_iter {
         let row = match row_res {
             Ok(row) => row,
@@ -158,9 +165,11 @@ pub(super) fn run_reformat_single_threaded(config: ConfigReformat) -> Result<(),
         
         log::debug!("Processing read {}", row.read_id());
 
+        // Check if the alignment at hand overlaps with one or more regions of interest
         if let Some(filter_hits) = filter.hits(&row)? {
             log::debug!("Read {} matches region(s): {:?}", row.read_id(), filter_hits);
 
+            // Reformat the data for each overlapping region of interest
             for chunk_info in filter_hits {
                 match reformat(
                     row.read_id(),
@@ -172,7 +181,7 @@ pub(super) fn run_reformat_single_threaded(config: ConfigReformat) -> Result<(),
                     config.norm_dwells()
                 ) {
                     Ok(output_data) => {
-                        
+                        // If processing was successful write data to the output file
                         match output_writer.write_record(output_data) {
                             Ok(_) => {
                                 log::debug!("Successfully reformated read {}", row.read_id());
