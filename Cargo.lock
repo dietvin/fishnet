@@ -1369,6 +1369,7 @@ dependencies = [
  "arrow2",
  "clap",
  "console 0.16.0",
+ "crossbeam",
  "helper",
  "indicatif 0.18.0",
  "log",

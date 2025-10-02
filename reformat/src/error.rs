@@ -18,5 +18,9 @@ pub(crate) enum ReformatError {
     #[error("Exploded output format is not available with filters of unequal size")]
     ExplodedWithUnequalFilterLength,
     #[error("Output error: {0}")]
-    OutputError(#[from] OutputError)
+    OutputError(#[from] OutputError),
+    #[error("IO error: {0}")]
+    IoError(#[from] std::io::Error),
+    #[error("Failed to join '{0}' thread")]
+    ThreadJoinError(&'static str),
 }
