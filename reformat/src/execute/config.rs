@@ -387,13 +387,13 @@ impl ConfigReformat {
         )?.clone();
         let output_shape = match output_shape_raw.as_str() {
             "melted" => OutputShape::Melted,
-            "exploded" => {
+            "exploded" => OutputShape::Exploded,
+            "nested" => {
                 if output_format != OutputFormat::Parquet {
                     return Err(CliError::InvalidOutputShape);
                 }
-                OutputShape::Exploded
-            }
-            "nested" => OutputShape::Nested,
+                OutputShape::Nested
+            },
             _ => unreachable!("Constrained by the CLI")
         };
 
