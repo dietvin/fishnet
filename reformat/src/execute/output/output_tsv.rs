@@ -140,6 +140,10 @@ impl OutputWriterTsv {
                                     write!(writer, "\tsignal_base{}_{}", base_idx, signal_idx)?;
                                 }
                             }
+
+                            for base_idx in 0..roi_length {
+                                write!(writer, "\tdwell_{}", base_idx)?;
+                            }
                         } else {
                             unreachable!("It's checked before that all regions of interest have the same length when output shape is Exploded")
                         }
