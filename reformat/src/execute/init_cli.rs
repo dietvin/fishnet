@@ -47,8 +47,9 @@ Must be '.parquet' for Parquet output or '.tsv' for text output."
 "Path to the POD5 input. Multiple paths can be provided space separated.
 A path can point to a POD5 file or a directory. If a directory is given 
 all POD5 files in the directory are processed. File and directory paths 
-can be combined. Required if the alignment file does not contain the raw
-signal."
+can be combined.
+
+Only Required if the alignment file does not contain the raw signal."
                 )
         )
 
@@ -60,8 +61,9 @@ signal."
                 .help("Set if direct RNA pod5 file(s) are provided")
                 .long_help(
 "Set if direct RNA pod5 file(s) are provided. Determines whether the signal gets
-reversed (stored in 3'-5' direction in dRNA data). Not needed if the signal is 
-stored in the alignment input."
+reversed (stored in 3'-5' direction in dRNA data). 
+
+Only required if the signal is provided via pod5 file(s)."
                 )
         )
 
@@ -77,10 +79,12 @@ stored in the alignment input."
                 .help("Filter input data for one or more reference region(s)")
                 .long_help(
 "Filter input data for one or more reference region(s). Each must be in the format
-'<REF-NAME>:<REF-START>-<REF-END>'. Coordinates frollow samtools-style convention:
+'<REF-NAME>:<REF-START>-<REF-END>'. Coordinates follow samtools-style convention:
 REF-START and REF-END are 1-based and inclusive. Multiple reference regions 
-can be provided space separated. Only valid if the input data contains reference 
-alignments. (For an explanation of the coordinate system check the end of --help)"
+can be provided space separated. For an explanation of the coordinate system check 
+the end of '--help'.
+
+Only valid if the input data contains reference alignments."
                 )
         )
         .arg(
@@ -92,9 +96,10 @@ alignments. (For an explanation of the coordinate system check the end of --help
                 .help("Filter input data for reference regions from bed file")
                 .long_help(
 "Filter input data for reference regions from bed file. The bed file must contain the
-reference name, reference start and reference end tab-separated in order. Only valid 
-if the input data contains reference alignments. (For an explanation of the coordinate 
-system check the end of --help)"
+reference name, reference start and reference end tab-separated in order. For an 
+explanation of the coordinate system check the end of '--help'.
+
+Only valid if the input data contains reference alignments."
                 )
         )
         .arg(
@@ -109,9 +114,10 @@ system check the end of --help)"
 "Filter input data for one or more positions of interest using 1-based coordinates. 
 Each must be in the format '<REF-NAME>:<REF-SITE>-<HALF-SIZE>', where <HALF-SIZE> 
 determines the number of bases up- and downstream from the site that are of interest. 
-Multiple reference regions can be provided space separated. Only valid if the input 
-data contains reference alignments. (For an explanation of the coordinate system 
-check the end of --help)"
+Multiple reference regions can be provided space separated. For an explanation of the 
+coordinate system check the end of '--help'.
+
+Only valid if the input data contains reference alignments."
                 )
         )
         .arg(
@@ -124,7 +130,8 @@ check the end of --help)"
                 .help("Filter input data for one or more motif sequences")
                 .long_help(
 "Filter input data for one or more motif sequences. Each must be a string containing
-only 'A', 'C', 'G' and 'T'/'U'. Multiple motifs can be provided space separated. 
+only 'A', 'C', 'G' and 'T'/'U'. Multiple motifs can be provided space separated.
+
 Valid for both reference and query sequences."
                 )
 
@@ -138,8 +145,9 @@ Valid for both reference and query sequences."
                 .help("Filter input data for motifs from a text file")
                 .long_help(
 "Filter input data for motifs from a text file. The file must contain one motif per row.
-Each motif must be a string containing only 'A', 'C', 'G' and 'T'/'U'. Valid for both 
-reference and query sequences."
+Each motif must be a string containing only 'A', 'C', 'G' and 'T'/'U'.
+
+Valid for both reference and query sequences."
                 )
         )
         .group(
@@ -173,7 +181,7 @@ measurements can be set via the --target-size flag."
                 .help_heading("Processing strategy")
                 .help("Sets the alignment that gets parsed.")
                 .long_help(
-"Sets the alignment that gets parsed. Only needed if the alignment input contains both
+"Sets the alignment that gets parsed. Only required if the alignment input contains both
 reference and query alignments. Note that 'query' is incompatible with the --ref-regions, 
 --bed-file and --positions-of-interest flags."
                 )                
@@ -257,7 +265,7 @@ processing (due to 3 non-worker threads)."
             Arg::new("queue-size")
                 .long("queue-size")
                 .value_parser(value_parser!(usize))
-                .default_value("1000")
+                .default_value("8000")
                 .help_heading("Threading settings")
                 .help("Multi-threading queue size")
                 .long_help(
@@ -305,10 +313,11 @@ error is raised."
                 .help("Output data shape")
                 .long_help(
 "Output data shape. Determines how the reformated data is written to file.
-The options are melted, exploded or nested formats. Exploded format is only
-available if all regions of interest have the same length. Nested is only
-available when writing to parquet files. 
-An explanation of each is given at the end of the help message."
+The options are melted, exploded or nested formats. An explanation of each 
+is given at the end of the help message.
+
+Exploded format is only available if all regions of interest have the same
+length. Nested is only available when writing to parquet files."
                 )
         )
         .arg(
