@@ -9,7 +9,7 @@ use pod5_reader_api::dataset::Pod5Dataset;
 
 use crate::{
     core::{
-        alignment_loader::RowIterator, 
+        alignment_loader::row_iterator::RowIterator, 
         filter::Filter, 
         reformater::reformat
     }, 
