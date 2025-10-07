@@ -1,6 +1,15 @@
 use helper::errors::LoggerError;
 use pod5_reader_api::error::dataset::Pod5DatasetError;
-use crate::error::{core::{filter::FilterError, loader::RowIteratorError}, execute::OutputError};
+use crate::error::{
+    core::{
+        filter::FilterError, 
+        loader::{
+            RawRowIteratorError, 
+            RowIteratorError
+        }
+    }, 
+    execute::OutputError
+};
 
 pub(crate) mod execute;
 pub(crate) mod core;
@@ -13,6 +22,8 @@ pub(crate) enum ReformatError {
     Pod5DatasetError(#[from] Pod5DatasetError),
     #[error("Row iterator error: {0}")]
     RowIteratorError(#[from] RowIteratorError),
+    #[error("Raw row iterator error: {0}")]
+    RawRowIteratorError(#[from] RawRowIteratorError),
     #[error("Filter error: {0}")]
     FilterError(#[from] FilterError),
     #[error("Exploded output format is not available with filters of unequal size")]

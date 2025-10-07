@@ -1,4 +1,14 @@
-use crate::{core::{alignment_loader::Row, filter::{motifs::Motifs, reference_regions::ReferenceRegions}}, error::core::filter::FilterError, execute::config::FilterSource};
+use crate::{
+    core::{
+        alignment_loader::row::Row, 
+        filter::{
+            motifs::Motifs, 
+            reference_regions::ReferenceRegions
+        }
+    }, 
+    error::core::filter::FilterError, 
+    execute::config::FilterSource
+};
 
 pub(crate) mod reference_region;
 pub(crate) mod reference_regions;

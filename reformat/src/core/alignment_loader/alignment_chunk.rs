@@ -12,7 +12,12 @@ use pod5_reader_api::dataset::Pod5Dataset;
 use uuid::Uuid;
 
 use crate::{
-    core::alignment_loader::{ColumnIndex, Row}, 
+    core::alignment_loader::{
+        column_index::ColumnIndex, 
+        raw_row_data::RawRowData, 
+        row::Row, 
+        stats::{mean_i16, std_i16}
+    }, 
     error::core::loader::AlignmentChunkError
 };
 
@@ -235,7 +240,13 @@ impl AlignmentChunk {
     /// - If signal data is embedded in parquet, uses that
     /// - If signal data is missing and pod5_dataset is available, fetches from Pod5
     /// - If sequence data is missing, generates N-filled placeholder
-    pub(super) fn get_row(&mut self, idx: usize, pod5_dataset: &mut Option<Pod5Dataset>, is_rna: bool, norm_signal: bool) -> Result<Row, AlignmentChunkError> {
+    pub(super) fn get_row(
+        &self, 
+        idx: usize, 
+        pod5_dataset: &mut Option<Pod5Dataset>, 
+        is_rna: bool, 
+        norm_signal: bool
+    ) -> Result<Row, AlignmentChunkError> {
         if idx >= self.length {
             return Err(AlignmentChunkError::InvalidIndex(idx, self.length));
         }
@@ -290,15 +301,14 @@ impl AlignmentChunk {
             }
         };
 
-        // Performing z-standardization here, so the 
-        // signal only needs to be cloned once
-        let signal_mean = mean_i16(&signal)?;
-        let signal_std = std_i16(&signal)?;
-        if signal_std == 0.0 {
-            return Err(AlignmentChunkError::ZeroDivision);
-        }
-
         let signal = if norm_signal {
+            // Performing z-standardization here, so the 
+            // signal only needs to be cloned once
+            let signal_mean = mean_i16(&signal)?;
+            let signal_std = std_i16(&signal)?;
+            if signal_std == 0.0 {
+                return Err(AlignmentChunkError::StdZero);
+            }
             signal.iter()
                 .map(|&el| (el as f64 - signal_mean)/signal_std)
                 .collect::<Vec<f64>>()
@@ -318,29 +328,36 @@ impl AlignmentChunk {
         )?;
         Ok(row)
     }
-}
 
+    /// Extracts raw data for a single row from this chunk.
+    ///
+    /// This is a lightweight operation that performs minimal processing,
+    /// only cloning the necessary data from the chunk's columnar storage.
+    /// No sequence normalization, signal loading, or statistical calculations
+    /// are performed.
+    ///
+    /// # Arguments
+    ///
+    /// * `idx` - Zero-based index of the row within this chunk
+    ///
+    /// # Errors
+    ///
+    /// Returns [`AlignmentChunkError::InvalidIndex`] if `idx >= self.length`.
+    pub(super) fn get_raw_row(
+        &self,
+        idx: usize
+    ) -> Result<RawRowData, AlignmentChunkError> {
+        if idx >= self.length {
+            return Err(AlignmentChunkError::InvalidIndex(idx, self.length));
+        }
 
-fn mean_i16(values: &[i16]) -> Result<f64, AlignmentChunkError> {
-    if values.is_empty() {
-        return Err(AlignmentChunkError::ZeroDivision);
-    }
-    let sum = values.iter().map(|&x| x as f64).sum::<f64>();
-    let n = values.len() as f64;
-    Ok(sum / n)
-}
-
-fn std_i16(values: &[i16]) -> Result<f64, AlignmentChunkError> {
-    if values.is_empty() {
-        return Err(AlignmentChunkError::ZeroDivision);
-    }
-
-    let mean = values.iter().map(|&x| x as f64).sum::<f64>() / values.len() as f64;
-    let variance = values.iter()
-        .map(|&el| {
-            let diff = el as f64 - mean;
-            diff * diff
+        Ok(RawRowData { 
+            read_id: self.read_id[idx],
+            alignment: self.alignment[idx].clone(),
+            sequence: self.sequences.as_ref().map(|seq| seq[idx].clone()),
+            ref_name: self.ref_name.as_ref().map(|names| names[idx].clone()),
+            ref_start: self.ref_start.as_ref().map(|starts| starts[idx]),
+            signal: self.signal.as_ref().map(|sig| sig[idx].clone())
         })
-        .sum::<f64>() / values.len() as f64;
-    Ok(variance.sqrt())
+    }
 }

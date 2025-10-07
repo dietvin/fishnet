@@ -12,6 +12,12 @@ pub(crate) mod loader {
     }
 
     #[derive(Debug, thiserror::Error)]
+    pub(crate) enum StatsError {
+        #[error("0-division occured during normalization")]
+        ZeroDivision
+    }
+
+    #[derive(Debug, thiserror::Error)]
     pub(crate) enum AlignmentChunkError {
         #[error("No data found for column {0} at index {1}")]
         ColumnIndexError(&'static str, usize),
@@ -31,8 +37,10 @@ pub(crate) mod loader {
         Pod5ReadError(#[from] Pod5ReadError),
         #[error("Row error: {0}")]
         RowError(#[from] RowError),
-        #[error("0-division occured during normalization")]
-        ZeroDivision
+        #[error("Error calculating statistics: {0}")]
+        StatsError(#[from] StatsError),
+        #[error("Standard deviation is 0")]
+        StdZero
     }
 
     #[derive(Debug, thiserror::Error)]
@@ -54,6 +62,36 @@ pub(crate) mod loader {
         #[error("Alignment chunk error: {0}")]
         AlignmentChunkError(#[from] AlignmentChunkError)
     }
+
+    #[derive(Debug, thiserror::Error)]
+    pub(crate) enum RawRowDataError {
+        #[error("Pod5Dataset error: {0}")]
+        Pod5DatasetError(#[from] Pod5DatasetError),
+        #[error("Pod5Read error: {0}")]
+        Pod5ReadError(#[from] Pod5ReadError),
+        #[error("Pod5Dataset is needed, but is None")]
+        Pod5DatasetMissing,
+        #[error("Error calculating statistics: {0}")]
+        StatsError(#[from] StatsError),
+        #[error("Standard deviation is 0")]
+        StdZero,
+        #[error("Row error: {0}")]
+        RowError(#[from] RowError),
+    }
+
+    #[derive(Debug, thiserror::Error)]
+    pub(crate) enum RawRowIteratorError {
+        #[error("IO error: {0}")]
+        IoError(#[from] std::io::Error),
+        #[error("Arrow2 error: {0}")]
+        ArrowError(#[from] arrow2::error::Error),
+        #[error("Not a single chunk found")]
+        NoChunks,
+        #[error("Column index error: {0}")]
+        ColumnIndexError(#[from] ColumnIndexError),
+        #[error("Alignment chunk error: {0}")]
+        AlignmentChunkError(#[from] AlignmentChunkError)
+    }  
 }
 
 pub(crate) mod filter {

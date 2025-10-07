@@ -6,12 +6,12 @@ use crossbeam::channel::{bounded, SendError};
 use helper::{io::OutputFormat, logger::setup_logger};
 use indicatif::{ProgressBar, ProgressStyle};
 use log::LevelFilter;
-use pod5_reader_api::dataset::Pod5Dataset;
+use pod5_reader_api::dataset::Pod5DatasetAsync;
 use uuid::Uuid;
 
 use crate::{
     core::{
-        alignment_loader::{Row, RowIterator}, 
+        alignment_loader::{raw_row_data::RawRowData, raw_row_iterator::RawRowIterator}, 
         filter::Filter, 
         reformater::reformat
     }, 
@@ -57,22 +57,24 @@ pub(super) fn run_reformat_multi_threaded(config: ConfigReformat) -> Result<(), 
     }
 
     // Load the pod5 file(s) if needed
-    let pod5_dataset = match config.signal_source() {
-        SignalSource::SignalFromAlignment => None,
-        SignalSource::SignalFromFiles { paths } => {
-            progress_bar_init.set_message("Indexing the POD5 data...");
-            log::info!("Loading pod5 dataset from paths: {:?}", paths);
-            Some(
-                match Pod5Dataset::new(paths) {
-                    Ok(d) => d,
-                    Err(e) => {
-                        log::error!("Failed to initialize Pod5Dataset: {}", e);
-                        return Err(ReformatError::Pod5DatasetError(e));
+    let pod5_dataset = Arc::new(
+        match config.signal_source() {
+            SignalSource::SignalFromAlignment => None,
+            SignalSource::SignalFromFiles { paths } => {
+                progress_bar_init.set_message("Indexing the POD5 data...");
+                log::info!("Loading pod5 dataset from paths: {:?}", paths);
+                Some(
+                    match Pod5DatasetAsync::new(paths, config.n_threads()) {
+                        Ok(d) => d,
+                        Err(e) => {
+                            log::error!("Failed to initialize Pod5Dataset: {}", e);
+                            return Err(ReformatError::Pod5DatasetError(e));
+                        }
                     }
-                }
-            )
+                )
+            }
         }
-    };
+    );
 
     // Load the regions of interest for filtering
     progress_bar_init.set_message("Initializing the read filtering...");
@@ -88,22 +90,18 @@ pub(super) fn run_reformat_multi_threaded(config: ConfigReformat) -> Result<(), 
         return Err(ReformatError::ExplodedWithUnequalFilterLength);
     }
 
-    // TODO: Change so the signal can get retrieved in parallel...
     // Initialize the alignment reader
     progress_bar_init.set_message("Initializing the alignment file iterator...");
     log::info!("Initializing the alignment file iterator");
-    let alignment_iter = match RowIterator::new(
+    let alignment_iter = match RawRowIterator::new(
         config.alignment_input(),
         config.input_chunk_size(),
         config.columns_of_interest(),
-        pod5_dataset,
-        config.is_drna(),
-        config.norm_signal()
     ) {
         Ok(alignment_iter) => alignment_iter,
         Err(e) => {
             log::error!("Failed to initialize the alignment file iterator: {}", e);
-            return Err(ReformatError::RowIteratorError(e));
+            return Err(ReformatError::RawRowIteratorError(e));
         }
     };
 
@@ -231,7 +229,7 @@ pub(super) fn run_reformat_multi_threaded(config: ConfigReformat) -> Result<(), 
             }
         };
 
-    let (data_sender, data_receiver) = bounded::<Row>(config.queue_size());
+    let (data_sender, data_receiver) = bounded::<RawRowData>(config.queue_size());
     let num_workers = config.n_threads();
     let mut worker_handles = Vec::with_capacity(num_workers);
     for thread_id in 0..num_workers {
@@ -240,14 +238,36 @@ pub(super) fn run_reformat_multi_threaded(config: ConfigReformat) -> Result<(), 
         let progress_tx = progress_sender.clone();
 
         let filter = Arc::clone(&filter);
+        let pod5_dataset = Arc::clone(&pod5_dataset);
+        let is_rna = config.is_drna().clone();
+        let norm_signal = config.norm_signal().clone();
         let reformat_strategy = config.reformat_strategy().clone();
         let norm_dwells = config.norm_dwells().clone();
 
         let handle = match thread::Builder::new()
             .name(format!("worker{thread_id}"))
             .spawn(move || {
-                for row in data_rx {
-                    log::debug!("Processing read {}", row.read_id());
+                for raw_row_data in data_rx {
+                    log::debug!("Processing read {}", &raw_row_data.read_id);
+
+                    // Perform the expensive row initialization in parallel
+                    let row = match raw_row_data.into_row(
+                        &pod5_dataset, 
+                        is_rna, 
+                        norm_signal
+                    ) {
+                        Ok(row) => {
+                            log::debug!("Constructed row from raw row data for read {}", row.read_id());
+                            row
+                        },
+                        Err(e) => {
+                            log::error!("Failed to construct row from raw row data for read: {}", e);
+                            if let Err(e) = progress_tx.send(ProgressType::Success) {
+                                handle_channels_error(e);
+                            }
+                            continue;
+                        }
+                    };
 
                     match filter.hits(&row) {
                         // Overlap with at least one region of interest
@@ -318,15 +338,15 @@ pub(super) fn run_reformat_multi_threaded(config: ConfigReformat) -> Result<(), 
     let producer_handle = match thread::Builder::new()
         .name("producer".to_string())
         .spawn(move || {
-            for row_res in alignment_iter {
-                match row_res {
-                    Ok(row) => {
-                        if let Err(e) = data_sender.send(row) {
+            for raw_row_data_res in alignment_iter {
+                match raw_row_data_res {
+                    Ok(raw_row_data) => {
+                        if let Err(e) = data_sender.send(raw_row_data) {
                             handle_channels_error(e);
                         }
                     }
                     Err(e) => {
-                        log::error!("Failed to get row from iterator: {}", e);
+                        log::error!("Failed to get raw row data from iterator: {}", e);
                         if let Err(e) = progress_tx.send(ProgressType::Fail) {
                             handle_channels_error(e);
                         }
