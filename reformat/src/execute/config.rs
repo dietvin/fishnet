@@ -227,8 +227,6 @@ pub struct ConfigReformat {
     norm_signal: bool,
     /// Whether to normalize the dwells
     norm_dwells: bool,
-    /// Which alignment type to process
-    alignment_type: AlignmentType,
     /// How to reformat the signal data
     filter_source: FilterSource,
     // To determine which reformatting strategy gets perfromed
@@ -430,7 +428,6 @@ impl ConfigReformat {
             is_drna,
             norm_signal,
             norm_dwells,
-            alignment_type,
             filter_source,
             reformat_strategy,
             columns_of_interest,
@@ -849,11 +846,6 @@ impl ConfigReformat {
     /// before processing.
     pub fn norm_dwells(&self) -> bool {
         self.norm_dwells
-    }
-
-    /// Returns the alignment type to process (None means auto-detect).
-    pub fn alignment_type(&self) -> &AlignmentType {
-        &self.alignment_type
     }
 
     /// Returns the configured filtering strategy.
