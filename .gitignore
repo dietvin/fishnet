@@ -26,6 +26,7 @@ remora_step_by_step/
 
 *.parquet
 *.jsonl
+*.tsv
 log.txt
 *.ipynb
 
