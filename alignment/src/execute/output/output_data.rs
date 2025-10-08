@@ -103,6 +103,7 @@ impl OutputData {
         query_to_signal: Option<Vec<usize>>,
         ref_to_signal: Option<Vec<usize>>,
         sig_map_refiner: &SigMapRefiner,
+        is_rna: bool
     ) -> Self {
         let alignment_type = output_config.alignment_type();
 
@@ -180,7 +181,18 @@ impl OutputData {
             // Level 3: Alignment(s) + sequence(s) + signal
             else {
                 let signal = match ref_to_signal.is_some() || query_to_signal.is_some() {
-                    true => sig_map_refiner.pod5_read().signal().cloned(),
+                    true => {
+                        let signal = sig_map_refiner.pod5_read().signal().cloned();
+                        if let Some(mut sig) = signal {
+                            // Reverse the signal to match the alignment directly in the output
+                            if is_rna {
+                                sig.reverse();
+                            }
+                            Some(sig)
+                        } else {
+                            None
+                        }
+                    }
                     false => None
                 };
                 return OutputData::with_seq_and_signal(

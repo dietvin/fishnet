@@ -239,7 +239,8 @@ pub fn run_alignment_single_threaded(input: ConfigAlign) -> Result<(), Alignment
                 read_id.clone(), 
                 query_to_signal, 
                 ref_to_signal, 
-                &sig_map_refiner
+                &sig_map_refiner,
+                input.is_drna()
             );
 
             match output_writer.write_record(
