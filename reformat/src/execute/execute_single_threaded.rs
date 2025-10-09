@@ -184,7 +184,7 @@ pub(super) fn run_reformat_single_threaded(config: ConfigReformat) -> Result<(),
                         // If processing was successful write data to the output file
                         match output_writer.write_record(output_data) {
                             Ok(_) => {
-                                log::debug!("Successfully reformated read {}", row.read_id());
+                                log::debug!("Successfully reformated read {} where overlapping with {}", row.read_id(), chunk_info.matched_element_name);
                                 update_progress_success(&mut progress_bar, &mut n_successful_reads, &n_filtered_reads, &n_failed_reads);
                             }
                             Err(e) => {

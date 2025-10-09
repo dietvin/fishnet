@@ -3,16 +3,20 @@
 //! This module provides configuration parsing and validation for the signal reformatting
 //! functionality. It handles the complex interactions between different types of alignment
 //! data, filtering options, and signal sources.
-mod filter_compatibility_validation;
-
 use std::{fs::File, path::PathBuf};
 use arrow2::io::parquet::read::{infer_schema, read_metadata};
 use clap::ArgMatches;
 use log::LevelFilter;
 
-use helper::{errors::CliError, file_handling::{check_and_get_pod5_input, check_input_file, check_output_file}, io::OutputFormat};
-use crate::execute::config::filter_compatibility_validation::validate_filter_compatibility;
-
+use helper::{
+    errors::CliError, 
+    file_handling::{
+        check_and_get_pod5_input, 
+        check_input_file, 
+        check_output_file
+    }, 
+    io::OutputFormat
+};
 
 /// Represents all columns that can occur in an alignment input
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -67,6 +71,11 @@ impl FilterSource {
             | FilterSource::PositionsOfInterest { .. } => true,
             _ => false
         }
+    }
+
+    /// Returns true if this filter type operates on sequence motifs.
+    fn filters_for_motif(&self) -> bool {
+        !self.filters_for_ref()
     }
 }
 
@@ -323,7 +332,7 @@ impl ConfigReformat {
         )?;
 
         // Validate that the filter and alignment configurations are compatible
-        validate_filter_compatibility(
+        Self::validate_filter_compatibility(
             &filter_source, 
             &alignment_content, 
             &alignment_type
@@ -529,12 +538,12 @@ impl ConfigReformat {
     ///
     /// # Decision Matrix
     ///
-    /// | POD5 Provided | Embedded Signal | Result | Notes |
-    /// |---------------|-----------------|---------|-------|
-    /// | Yes | Yes | SignalFromAlignment | Embedded takes priority |
-    /// | Yes | No | SignalFromFiles | Use external POD5 files |
-    /// | No | Yes | SignalFromAlignment | Use embedded data |
-    /// | No | No | Error | No signal source available |
+    /// | POD5 Provided | Embedded Signal | Result              | Notes                      |
+    /// |---------------|-----------------|---------------------|----------------------------|
+    /// | Yes           | Yes             | SignalFromAlignment | Embedded takes priority    |
+    /// | Yes           | No              | SignalFromFiles     | Use external POD5 files    |
+    /// | No            | Yes             | SignalFromAlignment | Use embedded data          |
+    /// | No            | No              | Error               | No signal source available |
     fn parse_signal_source(
         alignment_content: &AlignmentContent,
         pod5_input: &Option<Vec<PathBuf>>
@@ -542,18 +551,26 @@ impl ConfigReformat {
         match (pod5_input, alignment_content.has_signal) {
             // Option 1: Pod5 file(s) provided AND alignment file contains signal
             (Some(_), true) => {
-                println!("Warning: Pod5 file(s) provided, and alignment input contains signal. Pod5 input will be ignored");
+                log::warn!("Parse signal source: Pod5 file(s) provided, and alignment input contains signal. Pod5 input will be ignored");
                 Ok(SignalSource::SignalFromAlignment)
             }
             // Option 2: Pod5 file(s) provided AND alignment file does not contain signal
-            (Some(paths), false) => Ok(SignalSource::SignalFromFiles { paths: paths.clone() }),
+            (Some(paths), false) => {
+                log::info!("Parse signal source: Taking signal from provided Pod5 file(s)");
+                Ok(SignalSource::SignalFromFiles { paths: paths.clone() })
+            }
             // Option 3: Pod5 file(s) not provided AND alignment file contains signal
-            (None, true) => Ok(SignalSource::SignalFromAlignment),
+            (None, true) => {
+                log::info!("Parse signal source: Taking signal directly from alignment file");
+                Ok(SignalSource::SignalFromAlignment)
+            }
             // Option 4: Pod5 file(s) not provided AND alignment file does not contain signal
-            (None, false) => Err(CliError::InvalidArgument(
-                "pod5".to_string(), 
-                "Alignment file does not contain the signal, and no pod5 file(s) were provided. Please provide some via the '--pod5' flag".to_string()
-            ))
+            (None, false) => {
+                Err(CliError::InvalidArgument(
+                    "pod5".to_string(), 
+                    "Alignment file does not contain the signal, and no pod5 file(s) were provided. Please provide some via the '--pod5' flag".to_string()
+                ))
+            }
         }
     }
 
@@ -590,22 +607,27 @@ impl ConfigReformat {
     /// but detailed file content validation occurs during processing.
     fn parse_filter_source(matches: &ArgMatches) -> Result<FilterSource, CliError> {
         if let Some(ref_regions) = matches.get_many::<String>("ref-regions") {
+            log::info!("Parse filter source: Using provided reference regions for filtering");
             Ok(FilterSource::RefRegionFromInput { 
                 regions: ref_regions.map(|el| el.clone()).collect()
             })
         } else if let Some(bed_path) = matches.get_one::<PathBuf>("bed-file") {
+            log::info!("Parse filter source: Using provided reference regions in bed file for filtering");
             Ok(FilterSource::RefRegionFromBed { 
                 path: bed_path.clone() 
             })
         } else if let Some(pois) = matches.get_many::<String>("positions-of-interest") {
+            log::info!("Parse filter source: Using reference regions from provided positions of interest for filtering");
             Ok(FilterSource::PositionsOfInterest { 
                 pois: pois.map(|el| el.clone()).collect()
             })
         } else if let Some(motifs) = matches.get_many::<String>("motifs") {
+            log::info!("Parse filter source: Using provided motifs for filtering");
             Ok(FilterSource::MotifFromInput { 
                 motifs: motifs.map(|el| el.clone()).collect()
             })
         } else if let Some(motif_file) = matches.get_one::<PathBuf>("motifs-file") {
+            log::info!("Parse filter source: Using provided motifs in Fasta file for filtering");
             Ok(FilterSource::MotifFromFile { 
                 path: motif_file.clone()
             })
@@ -616,9 +638,8 @@ impl ConfigReformat {
 
     /// Resolves the target alignment type from user input and available data.
     ///
-    /// This function implements an auto-detection mechanism when users don't explicitly
-    /// specify an alignment type. It prevents ambiguous configurations and ensures
-    /// that the chosen alignment type is actually present in the input data.
+    /// This function determines the alignment type to reformat from the provided
+    /// alignment input data and the alignment-type, if provided. 
     ///
     /// # Arguments
     ///
@@ -630,52 +651,151 @@ impl ConfigReformat {
     /// * `Ok(AlignmentType)` - The resolved alignment type to use for processing
     /// * `Err(CliError)` - Invalid configuration or ambiguous input
     ///
-    /// # Resolution Logic
-    ///
-    /// ## Explicit User Choice
-    /// If user specifies `--alignment-type`:
-    /// - Validate that the requested type exists in the data
-    /// - Return the requested type or error if unavailable
-    ///
-    /// ## Auto-Detection
-    /// When `--alignment-type` is not specified:
-    /// 1. **Single alignment type**: Return the available type
-    /// 2. **Both types present**: Error - user must choose explicitly
-    /// 3. **No alignments**: Error - no processable data
-    ///
-    /// # Error Cases
-    ///
-    /// - User requests query alignment but file only contains reference alignment
-    /// - User requests reference alignment but file only contains query alignment  
-    /// - File contains both alignment types but user didn't specify preference
-    /// - File contains no alignment data
+    /// # Error Cases (in order)
+    /// 
+    /// - Both alignment types are present in the input file, but user did not specify an alignment type
+    /// - Only query alignment is present in the input file, but user specified `reference` alignment type
+    /// - Only reference alignment is present in the input file, but user specified `query` alignment type
+    /// - Neither alignment types are present in the input file (should be unreachable)
     fn determine_alignment_type(
         matches: &ArgMatches,
         alignment_content: &AlignmentContent
     ) -> Result<AlignmentType, CliError> {
-        match matches.get_one::<String>("alignment-type") {
+        let alignment_type = match matches.get_one::<String>("alignment-type") {
             Some(s) => match s.as_str() {
-                "query" => Ok(AlignmentType::Query),
-                "reference" => Ok(AlignmentType::Reference),
+                "query" => Some(AlignmentType::Query),
+                "reference" => Some(AlignmentType::Reference),
                 _ => unreachable!("Invalid alignment type should be caught by CLI validation")
             },
-            None => {
-                match (alignment_content.has_query_alignment, alignment_content.has_ref_alignment) {
-                    (true, true) => Err(CliError::InvalidArgument(
-                        "alignment-type".to_string(),
-                        "Input contains both query and reference alignments. Please specify which to use with '--alignment-type'".to_string()
-                    )),
-                    (true, false) => Ok(AlignmentType::Query),
-                    (false, true) => Ok(AlignmentType::Reference),
-                    (false, false) => Err(CliError::InvalidArgument(
-                        "alignment".to_string(), 
-                        "No alignment data found in input file".to_string()
-                    ))
-                }
+            None => None
+        };
+
+        match (alignment_content.has_query_alignment, alignment_content.has_ref_alignment, alignment_type) {
+            (true, true, Some(AlignmentType::Query)) => {
+                log::info!("Determine alignment type: Using query alignments (Both query and reference alignments found, user specified query");
+                Ok(AlignmentType::Query)
+            }
+
+            (true, true, Some(AlignmentType::Reference)) => {
+                log::info!("Determine alignment type: Using reference alignments (Both query and reference alignments found, user specified reference");
+                Ok(AlignmentType::Reference)
+            }
+
+            (true, true, None) => {
+                Err(CliError::InvalidArgument(
+                    "alignment-type".to_string(),
+                    "Input contains both query and reference alignments. Please specify which to use with '--alignment-type'".to_string()
+                ))
+            }
+
+            (true, false, Some(AlignmentType::Query)) => {
+                log::info!("Determine alignment type: Using query alignments (Only query alignments found (user specification is redundant)");
+                Ok(AlignmentType::Query)
+            }
+
+            (true, false, Some(AlignmentType::Reference)) => {
+                Err(CliError::InvalidArgument(
+                    "alignment-type".to_string(),
+                    "Input contains only query alignments, but alignment-type 'reference' was specified".to_string()
+                ))
+            }
+
+            (true, false, None) => {
+                log::info!("Determine alignment type: Using query alignments (Only query alignments found)");
+                Ok(AlignmentType::Query)
+            }
+
+            (false, true, Some(AlignmentType::Query)) => {
+                Err(CliError::InvalidArgument(
+                    "alignment-type".to_string(),
+                    "Input contains only reference alignments, but alignment-type 'query' was specified".to_string()
+                ))
+            }
+
+            (false, true, Some(AlignmentType::Reference)) => {
+                log::info!("Determine alignment type: Using reference alignment (Only reference alignments found (user specification is redundant)");
+                Ok(AlignmentType::Reference)
+            }
+
+            (false, true, None) => {
+                log::info!("Determine alignment type: Using reference alignments (Only reference alignments found)");
+                Ok(AlignmentType::Reference)
+            }
+
+            (false, false, _) => {
+                Err(CliError::InvalidArgument(
+                    "alignment".to_string(), 
+                    "No alignment data found in input file".to_string()
+                ))
             }
         }
     }
 
+    /// Validates that the chosen filtering options are compatible with the alignment type.
+    /// 
+    /// The alignment type gets parsed and checked before in [`ConfigReformat::determine_alignment_type`].
+    /// 
+    /// The following combinations of alignment and filter types are possible:
+    /// 
+    /// | Alignment type | Filter Type      |Sequence present | Valid?  | 
+    /// |----------------|------------------|-----------------|---------|
+    /// | Query          | Reference region | Not relevant    | NO      |
+    /// | Reference      | Reference region | Not relevant    | YES     |
+    /// | Query          | Motif            | YES             | YES     |
+    /// | Query          | Motif            | NO              | NO      |
+    /// | Reference      | Motif            | YES             | YES     |
+    /// | Reference      | Motif            | NO              | NO      |
+    /// 
+    /// This function catches the three invalid cases if they occur.
+    /// 
+    /// # Arguments
+    ///
+    /// * `filter_source` - The filtering method chosen by the user
+    /// * `alignment_content` - Description of what data is available in the alignment file
+    /// * `target_alignment_type` - The previously determined alignment type
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(())` if the configuration is valid
+    /// * `Err(CliError)` with a descriptive error message if incompatible
+    pub(super) fn validate_filter_compatibility(
+        filter_source: &FilterSource,
+        alignment_content: &AlignmentContent,
+        target_alignment_type: &AlignmentType
+    ) -> Result<(), CliError> {  
+        if filter_source.filters_for_ref() && *target_alignment_type == AlignmentType::Query {
+            // Reference filtering + query alignment -> Invalid
+            return Err(CliError::InvalidArgument(
+                "filter arguments".to_string(),
+                "Cannot use reference-based filtering (ref-regions, bed-file, positions-of-interest) with query alignment. Use motif-based filtering instead".to_string()        
+            ));
+        }
+
+        if filter_source.filters_for_motif() {
+            match target_alignment_type {
+                AlignmentType::Query => {
+                    if !alignment_content.has_query_sequence {
+                        // Motif filtering + query alignment + NO QUERY SEQUENCE -> Invalid
+                        return Err(CliError::InvalidArgument(
+                            "filter arguments".to_string(),
+                            "Motif filtering with query alignments requires query sequences, but none were found".to_string()
+                        ));
+                    }
+                }
+                AlignmentType::Reference => {
+                    if !alignment_content.has_ref_sequence {
+                        // Motif filtering + reference alignment + NO REFERENCE SEQUENCE -> Invalid
+                        return Err(CliError::InvalidArgument(
+                            "filter arguments".to_string(),
+                            "Motif filtering with reference alignments requires reference sequences, but none were found".to_string()
+                        ));
+                    }
+                }
+            }
+        }
+
+        Ok(())
+    }
 
     /// Parses the signal reformatting strategy from command line arguments.
     ///
