@@ -33,7 +33,8 @@ pub struct AlignedRead<'a> {
     query_to_signal: Option<Vec<usize>>,
     reference_to_signal: Option<Vec<usize>>,
     num_samples_trimmed: usize,
-    signal_offset: usize
+    signal_offset: usize,
+    untrimmed_signal: Vec<i16>
 }
 
 impl<'a> AlignedRead<'a> {
@@ -63,6 +64,11 @@ impl<'a> AlignedRead<'a> {
             return Err(AlignedReadError::IdMismatch(pod5_id.to_string(), bam_id.to_string()));
         }
 
+        let mut untrimmed_signal = pod5_read.require_signal()?.clone();
+        if reverse_signal {
+            untrimmed_signal.reverse();
+        }
+
         let (num_samples_trimmed, signal_offset) = Self::update_signal(
             pod5_read,
             reverse_signal, 
@@ -78,7 +84,8 @@ impl<'a> AlignedRead<'a> {
             query_to_signal: None,
             reference_to_signal: None,
             num_samples_trimmed, 
-            signal_offset
+            signal_offset,
+            untrimmed_signal
         })
     }
 
@@ -409,5 +416,10 @@ impl<'a> AlignedRead<'a> {
     /// in a pod5 read. 
     pub fn trimmed_signal_offset(&self) -> &usize {
         &self.signal_offset
+    }
+
+    // Returns the untrimmed (and optionally reversed) signal
+    pub fn untrimmed_signal(&self) -> &Vec<i16> {
+        &self.untrimmed_signal
     }
 }

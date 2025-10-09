@@ -244,6 +244,9 @@ impl<'a> SigMapRefiner<'a> {
         self.aligned_read.bam_read_mut().get_record_mut()
     }
 
+    pub fn untrimmed_signal(&self) -> &Vec<i16> {
+        self.aligned_read.untrimmed_signal()
+    }
 }
 
 /// Calculate the scaling factor and shift to transform the raw signal measurements

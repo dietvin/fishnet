@@ -393,8 +393,7 @@ pub fn run_alignment_multi_threaded(input: ConfigAlign) -> Result<(), AlignmentE
                         read_id.clone(), 
                         query_to_signal, 
                         ref_to_signal, 
-                        &sig_map_refiner,
-                        is_drna
+                        &sig_map_refiner
                     );
 
                     // Send the output data to the main thread for actually writing it to file
