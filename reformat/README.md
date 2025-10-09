@@ -1,5 +1,9 @@
 # Reformat module
 
+```bash
+fishnet reformat ...
+```
+
 The **reformat** module combines alignments (which contain only signal indices) with the corresponding signal values. By calculating **base-wise statistics** or **interpolating** signal segments into a uniform shape, downstream analyses of sequence-to-signal alignments become more accessible.
 See [Reformatting strategies](README.md#reformatting-strategies) for details.
 
@@ -9,7 +13,8 @@ See [Filtering options](README.md#filtering-options).
 The reformatted data can be exported in *melted* (long), *exploded* (wide), or *nested* formats, each optimized for different analysis workflows.
 See [Output formats and shapes](README.md#output-formats-and-shapes).
 
-The reformat module provides a command line interface for straight-forward sign 
+All options described below and be set using the modules command line interface. 
+See [Command line arguments](README.md#command-line-arguments). 
 
 
 ## Reformatting strategies
@@ -28,23 +33,20 @@ Each signal segment aligned to a base of interest is summarized into statistics 
 | `dwell`           | Dwell time (number of signal samples assigned to the base) |
 | `signal-to-noise` | Signal-to-noise ratio (`mean / std`)                       |
 
-This is the default strategy, enabled with `--strategy stats`. By default, `mean`, `std`, and `dwell` are calculated.
+This is the default strategy, but can be enabled explicitly with `--strategy stats`. By default, `mean`, `std`, and `dwell` are calculated.
 You can specify a custom subset via:
 ```bash
 --stats <STAT-A> <STAT-B> ...
 ```
 
-### Strategy 2: Interpolation into uniform shapes
+### 2. Interpolation into uniform shapes
 
 <img src="/docs/images/interpolation.jpg" alt="Interpolation overview" width="500"/>
 
 Instead of condensing each segment into statistics, the signal is reshaped into a **fixed number of samples per base** using linear interpolation.
 This allows direct comparison or machine-learning-based analysis across bases.
 
-```bash
---strategy interpolate
---target-size <NUM-SAMPLES>   # Default: 30
-```
+To select this strategy, set `--strategy interpolate`. The number of samples per base can be tuned using `--target-size <NUM-SAMPLES>` (default: 30)
 
 Upsampling or downsampling is applied as needed.
 
@@ -151,7 +153,7 @@ For regions of length *M* and *N* statistics:
 
 
 ### 3. Nested (Parquet only)
-Each row represents one read–region overlap. Fields store lists or 2D arrays.
+Each row represents one read–region pair. Fields store lists or 2D arrays.
 
 #### Base-wise statistics
 | **Column**              | **Description**                                                     |
@@ -184,7 +186,7 @@ The following examples shows what gets calculated and how it gets written to fil
   - chr1:5-7
   - chr1:12-13
 - For base-wise stats, `mean` and `dwell` are used
-- For interpolation, a target size of 3 is used  
+- For interpolation, a target size of `3` is used  
 
 ```text
 0-based index:          0 1 2 3 4 5 6 7 8 9 0 1 2 3 4
@@ -231,7 +233,35 @@ The nested format would look like this:
 
 
 ### Interpolation
-For the example, we'll suppose that interpolation was performed with a target size of `3`. This results in the interpolated signal for readA at the 5th ([sA5_0, sA5_1, sA5_2]) and 6th ([sA6_0, sA6_1, sA6_2]) base, and for readB at the 5th ([sB5_0, sB5_1, sB5_2]), 6th ([sB6_0, sB6_1, sB6_2]), 12th ([sB12_0, sB12_1, sB12_2]) and 13th ([sB13_0, sB13_1, sB13_2]) reference base.
+For the example, we'll suppose that interpolation was performed with a target size of `3`. This results in the interpolated signal for readA at the 5th and 6th base, and for readB at the 5th, 6th, 12th and 13th reference base.
+
+Here is a diagram to show what the data would look like:
+```text
+Raw per-base signal chunks (variable lengths):
+
+  readA
+    base 5 →  [ . . . . . ]                   (5 measurements)
+    base 6 →  [ . . . . . . . . . . . ]       (11 measurements)
+
+  readB
+    base 5  → [ . . . . ]                     (4 measurements)
+    base 6  → [ . . . . . . . . . . . . . ]   (13 measurements)
+    base 12 → [ . . . . . . . . . . ]         (10 measurements)
+    base 13 → [ . . . . . . . ]               (7 measurements)
+
+
+After interpolation to target size = 3:
+
+  readA
+    base 5  → [ sA5_0  sA5_1  sA5_2 ]         (3 measurements)
+    base 6  → [ sA6_0  sA6_1  sA6_2 ]         (3 measurements)
+
+  readB
+    base 5  → [ sB5_0  sB5_1  sB5_2 ]         (3 measurements)
+    base 6  → [ sB6_0  sB6_1  sB6_2 ]         (3 measurements)
+    base 12 → [ sB12_0 sB12_1 sB12_2 ]        (3 measurements)
+    base 13 → [ sB13_0 sB13_1 sB13_2 ]        (3 measurements)
+```
 
 The melted output would look like this:
 
