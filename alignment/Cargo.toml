@@ -1,30 +1,32 @@
 [package]
 name = "alignment"
-version = "0.2.1"
-edition = "2021"
-description = "Fast CLI tool for nanopore signal to sequence alignment"
-license-file = "../LICENSE"
-repository = "https://github.com/dietvin/fishnet"
+description = "Utilities for signal-to-sequence alignment"
+publish = false
+version.workspace = true
+edition.workspace = true
+license-file.workspace = true
+repository.workspace = true
 
 [dependencies]
-# Local dependency on pod5_reader_api
 pod5_reader_api = { path = "../pod5_reader_api" }
 helper = { path = "../helper" }
 
-# External dependencies
-approx = "0.5.1"
-arrow2 = { version = "0.18.0", features = ["io_parquet", "io_parquet_compression"] }
-console = "0.15.11"
-crossbeam = "0.8.4"
-indicatif = "0.17.11"
-itertools = "0.14.0"
-log = "0.4.27"
-log4rs = "1.3.0"
-noodles = { version = "0.99.0", features = ["bam", "bgzf", "sam"] }
-rand = "0.9.0"
-serde = "1.0.219"
-serde_json = "1.0.140"
-thiserror = "2.0.11"
-uuid = "1.16.0"
-walkdir = "2.5.0"
-clap = "4.5.46"
+approx.workspace = true
+arrow2.workspace = true
+clap.workspace = true
+console.workspace = true
+crossbeam.workspace = true
+indicatif.workspace = true
+itertools.workspace = true
+log.workspace = true
+log4rs.workspace = true
+noodles.workspace = true
+rand.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+uuid.workspace = true
+walkdir.workspace = true
+
+[lib]
+path = "src/lib.rs"
