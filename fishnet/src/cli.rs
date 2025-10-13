@@ -8,7 +8,8 @@ pub fn init_cli() -> Command {
     let matches = Command::new("fishnet")
         .version(crate_version!())
         .author("Vincent Dietrich")
-        .about(format!("{}", style("Fishnet - Signal-to-sequence processing!").bold().green()))
+        .about(format!("{}", style("Fishnet - Signal-to-sequence alignment and processing").bold().green()))
+        .arg_required_else_help(true)
         
         .subcommand(
             init_align()
