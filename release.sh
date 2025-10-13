@@ -28,7 +28,7 @@ fi
 echo "Releasing version $VERSION..."
 
 # Update version in Cargo.toml
-sed -i "s/^version = \".*\"/version = \"$VERSION\"/" fishnet/Cargo.toml
+sed -i "s/^version = \".*\"/version = \"$VERSION\"/" ./Cargo.toml
 
 # Update Cargo.lock
 cargo check
@@ -43,4 +43,4 @@ git push origin main
 git push origin "$TAG"
 
 echo "Successfully released $VERSION!"
-echo "GitHub Actions should now build and create the release automatically."
+echo "Release will be build by GitHub Actions now."
