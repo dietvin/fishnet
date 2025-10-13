@@ -167,7 +167,7 @@ is mapped to a reference, the signal is aligned to that reference sequence."
                 .long("output-level")
                 .short('l')
                 .value_parser(["1", "2", "3"])
-                .default_value("1")
+                .default_value("2")
                 .help_heading("Output settings")
                 .help("Output level")
                 .long_help(
@@ -227,7 +227,7 @@ processing (due to 3 non-worker threads)."
             Arg::new("queue-size")
                 .long("queue-size")
                 .value_parser(value_parser!(usize))
-                .default_value("1000")
+                .default_value("10000")
                 .help_heading("Threading settings")
                 .help("Multi-threading queue size")
                 .long_help(
