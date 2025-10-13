@@ -1,6 +1,6 @@
 use std::fs::File;
 use crate::{
-    dataset::dataset_async::signal_reader_config::SignalReaderConfig, 
+    dataset::dataset_thread_safe::signal_reader_config::SignalReaderConfig, 
     error::dataset::BufferedFeatherReaderError, 
     core::feather_reader::FeatherReader
 };

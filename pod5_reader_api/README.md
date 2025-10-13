@@ -5,7 +5,7 @@ A library for reading POD5 files. This library provides straight-forward and eff
 - **Read-wise iteration** to access a large number of reads in straight-forward manner
 - **(Thread-safe) random access** to enable targeted access to single reads, optionally in parallel from multiple threads 
 
-The key data structs are `Pod5File` and `Pod5FileAsync` for single-file acces, `Pod5Dataset` and `Pod5DatasetAsync` for multi-file access. Reads stored in a given pod5 file are represented by the `Pod5Read`. 
+The key data structs are `Pod5File` and `Pod5FileThreadSafe` for single-file acces, `Pod5Dataset` and `Pod5DatasetThreadSafe` for multi-file access. Reads stored in a given pod5 file are represented by the `Pod5Read`. 
 
 ## Pod5Read
 The `Pod5Read` struct grants access to the signal and metadata corresponding to a single read, all of which can be accessed by various getter functions. A read can not be manually initialized, but needs to be retrieved from a pod5 file or dataset.
@@ -88,16 +88,16 @@ fn main() {
 }
 ```
 
-Since both the `iter_reads` and the `get` functions rely on a mutable reference to `Pod5File`, thread-safe access is not given. This is the result of the lazy-loading approach, where the signal of a given read is only read when the read is requested. **For multi-threaded access, use `Pod5FileAsync`**.
+Since both the `iter_reads` and the `get` functions rely on a mutable reference to `Pod5File`, thread-safe access is not given. This is the result of the lazy-loading approach, where the signal of a given read is only read when the read is requested. **For multi-threaded access, use `Pod5FileThreadSafe`**.
 
-### Pod5FileAsync
-The `Pod5FileAsync` functions like `Pod5File` with the key difference that it allows for random access to contained reads from multiple threads in parallel. The `iter_reads` function is the only one that is not implemented here. All other functions are the same.
+### Pod5FileThreadSafe
+The `Pod5FileThreadSafe` functions like `Pod5File` with the key difference that it allows for random access to contained reads from multiple threads in parallel. The `iter_reads` function is the only one that is not implemented here. All other functions are the same.
 
-The following example shows how `Pod5FileAsync` can be used to read reads in parallel:
+The following example shows how `Pod5FileThreadSafe` can be used to read reads in parallel:
 ```rust
 use std::path::PathBuf;
 use std::sync::Arc;
-use pod5_reader_api::file::Pod5FileAsync;
+use pod5_reader_api::file::Pod5FileThreadSafe;
 use rayon::current_thread_index;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use uuid::Uuid;
@@ -107,7 +107,7 @@ fn main() {
     let n_workers = 4;
 
     let pod5_file = Arc::new(
-        Pod5FileAsync::new(&path, n_workers).unwrap()
+        Pod5FileThreadSafe::new(&path, n_workers).unwrap()
     );
     let read_ids: Vec<Uuid> = pod5_file.read_ids().clone();
 
@@ -193,24 +193,24 @@ fn main() {
 }
 ```
 
-Just like with the `Pod5File`, retrieving read information requires mutable access, and is not thread-safe. Again, **thread-safe access is provided by `Pod5DatasetAsync`**.
+Just like with the `Pod5File`, retrieving read information requires mutable access, and is not thread-safe. Again, **thread-safe access is provided by `Pod5DatasetThreadSafe`**.
 
 
-## Pod5DatasetAsync
-The `Pod5DatasetAsync` functions like `Pod5Dataset` with the key difference that it allows for random access to contained reads from multiple threads in parallel. Key differences are that the functions that retrieve mutable references to contained files are not available here. Other functions that are exclusive here are the following:
+## Pod5DatasetThreadSafe
+The `Pod5DatasetThreadSafe` functions like `Pod5Dataset` with the key difference that it allows for random access to contained reads from multiple threads in parallel. Key differences are that the functions that retrieve mutable references to contained files are not available here. Other functions that are exclusive here are the following:
 
 | Function | Description |
 |---|---|
-| get_file_async | Returns a Pod5FileAsync by its path used during initialization |
-| get_file_async_by_index | Returns a Pod5FileAsync by its index in the path vector during initialization |
+| get_file_thread_safe | Returns a Pod5FileThreadSafe by its path used during initialization |
+| get_file_thread_safe_by_index | Returns a Pod5FileThreadSafe by its index in the path vector during initialization |
 
-Note that all file getter functions (`get_file`, `get_file_by_index`, `get_file_async`, `get_file_async_by_index`) construct the file from scratch in the current implementation. As such is pretty inefficient.
+Note that all file getter functions (`get_file`, `get_file_by_index`, `get_file_thread_safe`, `get_file_thread_safe_by_index`) construct the file from scratch in the current implementation. As such is pretty inefficient.
 
-The key usage for `Pod5DatasetAsync` is direct access to contained reads from multiple threads in parallel. The following example shows an approach to do just that:
+The key usage for `Pod5DatasetThreadSafe` is direct access to contained reads from multiple threads in parallel. The following example shows an approach to do just that:
 ```rust
 use std::path::PathBuf;
 use std::sync::Arc;
-use pod5_reader_api::dataset::Pod5DatasetAsync;
+use pod5_reader_api::dataset::Pod5DatasetThreadSafe;
 use rayon::current_thread_index;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use uuid::Uuid;
@@ -223,7 +223,7 @@ fn main() {
     let n_workers = 4;
 
     let pod5_dataset = Arc::new(
-        Pod5DatasetAsync::new(&paths, n_workers).unwrap()
+        Pod5DatasetThreadSafe::new(&paths, n_workers).unwrap()
     );
     let read_ids: Vec<Uuid> = pod5_dataset.read_ids().clone();
 
@@ -242,15 +242,15 @@ fn main() {
 }
 ``` 
 
-## Pod5Dataset vs Pod5DatasetAsync
-The Async implementations of Pod5File and Pod5Dataset should only be used when processing data in parallel. All linear operations more efficient when using the non-async implementations due to less overhead and a much simpler implementation. 
+## Pod5Dataset vs Pod5DatasetThreadSafe
+The ThreadSafe implementations of Pod5File and Pod5Dataset should only be used when processing data in parallel. All linear operations more efficient when using the non-thread-safe implementations due to less overhead and a much simpler implementation. 
 
 To showcase the differences in processing speed I set up a quick and dirty benchmark when handling 25GB of pod5 data.
 
 The following approaches were tested:
-- Random access with Pod5DatasetAsync - 20 threads
-- Random access with Pod5DatasetAsync - 8 threads
-- Random access with Pod5DatasetAsync - 1 thread
+- Random access with Pod5DatasetThreadSafe - 20 threads
+- Random access with Pod5DatasetThreadSafe - 8 threads
+- Random access with Pod5DatasetThreadSafe - 1 thread
 - Random access with Pod5Dataset
 - Read-wise iterator with Pod5Dataset
 
@@ -265,11 +265,11 @@ Here are the times that were measured using the `time` command in bash:
 
 | Approach | 3 files<br>non-random | 28 files<br>non-random | 2746 files<br>non-random | 3 files<br>random | 28 files<br>random | 2746 files<br>random
 |-|-|-|-|-|-|-|
-| Async, 20 threads | 00:31,9 | 00:17,6 | 00:18,3 | 01:06,5 | 01:10,2 | 01:08,2 |
-| Async, 8 threads | 00:34,0 | 00:33,0 | 00:29,8 | 01:07,8 | 01:10,3 | 01:06,8 |
-| Async, 1 thread | 03:31,6 | 03:19,7 | 03:18,2 | 07:25,1 | 05:58,1 | 05:23,3 |
-| Sync, random access | 03:14,1 | 03:11,7 | 03:11,3 | NA | NA | NA |
-| Sync, iterative | 01:28,6 | 01:27,1 | 01:28,8 | NA | NA | NA |
+| thread-safe, 20 threads | 00:31,9 | 00:17,6 | 00:18,3 | 01:06,5 | 01:10,2 | 01:08,2 |
+| thread-safe, 8 threads | 00:34,0 | 00:33,0 | 00:29,8 | 01:07,8 | 01:10,3 | 01:06,8 |
+| thread-safe, 1 thread | 03:31,6 | 03:19,7 | 03:18,2 | 07:25,1 | 05:58,1 | 05:23,3 |
+| Non thread-safe, random access | 03:14,1 | 03:11,7 | 03:11,3 | NA | NA | NA |
+| Non thread-safe, iterative | 01:28,6 | 01:27,1 | 01:28,8 | NA | NA | NA |
 
 
 ## Error Handling

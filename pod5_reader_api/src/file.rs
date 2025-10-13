@@ -6,14 +6,14 @@ use arrow2::io::ipc::read::FileMetadata;
 use uuid::Uuid;
 use crate::{
     core::feather_reader::FeatherReader, 
-    file::{file_async::FeatherReaderPool, signal_table_index::SignalTableIndex}, 
+    file::{file_thread_safe::FeatherReaderPool, signal_table_index::SignalTableIndex}, 
     core::footer::Pod5Footer, 
     read::Pod5Read, 
     core::tables::run_info::RunInfo
 };
 
-mod file_sync;
-mod file_async;
+mod file;
+mod file_thread_safe;
 mod iterator;
 mod signal_table_index;
 
@@ -50,7 +50,7 @@ pub struct Pod5File {
 
 /// Thread-safe representation of a single Pod5 file.
 /// 
-/// `Pod5FileAsync` provides concurrent access to all data within a Pod5 file,
+/// `Pod5FileThreadSafe` provides concurrent access to all data within a Pod5 file,
 /// including reads, signal data, and metadata. It's designed for scenarios where
 /// multiple threads need to process different reads from the same file simultaneously.
 /// 
@@ -84,8 +84,8 @@ pub struct Pod5File {
 /// use std::path::PathBuf;
 /// use std::thread;
 /// 
-/// // Initialize async file with 4 workers
-/// let file = Pod5FileAsync::new(&PathBuf::from("data.pod5"), 4)?;
+/// // Initialize thread-safe file with 4 workers
+/// let file = Pod5FileThreadSafe::new(&PathBuf::from("data.pod5"), 4)?;
 /// 
 /// // Concurrent access from multiple threads
 /// let handles: Vec<_> = read_ids.into_iter().map(|read_id| {
@@ -97,7 +97,7 @@ pub struct Pod5File {
 /// }).collect();
 /// ```
 #[derive(Debug)]
-pub struct Pod5FileAsync {
+pub struct Pod5FileThreadSafe {
     /// Path to the Pod5 file
     path: PathBuf,
     /// Ordered list of all read IDs in the file

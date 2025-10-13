@@ -1,5 +1,5 @@
-mod dataset_sync;
-mod dataset_async;
+mod dataset;
+mod dataset_thread_safe;
 
 use std::{
     collections::HashMap, 
@@ -9,7 +9,13 @@ use std::{
 
 use uuid::Uuid;
 
-use crate::{dataset::dataset_async::{file_shared_async::Pod5FileAsyncShared, reader_pool::FeatherReaderPoolShared}, file::Pod5File};
+use crate::{
+    dataset::dataset_thread_safe::{
+        file_shared_thread_safe::Pod5FileThreadSafeShared, 
+        reader_pool::FeatherReaderPoolShared
+    }, 
+    file::Pod5File
+};
 
 
 /// A collection of POD5 files that can be accessed as a single dataset.
@@ -27,7 +33,7 @@ pub struct Pod5Dataset {
 
 /// Thread-safe dataset for efficient random access across multiple Pod5 files.
 /// 
-/// `Pod5DatasetAsync` provides high-performance, concurrent access to reads distributed
+/// `Pod5DatasetThreadSafe` provides high-performance, concurrent access to reads distributed
 /// across multiple Pod5 files. It's designed for applications that need to randomly access
 /// reads by ID without the overhead of managing individual file readers.
 /// 
@@ -55,7 +61,7 @@ pub struct Pod5Dataset {
 ///     PathBuf::from("file1.pod5"),
 ///     PathBuf::from("file2.pod5"),
 /// ];
-/// let dataset = Pod5DatasetAsync::new(&paths, 4)?;
+/// let dataset = Pod5DatasetThreadSafe::new(&paths, 4)?;
 /// 
 /// // Random access to reads by ID
 /// let read = dataset.get_read(&read_id)?;
@@ -67,9 +73,9 @@ pub struct Pod5Dataset {
 /// The dataset maintains a bounded pool of file readers (default: 2 × n_workers)
 /// to balance memory usage with performance. Readers are allocated on-demand and
 /// cached using an LRU eviction policy.
-pub struct Pod5DatasetAsync {
+pub struct Pod5DatasetThreadSafe {
     /// Lightweight representations of all Pod5 files in the dataset
-    files: Vec<Pod5FileAsyncShared>,
+    files: Vec<Pod5FileThreadSafeShared>,
     /// Map from filename to file index for path-based lookups
     file_index: HashMap<OsString, usize>,
     /// Total number of files in the dataset

@@ -6,7 +6,7 @@ use crossbeam::channel::{bounded, SendError};
 use helper::{io::OutputFormat, logger::setup_logger};
 use indicatif::{ProgressBar, ProgressStyle};
 use log::LevelFilter;
-use pod5_reader_api::dataset::Pod5DatasetAsync;
+use pod5_reader_api::dataset::Pod5DatasetThreadSafe;
 use uuid::Uuid;
 
 use crate::{
@@ -64,7 +64,7 @@ pub(super) fn run_reformat_multi_threaded(config: ConfigReformat) -> Result<(), 
                 progress_bar_init.set_message("Indexing the POD5 data...");
                 log::info!("Loading pod5 dataset from paths: {:?}", paths);
                 Some(
-                    match Pod5DatasetAsync::new(paths, config.n_threads()) {
+                    match Pod5DatasetThreadSafe::new(paths, config.n_threads()) {
                         Ok(d) => d,
                         Err(e) => {
                             log::error!("Failed to initialize Pod5Dataset: {}", e);

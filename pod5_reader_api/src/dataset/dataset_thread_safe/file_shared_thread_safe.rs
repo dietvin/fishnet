@@ -20,10 +20,10 @@ use arrow2::{
 use uuid::Uuid;
 
 use crate::{
-    dataset::dataset_async::signal_reader_config::SignalReaderConfig, 
+    dataset::dataset_thread_safe::signal_reader_config::SignalReaderConfig, 
     error::file::Pod5FileError, 
     file::{
-        Pod5FileAsync, 
+        Pod5FileThreadSafe, 
         Pod5File, 
         ChunkRowIndex, 
         EXPECTED_SIGNATURE
@@ -45,8 +45,8 @@ use crate::{
 
 /// Optimized Pod5 file representation for dataset-level operations.
 /// 
-/// This is a streamlined version of `Pod5FileAsync` designed specifically for use within
-/// `Pod5DatasetAsync`. Unlike the full file implementation, this version:
+/// This is a streamlined version of `Pod5FileThreadSafe` designed specifically for use within
+/// `Pod5DatasetThreadSafe`. Unlike the full file implementation, this version:
 /// - Doesn't maintain its own reader pool (delegates to dataset-level pool)
 /// - Focuses on metadata caching and read access
 /// - Optimizes memory usage by avoiding redundant reader storage
@@ -57,7 +57,7 @@ use crate::{
 /// * **Memory Efficiency**: Minimal per-file overhead in large datasets
 /// * **Access Speed**: Fast metadata lookups with cached read information
 /// * **Flexibility**: Can convert to full file objects for comprehensive operations
-pub(in crate::dataset) struct Pod5FileAsyncShared {
+pub(in crate::dataset) struct Pod5FileThreadSafeShared {
     /// Path to the Pod5 file on the filesystem
     path: PathBuf,
     /// Ordered list of all read IDs in this file
@@ -68,7 +68,7 @@ pub(in crate::dataset) struct Pod5FileAsyncShared {
     signal_reader_config: SignalReaderConfig
 }
 
-impl Pod5FileAsyncShared {
+impl Pod5FileThreadSafeShared {
     /// Initializes a new shared Pod5 file from a filesystem path.
     /// 
     /// This constructor performs the minimal parsing necessary for dataset operations:
@@ -480,27 +480,27 @@ impl Pod5FileAsyncShared {
         Pod5File::new(&self.path)
     }
 
-    /// Creates an async Pod5File from this shared representation.
+    /// Creates an thread-safe Pod5File from this shared representation.
     /// 
-    /// Similar to `to_pod5_file()`, but creates a thread-safe Pod5FileAsync instance
-    /// with its own reader pool. This is useful when you need full async file
+    /// Similar to `to_pod5_file()`, but creates a thread-safe Pod5FileThreadSafe instance
+    /// with its own reader pool. This is useful when you need full thread-safe file
     /// functionality alongside dataset operations.
     /// 
     /// # Arguments
     /// 
-    /// * `n_workers` - Number of worker threads for the async file's reader pool
+    /// * `n_workers` - Number of worker threads for the thread-safe file's reader pool
     /// 
     /// # Returns
     /// 
-    /// A new `Pod5FileAsync` instance ready for concurrent operations, or an error
+    /// A new `Pod5FileThreadSafe` instance ready for concurrent operations, or an error
     /// if initialization fails.
     /// 
     /// # Performance Note
     /// 
     /// Like `to_pod5_file()`, this method has initialization overhead and should
     /// be used judiciously.
-    pub(super) fn to_pod5_file_async(&self, n_workers: usize) -> Result<Pod5FileAsync, Pod5FileError> {
-        Pod5FileAsync::new(&self.path, n_workers)
+    pub(super) fn to_pod5_file_thread_safe(&self, n_workers: usize) -> Result<Pod5FileThreadSafe, Pod5FileError> {
+        Pod5FileThreadSafe::new(&self.path, n_workers)
     }
 
 }

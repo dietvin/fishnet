@@ -32,7 +32,7 @@ pub enum Pod5DatasetError {
 }
 
 
-// ==== Errors used for Pod5DatasetAsync operations ====
+// ==== Errors used for Pod5DatasetThreadSafe operations ====
 
 
 /// Error type used for initializing SignalReaderConfig

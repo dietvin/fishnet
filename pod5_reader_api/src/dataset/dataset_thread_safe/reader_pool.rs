@@ -6,9 +6,9 @@ use std::{
     sync::{Condvar, Mutex}
 };
 use crate::{
-    dataset::dataset_async::{
+    dataset::dataset_thread_safe::{
         buffered_feather_reader::BufferedFeatherReader, 
-        file_shared_async::Pod5FileAsyncShared, 
+        file_shared_thread_safe::Pod5FileThreadSafeShared, 
         signal_reader_config::SignalReaderConfig
     }, 
     error::dataset::{
@@ -73,7 +73,7 @@ impl FeatherReaderPoolShared {
     /// 
     /// Panics if the files vector is empty, though this is validated during dataset initialization.
     pub(super) fn new(
-        files: &Vec<Pod5FileAsyncShared>,
+        files: &Vec<Pod5FileThreadSafeShared>,
         buffer_size: usize
     ) -> Result<Self, PoolSharedError> {
         // Cache configurations for all files to enable fast reader initialization

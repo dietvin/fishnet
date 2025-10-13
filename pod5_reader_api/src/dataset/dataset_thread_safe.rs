@@ -1,4 +1,4 @@
-//! # Pod5 Dataset Async Module
+//! # Pod5 Thread-safe Dataset Module
 //! 
 //! This module provides a thread-safe implementation for parallel random access to multiple Pod5 files.
 //! The design addresses the challenge of efficiently managing file readers across hundreds of Pod5 files
@@ -20,9 +20,9 @@
 //! 
 //! ## Key Components
 //! 
-//! - `Pod5DatasetAsync`: Main dataset interface for thread-safe operations
+//! - `Pod5DatasetThreadSafe`: Main dataset interface for thread-safe operations
 //! - `FeatherReaderPoolShared`: Thread-safe reader pool managing file access
-//! - `Pod5FileAsyncShared`: Lightweight file representation optimized for dataset use
+//! - `Pod5FileThreadSafeShared`: Lightweight file representation optimized for dataset use
 //! - `SignalReaderConfig`: Configuration for efficient signal table access
 //! 
 //! ## Usage Note
@@ -30,7 +30,7 @@
 //! This implementation prioritizes random access performance over iteration. For efficient
 //! file-by-file iteration, consider using the standard `Pod5Dataset` instead.
 
-pub(super) mod file_shared_async;
+pub(super) mod file_shared_thread_safe;
 pub(super) mod reader_pool;
 mod signal_reader_config;
 mod buffered_feather_reader;
@@ -44,25 +44,25 @@ use uuid::Uuid;
 
 use crate::{
     dataset::{
-        dataset_async::{
-            file_shared_async::Pod5FileAsyncShared, 
+        dataset_thread_safe::{
+            file_shared_thread_safe::Pod5FileThreadSafeShared, 
             reader_pool::FeatherReaderPoolShared
         }, 
-        Pod5DatasetAsync
+        Pod5DatasetThreadSafe
     }, 
     error::{
         dataset::Pod5DatasetError, 
         file::Pod5FileError
     }, 
     file::{
-        Pod5FileAsync, 
+        Pod5FileThreadSafe, 
         Pod5File
     }, 
     read::Pod5Read
 };
 
-impl Pod5DatasetAsync {
-    /// Creates a new async dataset from a collection of Pod5 file paths.
+impl Pod5DatasetThreadSafe {
+    /// Creates a new thread-safe dataset from a collection of Pod5 file paths.
     /// 
     /// This constructor performs several initialization steps:
     /// 1. **File Validation**: Opens and validates each Pod5 file
@@ -113,7 +113,7 @@ impl Pod5DatasetAsync {
             let path = path_buf.as_os_str().to_os_string();
             file_index.insert(path, file_id);
             
-            let file = Pod5FileAsyncShared::new(file_id, path_buf)?;
+            let file = Pod5FileThreadSafeShared::new(file_id, path_buf)?;
             
             // Merge read IDs from this file into global collection
             let file_read_ids = file.read_ids().clone();
@@ -264,9 +264,9 @@ impl Pod5DatasetAsync {
         self.get_file_by_index(file_idx)
     }
 
-    /// Retrieves an async Pod5File by its dataset index.
+    /// Retrieves a thread-safe Pod5File by its dataset index.
     /// 
-    /// This method creates a new `Pod5FileAsync` instance with its own reader pool.
+    /// This method creates a new `Pod5FileThreadSafe` instance with its own reader pool.
     /// Unlike the dataset's shared pool, the returned file's pool is dedicated to
     /// that specific file, which can be more efficient for intensive single-file operations.
     /// 
@@ -277,7 +277,7 @@ impl Pod5DatasetAsync {
     /// 
     /// # Returns
     /// 
-    /// A new `Pod5FileAsync` instance ready for concurrent operations, or an error
+    /// A new `Pod5FileThreadSafe` instance ready for concurrent operations, or an error
     /// if initialization fails.
     /// 
     /// # Performance Warning
@@ -289,18 +289,18 @@ impl Pod5DatasetAsync {
     /// 
     /// * `FileIndexError` if the file_idx is out of bounds
     /// * File initialization errors for configuration or access problems
-    pub fn get_file_async_by_index(&self, file_idx: usize, n_workers: usize) -> Result<Pod5FileAsync, Pod5DatasetError> {
+    pub fn get_file_thread_safe_by_index(&self, file_idx: usize, n_workers: usize) -> Result<Pod5FileThreadSafe, Pod5DatasetError> {
         let file = self.files
             .get(file_idx)
             .ok_or(Pod5DatasetError::FileIndexError(file_idx, self.n_files))?
-            .to_pod5_file_async(n_workers)?;
+            .to_pod5_file_thread_safe(n_workers)?;
 
         Ok(file)
     }
 
-    /// Retrieves an async Pod5File by its original path.
+    /// Retrieves an thread-safe Pod5File by its original path.
     /// 
-    /// Path-based version of `get_file_async_by_index()`. Creates a new async file
+    /// Path-based version of `get_file_thread_safe_by_index()`. Creates a new thread-safe file
     /// instance with its own dedicated reader pool.
     /// 
     /// # Arguments
@@ -310,22 +310,22 @@ impl Pod5DatasetAsync {
     /// 
     /// # Returns
     /// 
-    /// A new `Pod5FileAsync` instance, or an error if the path is invalid or
+    /// A new `Pod5FileThreadSafe` instance, or an error if the path is invalid or
     /// initialization fails.
     /// 
     /// # Performance Warning
     /// 
-    /// Same considerations as `get_file_async_by_index()` apply.
+    /// Same considerations as `get_file_thread_safe_by_index()` apply.
     /// 
     /// # Errors
     /// 
     /// * `InvalidKey` if the path was not used during dataset initialization  
     /// * File initialization errors for configuration or access problems
-    pub fn get_file_async(&self, path: &OsString, n_workers: usize) -> Result<Pod5FileAsync, Pod5DatasetError> {
+    pub fn get_file_thread_safe(&self, path: &OsString, n_workers: usize) -> Result<Pod5FileThreadSafe, Pod5DatasetError> {
         let file_idx = self.file_index.get(path)
                 .ok_or(Pod5DatasetError::InvalidKey(path.clone()))?
                 .clone();
-        self.get_file_async_by_index(file_idx, n_workers)
+        self.get_file_thread_safe_by_index(file_idx, n_workers)
     }
 
 

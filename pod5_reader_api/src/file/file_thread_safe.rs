@@ -1,4 +1,4 @@
-//! # Pod5 File Async Module
+//! # Pod5 Thread-safe File Module
 //! 
 //! This module provides a thread-safe implementation for concurrent access to a single Pod5 file.
 //! The design enables multiple threads to safely read from the same Pod5 file simultaneously
@@ -29,7 +29,7 @@
 //! 
 //! ## Comparison with Standard Pod5File
 //! 
-//! Unlike the standard `Pod5File`, this async version:
+//! Unlike the standard `Pod5File`, this thread safe version:
 //! - Supports safe concurrent access from multiple threads
 //! - Uses a pool of readers instead of a single reader
 //! - Has slightly higher memory overhead due to multiple readers
@@ -59,7 +59,7 @@ use uuid::Uuid;
 use crate::{
     error::file::{FeatherReaderPoolError, Pod5FileError}, 
     file::{
-        ChunkRowIndex, Pod5FileAsync, EXPECTED_SIGNATURE
+        ChunkRowIndex, Pod5FileThreadSafe, EXPECTED_SIGNATURE
     }, 
     read::Pod5Read, 
     core::{
@@ -297,7 +297,7 @@ impl FeatherReaderPool {
     }
 }
 
-impl Pod5FileAsync {
+impl Pod5FileThreadSafe {
     /// Initializes a new thread-safe Pod5 file from a filesystem path.
     /// 
     /// This constructor performs comprehensive file parsing and validation:
@@ -318,7 +318,7 @@ impl Pod5FileAsync {
     /// 
     /// # Returns
     /// 
-    /// A new `Pod5FileAsync` ready for concurrent operations, or an error if
+    /// A new `Pod5FileThreadSafe` ready for concurrent operations, or an error if
     /// the file cannot be opened, parsed, or is not a valid Pod5 file.
     /// 
     /// # Errors
@@ -364,7 +364,7 @@ impl Pod5FileAsync {
             buffer_size
         )?;
 
-        Ok(Pod5FileAsync { 
+        Ok(Pod5FileThreadSafe { 
             path: path.clone(), 
             read_ids,
             reads,

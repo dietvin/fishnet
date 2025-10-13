@@ -1,5 +1,5 @@
 use std::sync::Arc;
-use pod5_reader_api::dataset::Pod5DatasetAsync;
+use pod5_reader_api::dataset::Pod5DatasetThreadSafe;
 use uuid::Uuid;
 
 use crate::{
@@ -57,7 +57,7 @@ impl RawRowData {
     /// - Statistical calculations fail
     pub fn into_row(
         self,
-        pod5_dataset: &Arc<Option<Pod5DatasetAsync>>,
+        pod5_dataset: &Arc<Option<Pod5DatasetThreadSafe>>,
         is_rna: bool,
         norm_signal: bool
     ) -> Result<Row, RawRowDataError> {
