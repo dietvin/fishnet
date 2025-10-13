@@ -14,16 +14,23 @@ For further processing, run the `reformat` command:
 
 ## Table of contents
 
-- [Fishnet](#fishnet)
-  - [TL;DR](#tldr)
-  - [Table of contents](#table-of-contents)
-  - [Installation](#installation)
-  - [Usage](#usage)
-    - [Required arguments](#required-arguments)
-    - [Optional arguments](#optional-arguments)
-    - [Output](#output)
-    - [Algorithm details](#algorithm-details)
-  - [License](#license)
+- [Installation](#installation)
+- [Alignment](#alignment)
+  - [Minimal usage](#minimal-usage)
+  - [Required arguments](#required-arguments)
+  - [Optional arguments](#optional-arguments)
+  - [Output](#output)
+  - [Algorithm details](#algorithm-details)
+- [Reformatting](#reformatting)
+  - [Minimal usage](#minimal-usage-1)
+  - [Required arguments](#required-arguments-1)
+    - [Filter arguments](#filter-arguments-one-is-required)
+  - [Optional arguments](#optional-arguments-1)
+  - [Reformatting strategies](#reformatting-strategies)
+  - [Output formats](#output-formats)
+- [POD5 Reader API](#pod5-reader-api)
+- [Repository structure](#repository-structure)
+- [License](#license)
 
 ## Installation
 
