@@ -22,7 +22,7 @@ The refinement is performed iteratively with configurable parameters that contro
 
 ### Refinement workflow
 The refinement process follows this general workflow:
-1. **Initial signal normalization**: Raw signal measurements are transformed to normalized values using calibration parameters from the sequencer and signal statistics (see  [Signal normalization](#signal-normalization))
+1. **Initial signal normalization**: Raw signal measurements are transformed to normalized values using calibration parameters from the sequencer and signal statistics (see [Signal normalization](#signal-normalization))
 
 2. **Optional rough rescaling**: A coarse-grained scaling adjustment using quantile-based regression to improve the baseline divergence between observed and expected measurements (see  [Rough rescaling](#rough-rescaling))
 
