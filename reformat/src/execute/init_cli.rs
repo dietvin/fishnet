@@ -142,10 +142,10 @@ Valid for both reference and query sequences."
                 .short('M')
                 .value_parser(value_parser!(PathBuf))
                 .help_heading("Data filter (one is required)")
-                .help("Filter input data for motifs from a text file")
+                .help("Filter input data for motifs from a FASTA file")
                 .long_help(
-"Filter input data for motifs from a text file. The file must contain one motif per row.
-Each motif must be a string containing only 'A', 'C', 'G' and 'T'/'U'.
+"Filter input data for motifs from a FASTA file. Each motif must be a separate entry.
+Sequences must contain only 'A', 'C', 'G' and 'T'/'U'.
 
 Valid for both reference and query sequences."
                 )
