@@ -1,4 +1,4 @@
-![fishnet_logo](fishnet_logo.png)
+![fishnet_logo](fishnet_logo_icon.png)
 # Fishnet
 
 ## TL;DR
