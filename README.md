@@ -171,7 +171,11 @@ Usage examples are provided in [Examples](docs/reformat/examples.md).
 
 #### Pod5 input (optional, but recommended):
 
-Pod5 data can be provided via the `--pod5` / `-p` flag. This is only required if the alignment file does not contain the raw signal. 
+| Long flag | Short flag | Explanation | Type |
+|-|-|-|-|
+| --pod5 | -p | Path(s) to one or more pod5 files and/or directories containing pod5 files (separate multiple paths by space) | Path(s) (file or directory) |
+
+This is only required if the alignment file does not contain the raw signal (this is done by setting `--output-level 3` in the `align` command). 
 Not writing the signal to the alignment file is recommended as it is less efficient to store the signal in PARQUET format instead of compressed POD5 format.
 
 #### Filter arguments (one is required):
