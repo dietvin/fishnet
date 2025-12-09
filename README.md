@@ -1,4 +1,4 @@
-![fishnet_logo](docs/fishnet_logo_icon.png)
+![fishnet_logo](docs/images/fishnet_logo_icon.png)
 
 ## TL;DR
 
@@ -14,6 +14,8 @@ For further processing, run the `reformat` command:
 
 ## Table of contents
 
+- [TL;DR](#tldr)
+- [Table of contents](#table-of-contents)
 - [Installation](#installation)
 - [Alignment](#alignment)
   - [Minimal usage](#minimal-usage)
@@ -24,7 +26,7 @@ For further processing, run the `reformat` command:
 - [Reformatting](#reformatting)
   - [Minimal usage](#minimal-usage-1)
   - [Required arguments](#required-arguments-1)
-    - [Filter arguments](#filter-arguments-one-is-required)
+    - [Filter arguments (one is required):](#filter-arguments-one-is-required)
   - [Optional arguments](#optional-arguments-1)
   - [Reformatting strategies](#reformatting-strategies)
   - [Output formats](#output-formats)
