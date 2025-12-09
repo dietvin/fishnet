@@ -91,7 +91,7 @@ fishnet --help
 To uninstall **fishnet**:
 
 1. Delete the executable:
-   - On Linux/macOS:
+   - On Linux:
      ```bash
      rm /usr/local/bin/fishnet
      ```
@@ -99,7 +99,7 @@ To uninstall **fishnet**:
      Delete `fishnet.exe` from its folder.
 
 2. (Optional) Remove any custom path entry you added during installation:
-   - On Linux/macOS: Edit your shell configuration file (e.g., `~/.bashrc`, `~/.zshrc`) and remove the line modifying `PATH`.
+   - On Linux: Edit your shell configuration file (e.g., `~/.bashrc`, `~/.zshrc`) and remove the line modifying `PATH`.
    - On Windows: Remove the fishnet directory from the system `PATH` via the Environment Variables settings.
 
 ---
