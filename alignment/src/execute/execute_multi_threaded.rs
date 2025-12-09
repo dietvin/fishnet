@@ -215,6 +215,7 @@ pub fn run_alignment_multi_threaded(input: ConfigAlign) -> Result<(), AlignmentE
                     progress_bar.inc(100);
                 }
             }
+            progress_bar.set_position(counter);
             progress_bar.set_style(
                 ProgressStyle::default_spinner()
                     .template("{spinner} [{elapsed_precise}] {msg}")

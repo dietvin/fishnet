@@ -184,6 +184,7 @@ pub(super) fn run_reformat_multi_threaded(config: ConfigReformat) -> Result<(), 
                 }
             }
 
+            progress_bar.set_position(counter);
             progress_bar.finish_with_message(format!(
                 "{} | {} | {}",
                 style(format!("{} Success", n_success)).green(),
