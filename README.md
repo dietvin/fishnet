@@ -127,7 +127,7 @@ The following arguments are the most relevant optional arguments for most users:
 | Long flag | Short flag |Explanation | Type |
 |-|-|-|-|
 | --rna | -r | Whether the provided data is direct RNA sequencing data. If set, the signal gets reversed for the alignment (dRNA signals are measured 3'-5') | Flag |
-| --alignment-type | -a | Which type(s) of alignment to generate. Can be '**query**' (Default) to align the signal to the base-called sequence, '**reference**' to align to the reference sequence (if mapped)or '**both**' to do both. | Enum |
+| --alignment-type | -a | Which type(s) of alignment to generate. Can be '**query**' (Default) to align the signal to the base-called sequence, '**reference**' to align to the reference sequence (if mapped)or '**both**' to do both. | Enum (`query`, `reference`, `both`) |
 | --threads | -t | Number of parallel threads to use. Default: **8** | int |
 | --force-overwrite | -f | If set and an output file already exists, this file will be overwritten. Raises an error otherwise | Flag |
 
@@ -196,9 +196,9 @@ The following arguments are the most relevant optional arguments for most users:
 |-|-|-|-|
 | `--pod5` | `-p` | POD5 input(s). Required if alignment file lacks raw signal. Multiple are allowed | Path(s) (file or directory) |
 | `--rna` | - | Set if direct RNA POD5 file(s) are provided (reverse signal) | Flag |
-| `--alignment-type` | - | Set only if the alignment file contains both query- and reference to signal alignments. Set to determine which type will be processed. `query` and `reference` are allowed | Enum |
-| `--strategy` | `-s` | How to reformat the data. See [Reformatting strategies](#reformatting-strategies) for more information | Enum |
-| `--output-shape` | - | How to shape the output data. See [Output formats](#output-formats) for more information | Enum |
+| `--alignment-type` | - | Set only if the alignment file contains both query- and reference to signal alignments. Set to determine which type will be processed. `query` and `reference` are allowed | Enum (`query`, `reference`) |
+| `--strategy` | `-s` | How to reformat the data. See [Reformatting strategies](#reformatting-strategies) for more information | Enum (`stats`, `interpolate`) |
+| `--output-shape` | - | How to shape the output data. See [Output formats](#output-formats) for more information | Enum (`melted`, `exploded`, `nested`) |
 | `--threads` | `-t` | Number of parallel threads to use. Default: **8** | int |
 | `--force-overwrite` | `-f` | If set and an output file already exists, this file will be overwritten. Raises an error otherwise | Flag |
 
