@@ -18,13 +18,11 @@ For further processing, run the `reformat` command:
 - [Table of contents](#table-of-contents)
 - [Installation](#installation)
 - [Alignment](#alignment)
-  - [Minimal usage](#minimal-usage)
   - [Required arguments](#required-arguments)
   - [Optional arguments](#optional-arguments)
   - [Output](#output)
   - [Algorithm details](#algorithm-details)
 - [Reformatting](#reformatting)
-  - [Minimal usage](#minimal-usage-1)
   - [Required arguments](#required-arguments-1)
     - [Filter arguments (one is required):](#filter-arguments-one-is-required)
   - [Optional arguments](#optional-arguments-1)
@@ -56,9 +54,19 @@ More information about the installation and how to build from source can be foun
 ## Alignment
 
 ```bash
-fishnet align [...]
+fishnet align \
+  --bam <basecalls.bam> \
+  --pod5 <raw-signal.pod5> \
+  --kmer-table <level-table.txt> \
+  --out <output-file>
 ```
+
 ![align command demo](docs/images/align_demo.gif)
+
+With `Fishnet`, signal-to-sequence alignments are created using the `align` command. It is possible to align both the base-called (query) and (if present) the reference sequences to the signal.
+
+<div style='background-color: #d5d3d6; color: #000000; border-left: solid #008800ff 4px; border-radius: 4px; padding:0.7em;'>
+<h1 style="color: #008800ff"> Info: Signal-to-sequence alignments</h1>
 
 A signal-to-sequence alignment `A` is an array of signal indices, where the pair `A[i]`, `A[i+1]` corresponds to the start and end indiced on the signal assigned to base `i`. The intervals are half-open (start is included, end is not). 
 
@@ -87,8 +95,8 @@ Signal-to-sequence:
 │0123│45678│9012345│6789012│3456789│
 │ A  │  C  │   G   │   T   │   A   │
 ```
-
-With `Fishnet`, signal-to-sequence alignments are created using the `align` command. It is possible to align both the base-called (query) and (if present) the reference sequences to the signal.
+</div>
+<br>
 
 The alignment requires the following input data:
 1. **Raw sequencing data**. Must be stored in **POD5** format
@@ -99,16 +107,7 @@ The alignment requires the following input data:
      - RNA004: [9mer_levels_v1.txt](https://raw.githubusercontent.com/nanoporetech/kmer_models/refs/heads/master/rna004/9mer_levels_v1.txt)
      - RNA002: [5mer_levels_v1.txt](https://raw.githubusercontent.com/nanoporetech/kmer_models/refs/heads/master/rna_r9.4_180mv_70bps/5mer_levels_v1.txt)
 
-### Minimal usage
-
-```bash
-fishnet align \
-  --bam <basecalls.bam> \
-  --pod5 <raw-signal.pod5> \
-  --kmer-table <level-table.txt> \
-  --out <output-file>
-```
-More examples are provided in [Examples](docs/align/examples.md).
+Usage examples are provided in [Examples](docs/align/examples.md).
 
 ### Required arguments
 
@@ -150,31 +149,30 @@ For a detailed description of all steps, see [Algorithm details](docs/align/algo
 ## Reformatting
 
 ```bash
-fishnet reformat [...]
+fishnet reformat \
+  --alignment <alignments.parquet> \
+  --pod5 <raw-signal.pod5> \          # See "Pod5 input" below
+  --motifs <motif> \                  # See "Filter arguments" below
+  --out <output-file>
 ```
 
 ![reformat command demo](docs/images/reformat_demo.gif)
 
 After aligning signals to sequences, the alignments consists only of signal indices, not the actual signal chunks. Fishnet provides the `reformat` command to process previously calculated alignments with the signals into formats that can easily used for further downstream processing or analyses. 
 
-### Minimal usage
-
-```bash
-fishnet reformat \
-  --alignment <alignments.parquet> \
-  --pod5 <raw-signal.pod5> \
-  --motifs <motif> \
-  --out <output-file>
-```
-More examples are provided in [Examples](docs/reformat/examples.md).
+Usage examples are provided in [Examples](docs/reformat/examples.md).
 
 ### Required arguments
 
 | Long flag | Short flag | Explanation | Type |
 |-|-|-|-|
 | --alignment | -a | Path to a parquet file produced by `fishnet align` | Path (file) |
-| --bam | -b | Path to a bam file (as given by Dorado; must contain **move tables** for each read) | Path (file) |
 | --out | -o | Path to the output file. Must end with .parquet (recommended) or .tsv depending on the wanted output format | Path (file) |
+
+#### Pod5 input (optional, but recommended):
+
+Pod5 data can be provided via the `--pod5` / `-p` flag. This is only required if the alignment file does not contain the raw signal. 
+Not writing the signal to the alignment file is recommended as it is less efficient to store the signal in PARQUET format instead of compressed POD5 format.
 
 #### Filter arguments (one is required):
 
