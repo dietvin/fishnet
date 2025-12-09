@@ -65,13 +65,12 @@ fishnet align \
 
 With `Fishnet`, signal-to-sequence alignments are created using the `align` command. It is possible to align both the base-called (query) and (if present) the reference sequences to the signal.
 
-<div style='background-color: #d5d3d6; color: #000000; border-left: solid #008800ff 4px; border-radius: 4px; padding:0.7em;'>
-<h1 style="color: #008800ff"> Info: Signal-to-sequence alignments</h1>
-
-A signal-to-sequence alignment `A` is an array of signal indices, where the pair `A[i]`, `A[i+1]` corresponds to the start and end indiced on the signal assigned to base `i`. The intervals are half-open (start is included, end is not). 
-
-Here is a minimal example:
-```
+<details>
+<summary><strong>General info: Signal-to-sequence alignments</strong></summary>
+<p>
+A signal-to-sequence alignment <code>A</code> is an array of signal indices, where the pair <code>A[i]</code>, <code>A[i+1]</code> corresponds to the start and end indiced on the signal assigned to base <code>i</code>. The intervals are half-open (start is included, end is not).
+</p>
+<pre>
 Signal:
 ┌──────────────────────────────┐
 │ x                      xxxxx │
@@ -94,8 +93,9 @@ Signal-to-sequence:
 └────┴─────┴───────┴───────┴───────┘
 │0123│45678│9012345│6789012│3456789│
 │ A  │  C  │   G   │   T   │   A   │
-```
-</div>
+</pre>
+
+</details>
 <br>
 
 The alignment requires the following input data:
