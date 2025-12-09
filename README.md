@@ -58,6 +58,7 @@ More information about the installation and how to build from source can be foun
 ```bash
 fishnet align [...]
 ```
+![align command demo](docs/images/align_demo.gif)
 
 A signal-to-sequence alignment `A` is an array of signal indices, where the pair `A[i]`, `A[i+1]` corresponds to the start and end indiced on the signal assigned to base `i`. The intervals are half-open (start is included, end is not). 
 
@@ -151,6 +152,8 @@ For a detailed description of all steps, see [Algorithm details](docs/align/algo
 ```bash
 fishnet reformat [...]
 ```
+
+![reformat command demo](docs/images/reformat_demo.gif)
 
 After aligning signals to sequences, the alignments consists only of signal indices, not the actual signal chunks. Fishnet provides the `reformat` command to process previously calculated alignments with the signals into formats that can easily used for further downstream processing or analyses. 
 
