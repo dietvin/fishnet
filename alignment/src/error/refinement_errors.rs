@@ -1,8 +1,8 @@
-use kmer_table_errors::KmerTableError;
+use kmer_table::error::KmerTableError;
 use refine_errors::RefineError;
 use rescale_errors::{RescaleError, RoughRescaleError};
 
-pub mod kmer_table_errors;
+pub mod load_kmer_table_errors;
 pub mod signal_map_refiner_errors;
 pub mod refine_errors;
 pub mod rescale_errors;

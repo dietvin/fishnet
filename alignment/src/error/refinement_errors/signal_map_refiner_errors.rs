@@ -1,8 +1,8 @@
+use kmer_table::error::KmerTableError;
 use pod5_reader_api::error::read::Pod5ReadError;
 
 use crate::error::alignment_errors::AlignedReadError;
 
-use super::kmer_table_errors::KmerTableError;
 use super::refine_errors::RefineError;
 use super::rescale_errors::{RescaleError, RoughRescaleError};
 #[derive(Debug, thiserror::Error)]

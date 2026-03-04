@@ -1,7 +1,6 @@
 use std::{collections::HashMap, fs::File, io::{BufRead, BufReader}, path::PathBuf};
-use alignment::error::refinement_errors::kmer_table_errors::KmerTableError;
-use alignment::core::refinement::kmer_table::KmerTable;
 use approx::assert_relative_eq;
+use kmer_table::{error::{KmerTableDataError, KmerTableError}, kmer_table::KmerTable};
 use serde::Deserialize;
 use walkdir::WalkDir;
 
@@ -28,7 +27,7 @@ fn process_line(line: String) -> (String, f32) {
 #[test]
 fn test_valid_kmer_table() {
     let path = PathBuf::from("tests/kmer_tables/valid.txt");
-    let result = KmerTable::new(&path);
+    let result = KmerTable::from_file(&path, false);
     assert!(result.is_ok(), "Failed to create KmerTable from valid file");
     
     let table = result.unwrap();
@@ -50,12 +49,12 @@ fn test_valid_kmer_table() {
 #[test]
 fn test_missing_entries_kmer_table() {
     let path = PathBuf::from("tests/kmer_tables/invalid1_missing_entries.txt");
-    let result = KmerTable::new(&path);
+    let result = KmerTable::from_file(&path, false);
     
     assert!(result.is_err(), "KmerTable creation should fail with missing entries");
     
     match result {
-        Err(KmerTableError::MissingEntries(actual, expected)) => {
+        Err(KmerTableError::KmerTableDataError(KmerTableDataError::MissingEntries(actual, expected))) => {
             assert!(actual < expected, "Expected missing entries error with actual < expected");
         },
         _ => panic!("Expected MissingEntries error, got different error or success")
@@ -66,18 +65,18 @@ fn test_missing_entries_kmer_table() {
 #[test]
 fn test_invalid_kmer_table() {
     let path = PathBuf::from("tests/kmer_tables/invalid2_invalid_kmer.txt");
-    let result = KmerTable::new(&path);
+    let result = KmerTable::from_file(&path, false);
     
     assert!(result.is_err(), "KmerTable creation should fail with invalid k-mer");
     
     // Test for possible error types (depending on what invalid2_invalid_kmer.txt contains)
     match result {
-        Err(KmerTableError::NonUniformKmerLength(_, _)) => {},
-        Err(KmerTableError::DuplicateKmer(_)) => {},
-        Err(KmerTableError::EmptyKmer) => {},
-        Err(KmerTableError::EvenKmer(_)) => {},
-        Err(KmerTableError::LineParsingError(_)) => {},
-        Err(KmerTableError::FloatConversionError(_)) => {},
+        Err(KmerTableError::KmerTableDataError(KmerTableDataError::NonUniformKmerLength(_, _))) => {},
+        Err(KmerTableError::KmerTableDataError(KmerTableDataError::DuplicateKmer(_))) => {},
+        Err(KmerTableError::KmerTableDataError(KmerTableDataError::EmptyKmer)) => {},
+        Err(KmerTableError::KmerTableDataError(KmerTableDataError::EvenKmer(_))) => {},
+        Err(KmerTableError::KmerTableDataError(KmerTableDataError::LineParsingError(_))) => {},
+        Err(KmerTableError::KmerTableDataError(KmerTableDataError::FloatConversionError(_))) => {},
         _ => panic!("Expected one of the kmer validation errors")
     }
 }
@@ -86,7 +85,7 @@ fn test_invalid_kmer_table() {
 #[test]
 fn test_empty_kmer_table() {
     let path = PathBuf::from("tests/kmer_tables/invalid3_empty.txt");
-    let result = KmerTable::new(&path);
+    let result = KmerTable::from_file(&path, false);
     
     assert!(result.is_err(), "KmerTable creation should fail with empty file");
 }
@@ -95,12 +94,12 @@ fn test_empty_kmer_table() {
 #[test]
 fn test_nonexistent_kmer_table() {
     let path = PathBuf::from("tests/kmer_tables/nonexistent.txt");
-    let result = KmerTable::new(&path);
+    let result = KmerTable::from_file(&path, false);
     
     assert!(result.is_err(), "KmerTable creation should fail with nonexistent file");
     
     match result {
-        Err(KmerTableError::FileNotFound(_)) => {},
+        Err(KmerTableError::KmerTableDataError(KmerTableDataError::FileNotFound(_))) => {},
         _ => panic!("Expected FileNotFound error")
     }
 }
@@ -109,7 +108,7 @@ fn test_nonexistent_kmer_table() {
 #[test]
 fn test_get_invalid_kmer() {
     let path = PathBuf::from("tests/kmer_tables/valid.txt");
-    let result = KmerTable::new(&path);
+    let result = KmerTable::from_file(&path, false);
     
     assert!(result.is_ok(), "Failed to create KmerTable from valid file");
     
@@ -139,7 +138,7 @@ fn test_get_invalid_kmer() {
 #[test]
 fn test_kmer_table_sorted_by_level() {
     let path = PathBuf::from("tests/kmer_tables/valid.txt");
-    let result = KmerTable::new(&path);
+    let result = KmerTable::from_file(&path, false);
     
     assert!(result.is_ok(), "Failed to create KmerTable from valid file");
     
@@ -163,7 +162,7 @@ fn test_kmer_table_sorted_by_level() {
 #[test]
 fn test_levels_as_expected() {
     let path = PathBuf::from("tests/kmer_tables/valid.txt");
-    let result = KmerTable::new(&path);
+    let result = KmerTable::from_file(&path, false);
     
     assert!(result.is_ok(), "Failed to create KmerTable from valid file");
     
@@ -186,14 +185,11 @@ fn test_levels_as_expected() {
 #[test]
 fn test_levels_fix_gauge_as_expected() {
     let path = PathBuf::from("tests/kmer_tables/valid.txt");
-    let result = KmerTable::new(&path);
+    let result = KmerTable::from_file(&path, true);
     
     assert!(result.is_ok(), "Failed to create KmerTable from valid file");
     
-    let mut table = result.unwrap();
-
-    let result_fix_gauge = table.fix_gauge();
-    assert!(result_fix_gauge.is_ok(), "Failed to normalize the levels");
+    let table = result.unwrap();
 
     let levels = table.levels();
     
@@ -233,8 +229,10 @@ fn load_json(path: &str) -> JsonData {
 fn test_with_data_from(dirname: &str) {
     let dir = format!("tests/{}/kmer_table/extract_levels", dirname);
 
-    let mut kmer_table = KmerTable::new(&PathBuf::from("../example_data/levels.txt")).unwrap();
-    kmer_table.fix_gauge().unwrap();
+    let kmer_table = KmerTable::from_file(
+        &PathBuf::from("../example_data/levels.txt"),
+        true
+    ).unwrap();
 
     let mut files= WalkDir::new(dir)
         .into_iter()

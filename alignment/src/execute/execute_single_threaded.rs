@@ -26,6 +26,7 @@
 use console::style;
 use helper::{io::OutputFormat, logger::setup_logger};
 use indicatif::{ProgressBar, ProgressStyle};
+use kmer_table::kmer_table::KmerTable;
 use log::LevelFilter;
 use pod5_reader_api::dataset::Pod5Dataset;
 use crate::{
@@ -33,10 +34,23 @@ use crate::{
         alignment::aligned_read::AlignedRead, 
         loader::bam::BamFileLazy, 
         refinement::{
-            kmer_table::KmerTable, 
+            load_kmer_table::load_kmer_table, 
             signal_map_refiner::SigMapRefiner
         }
-    }, error::AlignmentError, execute::{config::{ConfigAlign, WhichToAlign}, output::{output_arrow::OutputWriterArrow, output_data::OutputData, output_json::OutputWriterJsonl, AlignmentWriter}}
+    }, 
+    error::AlignmentError, 
+    execute::{
+        config::{
+            ConfigAlign, 
+            WhichToAlign
+        }, 
+        output::{
+            AlignmentWriter, 
+            output_arrow::OutputWriterArrow, 
+            output_data::OutputData, 
+            output_json::OutputWriterJsonl
+        }
+    }
 };
 
 
@@ -84,20 +98,36 @@ pub fn run_alignment_single_threaded(input: ConfigAlign) -> Result<(), Alignment
 
     progress_bar_init.set_message("Initializing the kmer table...");
     let kmer_table_path = input.kmer_table_input();
-    let mut kmer_table = match KmerTable::new(kmer_table_path) {
-        Ok(v) => v,
-        Err(e) => {
-            log::error!("Failed to load kmer table: {e}");
-            return Err(AlignmentError::KmerTableError(e));
+    let kmer_table = match kmer_table_path {
+        // If a kmer table file is given, always use it
+        Some(file_path) => {
+            match KmerTable::from_file(
+                file_path,
+                *refine_settings.normalize_levels()
+            ) {
+                Ok(v) => v,
+                Err(e) => {
+                    log::error!("Failed to read kmer table from file: {e}");
+                    return Err(AlignmentError::KmerTableError(e));
+                }
+            }
+        }
+        // If no file is given, attempt to identify and load an embedded one
+        None => {
+            match load_kmer_table(bam_file.header()) {
+                Ok(v) => v,
+                Err(e) => {
+                    log::error!("Failed to load kmer table: {e}");
+                    eprintln!(
+                        "{}: {}",
+                        style("Warning").yellow().bold(),
+                        style(format!("Failed to load an embedded kmer table ({e}). Please provide a file via the `--kmer-table` flag.")).yellow(),
+                    );
+                    std::process::exit(1);          
+                }
+            }
         }
     };
-
-    if *refine_settings.normalize_levels() {
-        if let Err(e) = kmer_table.fix_gauge() {
-            log::error!("Failed to normalize kmer table levels: {e}");
-            return Err(AlignmentError::KmerTableError(e));
-        }
-    }
 
     progress_bar_init.set_message("Initializing the output writer...");
 

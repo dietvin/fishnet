@@ -23,6 +23,7 @@
 use std::collections::HashMap;
 use std::fs::File;
 use std::path::PathBuf;
+use noodles::sam::Header;
 use noodles::sam::alignment::record::cigar::Op;
 
 use noodles::bam::record::Data;
@@ -435,7 +436,8 @@ pub struct BamFileLazy {
     path: PathBuf,
     bam_reader: bam::io::Reader<bgzf::io::Reader<File>>,
     index: HashMap<String, bgzf::VirtualPosition>,
-    ref_sequence_index: HashMap<usize, String>
+    ref_sequence_index: HashMap<usize, String>,
+    header: Header
 }
 
 
@@ -502,7 +504,8 @@ impl BamFileLazy {
             path: path.clone(),
             bam_reader,
             index,
-            ref_sequence_index
+            ref_sequence_index,
+            header
         })
     }
 
@@ -626,6 +629,10 @@ impl BamFileLazy {
 
         self.bam_reader = bam_reader;
         Ok(())
+    }
+
+    pub fn header(&self) -> &Header {
+        &self.header
     }
 }
 

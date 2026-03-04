@@ -109,15 +109,6 @@ can be combined."
                 )
         )
         .arg(
-            Arg::new("kmer-table")
-                .long("kmer-table")
-                .short('k')
-                .required(true)
-                .value_parser(value_parser!(PathBuf))
-                .help_heading("Required input/output arguments")
-                .help("Path to a kmer table file")
-        )
-        .arg(
             Arg::new("out")
                 .long("out")
                 .short('o')
@@ -132,7 +123,22 @@ Must be '.parquet' for Parquet output or '.jsonl' for JSONL output."
         )
 
         // General options
-        
+        .arg(
+            Arg::new("kmer-table")
+                .long("kmer-table")
+                .short('k')
+                .required(false)
+                .value_parser(value_parser!(PathBuf))
+                .help_heading("General settings")
+                .help("Path to a kmer table file")
+                .long_help(
+"Path to a kmer table file. Fishnet stores ONT's kmer tables internally and tries
+to match the provided data to one of these (based on the basecall model name stored
+in the BAM header). This flag is only required if no internal table can be assigned
+to the data."
+                )
+        )
+
         .arg(
             Arg::new("rna")
                 .long("rna")

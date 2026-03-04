@@ -5,6 +5,7 @@
 
 use alignment_errors::AlignmentCoreError;
 use helper::errors::LoggerError;
+use kmer_table::error::KmerTableError;
 use loader_errors::LoaderError;
 use pod5_reader_api::error::dataset::Pod5DatasetError;
 use refinement_errors::RefinementError;
@@ -12,7 +13,7 @@ use refinement_errors::RefinementError;
 use crate::error::{
     loader_errors::bam_errors::BamFileError, 
     output_errors::OutputError, 
-    refinement_errors::kmer_table_errors::KmerTableError
+    refinement_errors::load_kmer_table_errors::KmerTableLoadingError, 
 };
 
 pub mod loader_errors;
@@ -31,6 +32,8 @@ pub enum AlignmentError {
     Pod5DatasetError(#[from] Pod5DatasetError),
     #[error("Kmer table error: {0}")]
     KmerTableError(#[from] KmerTableError),
+    #[error("Kmer table loading error: {0}")]
+    KmerTableLoadingError(#[from] KmerTableLoadingError),
     #[error("Output error: {0}")]
     OutputError(#[from] OutputError),
     #[error("Loader error: {0}")]

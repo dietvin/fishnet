@@ -13,7 +13,6 @@ The table below shows all arguments that are available in the command line inter
 |-|-|-|-|
 | `-b, --bam <bam>` | Path (file) | - | Path to a BAM input file. Only a single file must be provided. |
 | `-p, --pod5 <pod5>` | Path(s) (file or directory) | - | Path(s) to the POD5 input. Multiple paths can be provided space-separated. Each path can point to a file or directory. If a directory is provided, all `.pod5` files within it are processed. File and directory paths can be combined. |
-| `-k, --kmer-table <kmer_table>` | Path (file) | - | Path to a k-mer table file. K-mer tables are provided by ONT in their public repository. |
 | `-o, --out <output>` | Path (file) | - | Path to the output file. The file extension determines the format: `.parquet` for Parquet output, `.jsonl` for JSONL output. |
 
 ## Optional Arguments
@@ -24,6 +23,7 @@ There are various parameters available to set more general settings or to fine-t
 | **Argument** | **Type** | **Default** | **Description** |
 |-|-|-|-|
 | `-r, --rna` | Flag | - | Whether direct RNA data is provided. If set, reverses the raw signal (3'->5') to match the base-called/mapped 5'->3' orientation. |
+| `-k, --kmer-table <kmer_table>` | Path (file) | - | Path to a [kmer level table](https://github.com/nanoporetech/kmer_models). This is only required if no embedded kmer table can be matched to given data ([more information](./docs/align/kmer_table_matching.md)) |
 | `-a, --alignment-type <type>` | Enum (`query`, `reference`, `both`) | `query` | Determines the type of alignment to perform. `query`: aligns signal to base-called query sequence. `reference`: aligns signal to the reference sequence (if mapped). |
 
 ### Output settings

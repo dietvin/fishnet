@@ -24,6 +24,7 @@ For further processing, run the `reformat` command:
   - [Algorithm details](#algorithm-details)
 - [Reformatting](#reformatting)
   - [Required arguments](#required-arguments-1)
+    - [Pod5 input (optional, but recommended):](#pod5-input-optional-but-recommended)
     - [Filter arguments (one is required):](#filter-arguments-one-is-required)
   - [Optional arguments](#optional-arguments-1)
   - [Reformatting strategies](#reformatting-strategies)
@@ -57,7 +58,6 @@ More information about the installation and how to build from source can be foun
 fishnet align \
   --bam <basecalls.bam> \
   --pod5 <raw-signal.pod5> \
-  --kmer-table <level-table.txt> \
   --out <output-file>
 ```
 
@@ -101,11 +101,6 @@ Signal-to-sequence:
 The alignment requires the following input data:
 1. **Raw sequencing data**. Must be stored in **POD5** format
 2. **Basecalled data**. Must be stored in a single **BAM** file, as produced by [Dorado](https://github.com/nanoporetech/dorado/) (Note that it must contain the move-table, so base-call with the `--emit-moves` flag!)
-3. **Expected current intensities**. Must be stored in a **kmer level table**, as [provided by ONT](https://github.com/nanoporetech/kmer_models):
-     - DNA R10 (400bps): [9mer_levels_v1.txt](https://raw.githubusercontent.com/nanoporetech/kmer_models/refs/heads/master/dna_r10.4.1_e8.2_400bps/9mer_levels_v1.txt)
-     - DNA R10 (260bps): [9mer_levels_v1.txt](https://github.com/nanoporetech/kmer_models/blob/master/dna_r10.4.1_e8.2_260bps/9mer_levels_v1.txt)
-     - RNA004: [9mer_levels_v1.txt](https://raw.githubusercontent.com/nanoporetech/kmer_models/refs/heads/master/rna004/9mer_levels_v1.txt)
-     - RNA002: [5mer_levels_v1.txt](https://raw.githubusercontent.com/nanoporetech/kmer_models/refs/heads/master/rna_r9.4_180mv_70bps/5mer_levels_v1.txt)
 
 Usage examples are provided in [Examples](docs/align/examples.md).
 
@@ -117,7 +112,6 @@ The following arguments are required:
 |-|-|-|-|
 | --pod5 | -p | Path(s) to one or more pod5 files and/or directories containing pod5 files (separate multiple paths by space) | Path(s) (file or directory) |
 | --bam | -b | Path to a bam file (as given by Dorado; must contain **move tables** for each read) | Path (file) |
-| --kmer-table | -k | Path to a [kmer level table](https://github.com/nanoporetech/kmer_models) | Path (file) |
 | --out | -o | Path to the output file. Must end with .parquet (recommended) or .jsonl depending on the wanted output format | Path (file) |
 
 ### Optional arguments
@@ -127,6 +121,7 @@ The following arguments are the most relevant optional arguments for most users:
 | Long flag | Short flag |Explanation | Type |
 |-|-|-|-|
 | --rna | -r | Whether the provided data is direct RNA sequencing data. If set, the signal gets reversed for the alignment (dRNA signals are measured 3'-5') | Flag |
+| --kmer-table | -k | Path to a [kmer level table](https://github.com/nanoporetech/kmer_models). This is only required if no embedded kmer table can be matched to given data ([more information](./docs/align/kmer_table_matching.md)) | Path (file) |
 | --alignment-type | -a | Which type(s) of alignment to generate. Can be '**query**' (Default) to align the signal to the base-called sequence, '**reference**' to align to the reference sequence (if mapped)or '**both**' to do both. | Enum (`query`, `reference`, `both`) |
 | --threads | -t | Number of parallel threads to use. Default: **8** | int |
 | --force-overwrite | -f | If set and an output file already exists, this file will be overwritten. Raises an error otherwise | Flag |

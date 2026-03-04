@@ -4,7 +4,8 @@ members = [
     "alignment",
     "pod5_reader_api", 
     "reformat", 
-    "helper"
+    "helper",
+    "kmer_table"
 ]
 resolver = "2"
 
@@ -18,7 +19,9 @@ repository = "https://github.com/dietvin/fishnet"
 # Shared dependencies
 approx = "0.5.1"
 arrow2 = { version = "0.18.0", features = ["io_parquet", "io_parquet_compression", "compute_concatenate", "io_ipc"] }
+bincode = "1"
 bitvec = "1.0.1"
+bstr = "1.12.1"
 chrono = "0.4.41"
 clap = { version = "4.5.47", features = ["cargo"] }
 console = "0.16.0"

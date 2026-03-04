@@ -44,9 +44,9 @@ impl Default for WhichToAlign {
 pub struct ConfigAlign {
     bam_input: PathBuf,
     pod5_input: Vec<PathBuf>,
-    kmer_table_input: PathBuf,
     output_file: PathBuf,
-
+    
+    kmer_table_input: Option<PathBuf>,
     is_drna: bool,
     alignment_type: WhichToAlign,
 
@@ -78,11 +78,6 @@ impl ConfigAlign {
         )?.map(|buf| buf.clone()).collect::<Vec<PathBuf>>();
         let pod5_input = check_and_get_pod5_input(pod5_input_raw)?;
 
-        let kmer_table_input = matches.get_one::<PathBuf>("kmer-table").ok_or(
-            CliError::ArgumentNone("kmer-table".to_string())
-        )?.clone();
-        check_input_file(&kmer_table_input, "txt")?;
-
         let force_overwrite = matches.get_flag("force-overwrite");
 
         let output_file_raw = matches.get_one::<PathBuf>("out").ok_or(
@@ -96,6 +91,11 @@ impl ConfigAlign {
 
 
         // Optional general arguments
+
+        let kmer_table_input = matches.get_one::<PathBuf>("kmer-table").cloned();
+        if let Some(kmer_table_path) = &kmer_table_input {
+            check_input_file(kmer_table_path, "txt")?;
+        }
 
         let is_drna = matches.get_flag("rna");
 
@@ -394,8 +394,8 @@ impl ConfigAlign {
         Ok(ConfigAlign { 
             bam_input, 
             pod5_input, 
-            kmer_table_input, 
             output_file, 
+            kmer_table_input, 
             is_drna,
             alignment_type, 
             output_config,
@@ -419,8 +419,8 @@ impl ConfigAlign {
         &self.pod5_input
     }
 
-    pub fn kmer_table_input(&self) -> &PathBuf {
-        &self.kmer_table_input
+    pub fn kmer_table_input(&self) -> Option<&PathBuf> {
+        self.kmer_table_input.as_ref()
     }
 
     pub fn output_file(&self) -> &PathBuf {

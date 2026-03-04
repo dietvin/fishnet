@@ -48,6 +48,7 @@
 
 pub mod rescale;
 
+use kmer_table::kmer_table::KmerTable;
 use noodles::bam::Record;
 use pod5_reader_api::read::Pod5Read;
 
@@ -55,7 +56,6 @@ use crate::core::alignment::aligned_read::AlignedRead;
 use crate::core::loader::bam::BamRead;
 use crate::execute::config::refinement_config::{RefineSettings, RoughRescaleAlgo, WhichToRefine};
 use helper::logger::get_log_vector_sample;
-use super::kmer_table::KmerTable;
 use self::rescale::{rough_rescale_lstsq, rough_rescale_theil_sen, rescale};
 use super::refinement_core::start_refinement::refinement;
 use crate::error::refinement_errors::signal_map_refiner_errors::SigMapRefineError;
@@ -84,7 +84,7 @@ impl<'a> SigMapRefiner<'a> {
     ) -> Result<Self, SigMapRefineError> {
         log::info!(
             "Initializing SigMapRefiner from kmer table '{}' for read '{}'", 
-            kmer_table.source_path().display(), aligned_read.read_id()
+            kmer_table.source_str(), aligned_read.read_id()
         );
         log::debug!("SigMapRefiner::new {}: Using the following settings: {:?}", aligned_read.read_id(), settings);
 

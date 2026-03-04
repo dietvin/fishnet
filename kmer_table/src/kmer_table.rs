@@ -38,15 +38,16 @@
  * ```
  */
 
-mod helpers;
-mod binary_kmer;
-
-use std::{collections::{HashMap, HashSet}, fs::File, io::{BufRead, BufReader}, path::PathBuf};
+use std::{collections::HashMap, path::PathBuf};
 use helper::logger::get_log_vector_sample;
+use crate::{binary_kmer::BinaryKmer, error::KmerTableError, kmer_table_data::KmerTableData};
 
-use self::binary_kmer::BinaryKmer;
-use self::helpers::{process_line, sort_and_index, determine_dominant_base, Median};
-use crate::error::refinement_errors::kmer_table_errors::KmerTableError;
+#[derive(Debug)]
+pub enum KmerSource {
+    Embedded(&'static str),
+    File(PathBuf)
+}
+
 /// A data structure for storing and querying k-mers with their associated levels
 ///
 /// This structure reads k-mers and their associated levels from a tab-delimited file,
@@ -64,10 +65,21 @@ pub struct KmerTable{
     /// Index of the position in k-mers that has the most influence on levels
     dominant_base: usize,
     /// Path to the underlying file
-    source_path: PathBuf
+    source: KmerSource
 }
 
 impl KmerTable {
+    pub(crate) fn new(
+        index: HashMap<BinaryKmer, usize>,
+        kmers: Vec<BinaryKmer>,
+        levels: Vec<f32>,
+        k: usize,
+        dominant_base: usize,
+        source: KmerSource,
+    ) -> Self {
+        KmerTable { index, kmers, levels, k, dominant_base, source }
+    }
+
     /// Creates a new KmerTable from a file path
     ///
     /// Reads k-mers and their levels from a tab-delimited file, validates them,
@@ -92,118 +104,27 @@ impl KmerTable {
     /// * `KmerTableError::MissingEntries` - If the number of k-mers is less than expected (4^k)
     /// * `KmerTableError::LineParsingError` - If a line doesn't have exactly 2 columns
     /// * `KmerTableError::FloatConversionError` - If a level value cannot be parsed as a float
-    /// * `KmerTableError::BinaryKmerError` - If there's an error in the binary representation of a k-mer    
-    pub fn new(path: &PathBuf) -> Result<Self, KmerTableError> {
+    /// * `KmerTableError::BinaryKmerError` - If there's an error in the binary representation of a k-mer
+    pub fn from_file(path: &PathBuf, do_fix_gauge: bool) -> Result<Self, KmerTableError> {
         log::info!("Initializing KmerTable from path: {}", path.display());
 
-        let file = File::open(path)?;
-        let file_buffer = BufReader::new(file);
-
-        let mut unique_kmers = HashSet::new();
-
-        let mut prev_kmer_len = None;
-
-        let mut kmers_unsorted = Vec::new();
-        let mut levels_unsorted = Vec::new();
-
-        // Read the kmer table line for line
-        for line in file_buffer.lines() {
-            let line = line?;
-            if line.len() > 0 {
-                let (kmer, level) = process_line(line)?;
-
-                match prev_kmer_len {
-                    Some(v) => {
-                        if v != kmer.k() {
-                            return Err(
-                                KmerTableError::NonUniformKmerLength(kmer.k(), v)
-                            );
-                        }    
-                    },
-                    None => prev_kmer_len = Some(kmer.k())
-                }
-    
-                if !unique_kmers.insert(kmer.clone()) {
-                    return Err(KmerTableError::DuplicateKmer(kmer.to_string()));
-                }
-
-                kmers_unsorted.push(kmer);
-                levels_unsorted.push(level);    
-            }
-        }
-
-        if kmers_unsorted.len() == 0 {
-            return Err(KmerTableError::EmptyFile);
-        }
-        let k = kmers_unsorted[0].k();
-
-        let exp_len = (4u32.pow(k as u32)) as usize;
-        if kmers_unsorted.len() < exp_len {
-            return Err(KmerTableError::MissingEntries(kmers_unsorted.len(), exp_len));
-        }
-
-        let (index, kmers_sorted, levels_sorted) = sort_and_index(
-            &kmers_unsorted, 
-            &levels_unsorted
-        );
-
-        let dominant_base = determine_dominant_base(&kmers_sorted, k)?;
-
-        log::debug!(
-            "Initialized KmerTable: k = {}, kmers = {}, levels = {}, dominant_base = {}",
-            k,
-            get_log_vector_sample(&kmers_sorted.iter().map(|el| el.to_string()).collect::<Vec<String>>(), 10),
-            get_log_vector_sample(&levels_sorted, 10),
-            dominant_base
-        );
-
-        Ok(KmerTable {
-            index,
-            kmers: kmers_sorted,
-            levels: levels_sorted,
-            k,
-            dominant_base,
-            source_path: path.clone()
-        })
-    }
-
-    /// Normalizes the level values using median and median absolute deviation (MAD)
-    ///
-    /// This function adjusts the levels by subtracting the median and dividing by the MAD.
-    /// It is useful for standardizing the data and making it more robust against outliers.
-    ///
-    /// # Returns
-    ///
-    /// * `Result<(), KmerTableError>` - Returns `Ok(())` if normalization succeeds, or an error if it fails.
-    ///
-    /// # Errors
-    ///
-    /// * `KmerTableError::FixGaugeError` - If the median cannot be determined.
-    /// * `KmerTableError::FixGaugeError` - If the MAD cannot be determined.
-    /// * `KmerTableError::FixGaugeError` - If the MAD is zero, which would result in division by zero.
-    pub fn fix_gauge(&mut self) -> Result<(), KmerTableError> {
-        let median = self.levels.median().ok_or(
-            KmerTableError::FixGaugeError("Could not determine the median".to_string())
+        let kmer_table_data = KmerTableData::from_file(
+            path, 
+            false, 
+            do_fix_gauge
         )?;
 
-        let mut mad = self.levels.iter().map(|el| (el - median).abs())
-            .collect::<Vec<f32>>()
-            .median()
-            .ok_or(
-                KmerTableError::FixGaugeError("Could not determine the MAD".to_string())
-            )?;
-
-        mad *= 1.4826; // Factor scales MAD to SD
-
-        if mad == 0.0 {
-            return Err(KmerTableError::FixGaugeError("Zero division".to_string()));
-        }
-
-        self.levels = self.levels.iter()
-            .map(|el| (el - median) / mad)
-            .collect::<Vec<f32>>();
+        let kmer_table = kmer_table_data.into_kmer_table(KmerSource::File(path.clone()));
         
-        Ok(())
+        log::debug!(
+            "Initialized KmerTable: k = {}, kmers = {}, levels = {}, dominant_base = {}",
+            kmer_table.k,
+            get_log_vector_sample(&kmer_table.kmers.iter().map(|el| el.to_string()).collect::<Vec<String>>(), 10),
+            get_log_vector_sample(&kmer_table.levels, 10),
+            kmer_table.dominant_base
+        );
+
+        Ok(kmer_table)
     }
 
     /// Retrieves the level for a given BinaryKmer object
@@ -295,13 +216,25 @@ impl KmerTable {
     }
 
 
-    /// Returns the path to the table file
+    /// Returns the source as a str. 
     ///
     /// # Returns
     ///
-    /// * `&str` - Path to the kmer table file
-    pub fn source_path(&self) -> &PathBuf {
-        &self.source_path
+    /// * `&str` - Path to the kmer table file (if loaded from file) or the table name
+    ///            (if using a precompiled table)
+    pub fn source_str(&self) -> &str {
+        match &self.source {
+            KmerSource::File(path) => {
+                let path_str = match path.to_str() {
+                    Some(path_str) => path_str,
+                    None => "Could not determine file path" 
+                };
+                return path_str;
+            },
+            KmerSource::Embedded(name) => {
+                return *name;
+            }
+        }
     }
 
 

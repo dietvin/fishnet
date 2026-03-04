@@ -6,13 +6,17 @@ version.workspace = true
 edition.workspace = true
 license-file.workspace = true
 repository.workspace = true
+build = "build.rs"
 
 [dependencies]
 pod5_reader_api = { path = "../pod5_reader_api" }
+kmer_table = { path = "../kmer_table" }
 helper = { path = "../helper" }
 
 approx.workspace = true
 arrow2.workspace = true
+bincode.workspace = true
+bstr.workspace = true
 clap.workspace = true
 console.workspace = true
 crossbeam.workspace = true
@@ -27,6 +31,11 @@ serde_json.workspace = true
 thiserror.workspace = true
 uuid.workspace = true
 walkdir.workspace = true
+
+[build-dependencies]
+kmer_table = { path = "../kmer_table" }
+serde = { version = "1", features = ["derive"] }
+bincode.workspace = true
 
 [lib]
 path = "src/lib.rs"

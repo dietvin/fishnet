@@ -1,10 +1,154 @@
 /*!
- * This module contains helper functions used for parsing a kmer table.
+ * This module contains functions for parsing an processing a kmer table.
  */
 
-use super::BinaryKmer;
-use crate::error::refinement_errors::kmer_table_errors::KmerTableError;
-use std::collections::HashMap;
+use serde::{Deserialize, Serialize};
+
+use crate::{binary_kmer::BinaryKmer, error::{FixGaugeError, KmerTableDataError}, kmer_table::{KmerSource, KmerTable}};
+use std::{collections::{HashMap, HashSet}, fs::File, io::{BufRead, BufReader}, path::PathBuf};
+
+/// Serializable KmerTable
+#[derive(Serialize, Deserialize)]
+pub struct KmerTableData {
+    /// Kmers sorted by their corresponding levels
+    kmers: Vec<BinaryKmer>,
+    /// Sorted levels of the kmers 
+    levels: Vec<f32>,
+    /// Number of bases in a kmer
+    k: usize,
+    /// The index of the dominant base in the kmer table
+    dominant_base: usize
+}
+
+impl KmerTableData {
+    /// Extracts data needed to initialize a `KmerTable` from a kmer table file.
+    /// 
+    /// Parses a kmer levels table, extracting the expected levels for each kmer,
+    /// sorting levels and associated kmers by the levels. If specified levels are
+    /// normalized. The kmer position that has the most influence on the levels is
+    /// determined. Parsed data is returned in a tuple for initializing a `KmerTable`
+    /// object or writing the info to binary files during build.
+    /// 
+    /// # Arguments
+    /// * `path` - A PathBuf containing the path to a kmer table
+    /// * `skip_header` - Whether to skip a header line (needed in legacy kmer tables)
+    /// * `do_fix_gauge` - Whether to normalize the levels (needed in legacy kmer tables)
+    /// 
+    /// # Returns
+    /// * `Result<(Vec<BinaryKmer>, Vec<f32>, usize, usize)>` - A tuple containing:
+    ///     * A vector of kmers encoded as BinaryKmers sorted by their levels in the levels vector
+    ///     * A vector containing the levels sorted in ascending order
+    ///     * The k value
+    ///     * The dominant base in the kmer table
+    /// 
+    /// # Errors
+    /// * `KmerTableError::NonUniformKmerLength` - If the kmer lengths vary between lines
+    /// * `KmerTableError::DuplicateKmer` - If a kmer occurs more than once
+    /// * `KmerTableError::EmptyFile` - If the file is empty
+    /// * `KmerTableError::MissingEntries` - If there are kmers missing in the file
+    pub fn from_file(
+        path: &PathBuf,
+        skip_header: bool,
+        do_fix_gauge: bool    
+    ) -> Result<Self, KmerTableDataError> {
+        let file = File::open(path)?;
+        let file_buffer = BufReader::new(file);
+    
+        let mut unique_kmers = HashSet::new();
+    
+        let mut prev_kmer_len = None;
+    
+        let mut kmers_unsorted = Vec::new();
+        let mut levels_unsorted = Vec::new();
+    
+        // Use the skip header as a proxy to indicate legacy format
+        let is_legacy = skip_header;
+        let mut skip_header_mut = skip_header; 
+        for line in file_buffer.lines() {
+            if skip_header_mut {
+                skip_header_mut = false;
+                continue;
+            }
+            
+            let line = line?;
+            if line.len() > 0 {
+                let (kmer, level) = process_line(
+                    line,
+                    is_legacy
+                )?;
+    
+                match prev_kmer_len {
+                    Some(v) => {
+                        if v != kmer.k() {
+                            return Err(
+                                KmerTableDataError::NonUniformKmerLength(kmer.k(), v)
+                            );
+                        }    
+                    },
+                    None => prev_kmer_len = Some(kmer.k())
+                }
+    
+                if !unique_kmers.insert(kmer.clone()) {
+                    return Err(KmerTableDataError::DuplicateKmer(kmer.to_string()));
+                }
+    
+                kmers_unsorted.push(kmer);
+                levels_unsorted.push(level);    
+            }
+        }
+    
+        if kmers_unsorted.len() == 0 {
+            return Err(KmerTableDataError::EmptyFile);
+        }
+        let k = kmers_unsorted[0].k();
+    
+        let exp_len = (4u32.pow(k as u32)) as usize;
+        if kmers_unsorted.len() < exp_len {
+            return Err(KmerTableDataError::MissingEntries(kmers_unsorted.len(), exp_len));
+        }
+    
+        let (kmers_sorted, mut levels_sorted) = sort_by_levels(
+            &kmers_unsorted, 
+            &levels_unsorted
+        );
+    
+        if do_fix_gauge {
+            fix_gauge(&mut levels_sorted)?
+        }
+    
+        let dominant_base = determine_dominant_base(&kmers_sorted, k)?;
+    
+        Ok(KmerTableData {
+            kmers: kmers_sorted, 
+            levels: levels_sorted, 
+            k, 
+            dominant_base 
+        })    
+    }
+
+    /// Transforms self into a KmerTable.
+    /// 
+    /// Calculates the index from the provided sorted kmers and uses it, the provided
+    /// KmerSource and the data already present in self to initialize a KmerTable.
+    /// 
+    /// # Arguments
+    /// * `kmer_source` - A KmerSource indicating a table parsed from a file or an embedded
+    ///     table
+    /// 
+    /// # Returns
+    /// * `KmerTable` - The newly initialized kmer table
+    pub fn into_kmer_table(self, kmer_source: KmerSource) -> KmerTable {
+        let index = index_sorted_kmers(&self.kmers);
+        KmerTable::new(
+            index,
+            self.kmers,
+            self.levels,
+            self.k,
+            self.dominant_base,
+            kmer_source
+        )
+    }
+}
 
 /// Processes one line from the kmer table 
 /// 
@@ -26,21 +170,28 @@ use std::collections::HashMap;
 /// * `KmerTableError::EvenKmer` - If k is even (odd k-mers are expected)
 /// * `KmerTableError::FloatConversionError` - If the level can not be converted to a float
 /// * `KmerTableError::BinaryKmerError` - If there's an error creating the binary representation of the k-mer
-pub fn process_line(line: String) -> Result<(BinaryKmer, f32), KmerTableError> {
+fn process_line(line: String, is_legacy: bool) -> Result<(BinaryKmer, f32), KmerTableDataError> {
     let line_parts = line.split("\t").collect::<Vec<&str>>();
     
-    // Check the number of columns (should be 2)
-    if line_parts.len() != 2 {
-        return Err(KmerTableError::LineParsingError(line_parts.len()));
+    // Check the number of columns (should be 2, or 6/7 for legacy models)
+    if (
+        !is_legacy && line_parts.len() != 2
+    ) || (
+        // Some legacy tables don't have the 'weight' column
+        is_legacy && (line_parts.len() != 6 && line_parts.len() != 7)
+    ) {
+        return Err(KmerTableDataError::LineParsingError(line_parts.len()));
     }
 
     let kmer = BinaryKmer::from_string(line_parts[0])?;
     let kmer_len = kmer.k();
     if kmer_len == 0 {
-        return Err(KmerTableError::EmptyKmer);
-    } else if (kmer_len % 2) == 0 {
-        return Err(KmerTableError::EvenKmer(kmer_len));
+        return Err(KmerTableDataError::EmptyKmer);
     } 
+    // Removed check for even kmer length, since this isn't done in Remora...
+    // else if (kmer_len % 2) == 0 {
+        // return Err(KmerTableDataError::EvenKmer(kmer_len));
+    // } 
 
     let level = line_parts[1].parse::<f32>()?;
 
@@ -63,7 +214,10 @@ pub fn process_line(line: String) -> Result<(BinaryKmer, f32), KmerTableError> {
 ///   * A HashMap mapping k-mer strings to their indices in the sorted arrays
 ///   * A vector of k-mer strings sorted by level
 ///   * A vector of level values in sorted order
-pub fn sort_and_index(kmers: &Vec<BinaryKmer>, levels: &Vec<f32>) -> (HashMap<BinaryKmer, usize>, Vec<BinaryKmer>, Vec<f32>) {
+fn sort_by_levels(kmers: &Vec<BinaryKmer>, levels: &Vec<f32>) -> (
+    Vec<BinaryKmer>, 
+    Vec<f32>
+) {
     let mut indices = (0..levels.len()).collect::<Vec<usize>>();
     indices.sort_by(
         |&i, &j| levels[i]
@@ -71,23 +225,35 @@ pub fn sort_and_index(kmers: &Vec<BinaryKmer>, levels: &Vec<f32>) -> (HashMap<Bi
             .unwrap_or(std::cmp::Ordering::Equal)
     );
     
-    let mut index = HashMap::new();
-
     let mut kmers_sorted = Vec::with_capacity(kmers.len());
     let mut levels_sorted = Vec::with_capacity(levels.len());
 
-    for(i, &idx) in indices.iter().enumerate() {
+    for &idx in indices.iter() {
         let kmer = &kmers[idx];
         let level = levels[idx];
 
         kmers_sorted.push(kmer.clone());
         levels_sorted.push(level);
+    }
 
+    (kmers_sorted, levels_sorted)
+}
+
+/// Creates an mapping of kmers to their index
+/// 
+/// Iterates through the **sorted** kmers as set up
+/// in `sort_by_levels`.
+fn index_sorted_kmers(
+    kmers_sorted: &Vec<BinaryKmer>
+) -> HashMap<BinaryKmer, usize> {
+    let mut index = HashMap::new();
+
+    for (i, kmer) in kmers_sorted.iter().enumerate() {
         index.insert(kmer.clone(), i);
     }
 
-    (index, kmers_sorted, levels_sorted)
-}
+    index
+} 
 
 /// Determines the position in k-mers that has the most influence on levels
 ///
@@ -110,7 +276,7 @@ pub fn sort_and_index(kmers: &Vec<BinaryKmer>, levels: &Vec<f32>) -> (HashMap<Bi
 /// * `KmerTableError::BinaryKmerError` - If there's an error accessing a nucleotide in the binary k-mer
 /// * `KmerTableError::KruskalTestError` - If the Kruskal-Wallis test fails
 /// * `KmerTableError::ArgMaxError` - If the maximum test statistic cannot be determined
-pub fn determine_dominant_base(kmers_sorted: &Vec<BinaryKmer>, k: usize) -> Result<usize, KmerTableError> {
+fn determine_dominant_base(kmers_sorted: &Vec<BinaryKmer>, k: usize) -> Result<usize, KmerTableDataError> {
     let n_kmers = kmers_sorted.len();
     
     // Calculate test scores for each index in the kmer
@@ -143,7 +309,7 @@ pub fn determine_dominant_base(kmers_sorted: &Vec<BinaryKmer>, k: usize) -> Resu
     }
 
     let dominant_base = argmax(&kmer_stats).ok_or(
-        KmerTableError::ArgMaxError
+        KmerTableDataError::ArgMaxError
     )?;
 
     Ok(dominant_base)
@@ -242,8 +408,39 @@ impl Median for [f32] {
     }
 }
 
+const SCALE_FACTOR: f32 = 1.4826;
 
+/// Standardizes provdided levels in place.
+/// 
+/// # Arguments
+/// * `levels` - A reference to a f32 vector containing signal levels
+/// 
+/// # Errors
+/// * `FixGaugeError::MedianNone` - If the median cannot be calculated
+/// * `FixGaugeError::MadNone` - If the mean absolute deviation cannot be calculated
+/// * `FixGaugeError::ZeroDivision` - If the MAD is zero (which would result in a 0-division)
+fn fix_gauge(
+    levels: &mut [f32]
+) -> Result<(), FixGaugeError> {
+    let median = levels.median().ok_or(FixGaugeError::MedianNone)?;
 
+    let mut mad = levels.iter().map(|el| (el - median).abs())
+        .collect::<Vec<f32>>()
+        .median()
+        .ok_or(FixGaugeError::MadNone)?;
+
+    mad *= SCALE_FACTOR;
+
+    if mad == 0.0 {
+        return Err(FixGaugeError::ZeroDivision);
+    }
+
+    for el in levels.iter_mut() {
+        *el = (*el - median) / mad;
+    }
+
+    Ok(())
+}
 
 
 

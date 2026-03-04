@@ -1,8 +1,8 @@
-use alignment::core::refinement::kmer_table::KmerTable;
 use alignment::execute::config::refinement_config::{RefineAlgo, RescaleAlgo, RoughRescaleAlgo, WhichToRefine, RefineSettings};
 use alignment::core::alignment::aligned_read::AlignedRead;
 use alignment::core::loader::bam::BamFileLazy;
 use alignment::core::refinement::signal_map_refiner::SigMapRefiner;
+use kmer_table::kmer_table::KmerTable;
 use pod5_reader_api::file::Pod5File;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -184,7 +184,10 @@ fn test_with_data_from(dirname: &str) {
         assert_eq!(*alignment, data.unrefined_map, "Unrefined: {}", path_str);
 
         let settings = refine_settings_from_data(&data);
-        let kmer_table = KmerTable::new(&PathBuf::from("../example_data/levels.txt")).unwrap();
+        let kmer_table = KmerTable::from_file(
+            &PathBuf::from("../example_data/levels.txt"),
+            false
+        ).unwrap();
         let mut sig_map_refiner = SigMapRefiner::new(
             &kmer_table, 
             &mut aligned_read, 
