@@ -137,7 +137,7 @@ impl AvailableKmerTables {
         match parts.as_slice() {
             ["rna002", ..] => Ok(Self::RNA002),
             ["rna004", ..] => Ok(Self::RNA004),
-            ["dna", pore] if pore.starts_with("r9.4") => Ok(Self::DnaR9Bps450),
+            ["dna", pore, ..] if pore.starts_with("r9.4") => Ok(Self::DnaR9Bps450),
             ["dna", "r10.4.1", ..] if parts.contains(&"260bps") => Ok(Self::DnaR10Bps260),
             ["dna", "r10.4.1", ..] if parts.contains(&"400bps") => Ok(Self::DnaR10Bps400),
             _ => Err(KmerTableLoadingError::UnfittingBasecallModel(model.to_string()))
