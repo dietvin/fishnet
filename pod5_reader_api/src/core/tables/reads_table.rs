@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use arrow2::{
     array::{
         Array, 
@@ -7,216 +8,322 @@ use arrow2::{
         ListArray, 
         PrimitiveArray, 
         UInt64Array, 
-        Utf8Array
+        Utf8Array, new_null_array
     }, 
-    chunk::Chunk, 
+    chunk::Chunk, datatypes::{
+        DataType, 
+        Schema
+    }, 
     types::NativeType
 };
 use uuid::Uuid;
 
-use crate::{error::tables::ReadsTableError, read::Pod5Read};
+use crate::{
+    error::tables::ReadsTableError,
+    read::Pod5Read
+};
 
-/// Intermediate helper struct that holds strongly typed references to the Arrow arrays from a chunk of the reads table.
-/// It enables safe and row-wise access to read metadata for constructing Pod5Read instances.
+
+/// Describes the versioning status of a column in a reads table.
+/// 
+/// Used during schema evaluation to determine whether a missing
+/// column should be treated as a hard error or a known version
+/// compatibility gap. 
+#[derive(Debug, Clone, PartialEq)]
+enum ColumnStatus {
+    /// Column was defined in the base pod5 spec and must be present
+    /// in all files
+    Required,
+    /// Column was added in a later version. Files written by older
+    /// versions do not contain this column. When absent, it is 
+    /// substituted with a null array
+    AddedIn(&'static str),
+    /// Column was deprecated in the given pod5 spec version and will
+    /// eventually be removed. Files written in newer versions my omit
+    /// this column. When abscent it is substituted with a null array.
+    DeprecatedIn(&'static str)
+}
+
+/// Describes a single column in the pod5 reads table schema, including its name
+/// and versioning status.
+struct ColumnSpec {
+    /// The column name as it appears in the Arrow schema fields.
+    name: &'static str,
+    /// The corresponding versioning status of this column.
+    status: ColumnStatus
+}
+
+/// Description of the pod5 reads table column as specified in pod5 v.0.3.33.
+/// 
+/// This is used during parsing to validate that all required columns are present
+/// and log messages when optional columns are absent.
+const COLUMN_SPECS: &[ColumnSpec] = &[
+    ColumnSpec { name: "read_id",                       status: ColumnStatus::Required },
+    ColumnSpec { name: "signal",                        status: ColumnStatus::Required },
+    ColumnSpec { name: "channel",                       status: ColumnStatus::Required },
+    ColumnSpec { name: "well",                          status: ColumnStatus::Required },
+    ColumnSpec { name: "pore_type",                     status: ColumnStatus::Required },
+    ColumnSpec { name: "calibration_offset",            status: ColumnStatus::Required },
+    ColumnSpec { name: "calibration_scale",             status: ColumnStatus::Required },
+    ColumnSpec { name: "read_number",                   status: ColumnStatus::Required },
+    ColumnSpec { name: "start",                         status: ColumnStatus::Required },
+    ColumnSpec { name: "median_before",                 status: ColumnStatus::Required },
+    ColumnSpec { name: "tracked_scaling_scale",         status: ColumnStatus::DeprecatedIn("0.4.0") },
+    ColumnSpec { name: "tracked_scaling_shift",         status: ColumnStatus::DeprecatedIn("0.4.0") },
+    ColumnSpec { name: "predicted_scaling_scale",       status: ColumnStatus::DeprecatedIn("0.4.0") },
+    ColumnSpec { name: "predicted_scaling_shift",       status: ColumnStatus::DeprecatedIn("0.4.0") },
+    ColumnSpec { name: "num_reads_since_mux_change",    status: ColumnStatus::DeprecatedIn("0.4.0") },
+    ColumnSpec { name: "time_since_mux_change",         status: ColumnStatus::DeprecatedIn("0.4.0") },
+    ColumnSpec { name: "num_minknow_events",            status: ColumnStatus::Required },
+    ColumnSpec { name: "end_reason",                    status: ColumnStatus::Required },
+    ColumnSpec { name: "end_reason_forced",             status: ColumnStatus::Required },
+    ColumnSpec { name: "run_info",                      status: ColumnStatus::Required },
+    ColumnSpec { name: "num_samples",                   status: ColumnStatus::Required },
+    ColumnSpec { name: "open_pore_level",               status: ColumnStatus::AddedIn("0.3.33") },
+];
+
+
+/// Holds strongly-typed Arrow arrays for each column of a pod5 reads table chunk.
+/// 
+/// This struct acts as an intermediate helper struct that handles the initial
+/// parsing of the Arrow data from a raw [`Chunk`] and its [`Schema`]. It provides
+/// safe row-wise (read-wise) access via [`ReadsTable::get`] and [`Iterator`].
+/// 
+/// Optional columns that may be absent due to pod5 spec version differences are
+/// represented as null arrays, so [`ReadsTable::get`] always returns a consistent
+/// [`Pod5Read`] struct regardless of which version wrote a given file.
+/// 
+/// Information is taken from the [pod5 source](https://github.com/nanoporetech/pod5-file-format/blob/0.3.33/docs/tables/reads.toml).
 #[derive(Debug)]
 pub(crate) struct ReadsTable {
     read_id_array: FixedSizeBinaryArray,
     signal_index_array: ListArray<i32>,
+    channel_array: PrimitiveArray<u16>,
+    well_array: PrimitiveArray<u8>,
+    pore_type_array: DictionaryArray<i16>,
+    calibration_offset_array: PrimitiveArray<f32>,
+    calibration_scale_array: PrimitiveArray<f32>,
     read_number_array: PrimitiveArray<u32>,
     start_array: PrimitiveArray<u64>,
     median_before_array: PrimitiveArray<f32>,
-    num_minknow_events_array: PrimitiveArray<u64>,
     tracked_scaling_scale_array: PrimitiveArray<f32>,
     tracked_scaling_shift_array: PrimitiveArray<f32>,
     predicted_scaling_scale_array: PrimitiveArray<f32>,
     predicted_scaling_shift_array: PrimitiveArray<f32>,
     num_reads_since_mux_change_array: PrimitiveArray<u32>,
     time_since_mux_change_array: PrimitiveArray<f32>,
-    num_samples_array: PrimitiveArray<u64>,
-    channel_array: PrimitiveArray<u16>,
-    well_array: PrimitiveArray<u8>,
-    pore_type_array: DictionaryArray<i16>,
-    calibration_offset_array: PrimitiveArray<f32>,
-    calibration_scale_array: PrimitiveArray<f32>,
+    num_minknow_events_array: PrimitiveArray<u64>,
     end_reason_array: DictionaryArray<i16>,
     end_reason_forced_array: BooleanArray,
     run_info_array: DictionaryArray<i16>,
+    num_samples_array: PrimitiveArray<u64>,
+    open_pore_level_array: PrimitiveArray<f32>,
+
+    /// Number of rows in the table
+    length: usize,
+    /// Current row index (used during iteration process)
     current_index: usize,
-    length: usize
 }
 
 impl ReadsTable {
-    /// Attempts to downcast an Arrow array at the given index into a `FixedSizeBinaryArray`.
-    ///
+
+    /// Constructs a `ReadsTable` from an Arrow [`Chunk`] and its associated [`Schema`].
+    /// 
+    /// The schema fields are indexed by name and used to locate each expected column
+    /// within the chunks array slice, allowing for possible varying column orders.
+    /// 
+    /// Columns are validated against [`COLUMN_SPECS`] before any casting is attempted:
+    /// * [`ColumnStatus::Required`] columns cause an error if missing in the schema.
+    /// * [`ColumnStatus::AddedIn`] or [`ColumnStatus::DeprecatedIn`] columns substituted
+    /// with a null array of the appropriate type and a debug message is logged to explain
+    /// the version mismatch.
+    /// 
     /// # Arguments
-    /// * `arrays` - A slice of boxed Arrow arrays.
-    /// * `index` - The index of the target array within the slice.
-    ///
-    /// # Returns
-    /// * `Ok(FixedSizeBinaryArray)` if the cast succeeds.
-    /// * `Err(ReadsTableError::ArrayCastError)` if the array type is incompatible.
-    fn cast_fixed_sized_binary_array(arrays: &[Box<dyn Array>], index: usize) -> Result<FixedSizeBinaryArray, ReadsTableError> {
-        arrays[index]
+    /// * `chunk` - A chunk of Arrow data from the reads table
+    /// * `schema` - The Arrow schema associated with the chunk, used to resolve
+    ///              column names to array indices
+    /// 
+    /// # Errors
+    /// * [`ReadsTableError::MissingRequiredColumn`] if a required column is absent
+    /// * [`ReadsTableError::ArrayCastError`] if a column cannot be downcast to its 
+    /// expected Arrow array type.
+    pub(crate) fn from_chunk_and_schema(chunk: Chunk<Box<dyn Array>>, schema: &Schema) -> Result<Self, ReadsTableError> {
+        // Build a name -> array index lookup from the schema fields
+        let index_map = schema.fields.iter()
+            .enumerate()
+            .map(|(i, f)| (f.name.as_str(), i))
+            .collect::<HashMap<&str, usize>>();
+
+        let arrays = chunk.arrays();
+        let length = arrays.first().map(|a| a.len()).unwrap_or(0);
+
+        // Validate that all required columns are present
+        for spec in COLUMN_SPECS {
+            if !index_map.contains_key(spec.name) {
+                match spec.status {
+                    ColumnStatus::Required => {
+                        return Err(ReadsTableError::MissingRequiredColumn(spec.name.to_string()));
+                    }
+                    ColumnStatus::AddedIn(version) => {
+                        log::debug!(
+                            "Column '{}' is absent (added in version {}). File is likely older",
+                            spec.name, version
+                        );
+                    }
+                    ColumnStatus::DeprecatedIn(version) => {
+                        log::debug!(
+                            "Column '{}' is absent (was deprecated in version {})",
+                            spec.name, version
+                        )
+                    }
+                }
+            }
+        }
+
+        // Cast types that occur in only a single column
+
+        let read_id_idx = index_map["read_id"];
+        let read_id_array = arrays[read_id_idx]
             .as_any()
             .downcast_ref::<FixedSizeBinaryArray>()
             .ok_or_else(|| ReadsTableError::ArrayCastError { 
-                    index, 
-                    reason: format!("Failed to cast to FixedSizeBinaryArray") 
-                }
-            )
-            .cloned()
-    }
+                index: read_id_idx, 
+                reason: format!("Failed to cast 'read_id' column to FixedSizeBinaryArray") 
+            })
+            .cloned()?;
 
-    /// Attempts to downcast an Arrow array at the given index into a `ListArray<i32>`.
-    ///
-    /// # Arguments
-    /// * `arrays` - A slice of boxed Arrow arrays.
-    /// * `index` - The index of the target array within the slice.
-    ///
-    /// # Returns
-    /// * `Ok(ListArray<i32>)` if the cast is successful.
-    /// * `Err(ReadsTableError::ArrayCastError)` if the cast fails.
-    fn cast_list_array(arrays: &[Box<dyn Array>], index: usize) -> Result<ListArray<i32>, ReadsTableError> {
-        arrays[index]
+        let signal_idx = index_map["signal"];
+        let signal_index_array = arrays[signal_idx]
             .as_any()
             .downcast_ref::<ListArray<i32>>()
             .ok_or_else(|| ReadsTableError::ArrayCastError { 
-                    index, 
-                    reason: format!("Failed to cast to ListArray<i32>") 
-                }
-            )
-            .cloned()
-    }
+                    index: signal_idx, 
+                    reason: format!("Failed to cast 'signal' column to ListArray<i32>") 
+            })
+            .cloned()?;
 
-    /// Attempts to downcast an Arrow array at the given index into a `DictionaryArray<i16>`.
-    ///
-    /// Used for dictionary-encoded string columns such as `pore_type`, `end_reason`, and `run_info`.
-    ///
-    /// # Arguments
-    /// * `arrays` - A slice of boxed Arrow arrays.
-    /// * `index` - The index of the target array.
-    ///
-    /// # Returns
-    /// * `Ok(DictionaryArray<i16>)` on success.
-    /// * `Err(ReadsTableError::ArrayCastError)` on failure.
-    fn cast_dictionary_array(arrays: &[Box<dyn Array>], index: usize) -> Result<DictionaryArray<i16>, ReadsTableError> {
-        arrays[index]
-            .as_any()
-            .downcast_ref::<DictionaryArray<i16>>()
-            .ok_or_else(|| ReadsTableError::ArrayCastError { 
-                    index, 
-                    reason: format!("Failed to cast to DictionaryArray<i16>") 
-                }
-            )
-            .cloned()
-    }
-
-    /// Attempts to downcast an Arrow array at the given index into a `BooleanArray`.
-    ///
-    /// # Arguments
-    /// * `arrays` - A slice of boxed Arrow arrays.
-    /// * `index` - The index of the array to downcast.
-    ///
-    /// # Returns
-    /// * `Ok(BooleanArray)` on successful cast.
-    /// * `Err(ReadsTableError::ArrayCastError)` if the type doesn't match.
-    fn cast_boolean_array(arrays: &[Box<dyn Array>], index: usize) -> Result<BooleanArray, ReadsTableError> {
-        arrays[index]
+        let end_reason_forced_idx = index_map["end_reason_forced"];
+        let end_reason_forced_array = arrays[end_reason_forced_idx]
             .as_any()
             .downcast_ref::<BooleanArray>()
             .ok_or_else(|| ReadsTableError::ArrayCastError { 
-                    index, 
-                    reason: format!("Failed to cast to BooleanArray") 
-                }
-            )
-            .cloned()
-    }
+                index: end_reason_forced_idx, 
+                reason: format!("Failed to cast 'end_reason_forced' column to BooleanArray") 
+            })
+            .cloned()?;
 
-    /// Constructs a `ReadsTable` from a `Chunk<Box<dyn Array>>` originating from a FeatherV2 dataset.
-    ///
-    /// This function validates the number and type of columns and converts each column
-    /// into a strongly typed Arrow array for efficient row-wise access.
-    ///
-    /// # Arguments
-    /// * `chunk` - The Arrow chunk containing raw columnar data.
-    ///
-    /// # Returns
-    /// * `Ok(ReadsTable)` if the chunk has the correct structure and types.
-    /// * `Err(ReadsTableError)` if any casting or validation fails.
-    pub fn from_chunk(chunk: Chunk<Box<dyn Array>>) -> Result<Self, ReadsTableError> {
-        if chunk.arrays().len() != 21 {
-            return Err(ReadsTableError::InvalidChunkStructure {
-                expected: 21,
-                actual: chunk.arrays().len(),
-            });
-        }    
+        // Cast dictionary columns
 
-        let arrays = chunk.arrays();
+        let pore_type_array = Self::cast_dict_array(arrays, index_map["pore_type"], "pore_type")?;
+        let end_reason_array = Self::cast_dict_array(arrays, index_map["end_reason"], "end_reason")?;
+        let run_info_array = Self::cast_dict_array(arrays, index_map["run_info"], "run_info")?;
 
-        // Helper macro that handles casting from Box<dyn Array> into a PrimitiveArrays
-        macro_rules! downcast_primitive {
-            ($idx:expr, $ty:ty, $name:expr) => {
-                arrays[$idx]
-                    .as_any()
+        // Cast primitive columns
+
+        // Attempts to downcast a &dyn Array to PrimitiveArray<T>
+        macro_rules! cast_primitive {
+            ($arr:expr, $ty:ty, $name:expr) => {
+                $arr.as_any()
                     .downcast_ref::<PrimitiveArray<$ty>>()
                     .ok_or_else(|| ReadsTableError::ArrayCastError { 
-                            index: $idx, 
-                            reason: format!("Failed to cast to PrimitiveArray<{}>", $name)
-                        }
-                    )
+                        index: index_map.get($name).copied().unwrap_or(usize::MAX), 
+                        reason: format!(
+                            "Failed to cast '{}' to PrimitiveArray<{}>",
+                            $name, stringify!($ty)
+                        )
+                    })
                     .cloned()
             };
         }
 
-        let read_id_array = Self::cast_fixed_sized_binary_array(arrays, 0)?;
-        let signal_index_array = Self::cast_list_array(arrays, 1)?;
-        let read_number_array = downcast_primitive!(2, u32, "u32")?;
-        let start_array = downcast_primitive!(3, u64, "u64")?;
-        let median_before_array = downcast_primitive!(4, f32, "f32")?;
-        let num_minknow_events_array = downcast_primitive!(5, u64, "u64")?;
-        let tracked_scaling_scale_array = downcast_primitive!(6, f32, "f32")?;
-        let tracked_scaling_shift_array = downcast_primitive!(7, f32, "f32")?;
-        let predicted_scaling_scale_array = downcast_primitive!(8, f32, "f32")?;
-        let predicted_scaling_shift_array = downcast_primitive!(9, f32, "f32")?;
-        let num_reads_since_mux_change_array = downcast_primitive!(10, u32, "u32")?;
-        let time_since_mux_change_array = downcast_primitive!(11,f32, "PrimitiveArray<f32>")?;
-        let num_samples_array = downcast_primitive!(12, u64, "u64")?;
-        let channel_array = downcast_primitive!(13, u16, "u16")?;
-        let well_array = downcast_primitive!(14, u8, "u8")?;
-        let pore_type_array = Self::cast_dictionary_array(arrays, 15)?;
-        let calibration_offset_array = downcast_primitive!(16, f32, "f32")?;
-        let calibration_scale_array = downcast_primitive!(17, f32, "f32")?;
-        let end_reason_array = Self::cast_dictionary_array(arrays, 18)?;
-        let end_reason_forced_array = Self::cast_boolean_array(arrays, 19)?;
-        let run_info_array = Self::cast_dictionary_array(arrays, 20)?;
+        // Look up the required array by its index and attempts downcasting
+        macro_rules! require_primitive {
+            ($name:expr, $ty:ty) => {
+                cast_primitive!(&arrays[index_map[$name]], $ty, $name)
+            };
+        }
 
-        let length = read_id_array.len();
+        // Determines whether an optional array is present, substituting it
+        // with a null array if missing. Then attempts to downcast.
+        macro_rules! optional_primitive {
+            ($name:expr, $data_type:expr, $type:ty) => {{
+                let arr = match index_map.get($name) {
+                    Some(&i) => arrays[i].clone(),
+                    None => new_null_array($data_type, length)        
+                };
+                cast_primitive!(arr, $type, $name)
+            }};
+        }
 
-        Ok(ReadsTable {
+        let channel_array = require_primitive!("channel", u16)?;
+        let well_array = require_primitive!("well", u8)?;
+        let calibration_offset_array = require_primitive!("calibration_offset", f32)?;
+        let calibration_scale_array = require_primitive!("calibration_scale", f32)?;
+        let read_number_array = require_primitive!("read_number", u32)?;
+        let start_array = require_primitive!("start", u64)?;
+        let median_before_array = require_primitive!("median_before", f32)?;
+        let num_minknow_events_array = require_primitive!("num_minknow_events", u64)?;
+        let num_samples_array = require_primitive!("num_samples", u64)?;
+
+        let tracked_scaling_scale_array =  optional_primitive!("tracked_scaling_scale", DataType::Float32, f32)?;
+        let tracked_scaling_shift_array =  optional_primitive!("tracked_scaling_shift", DataType::Float32, f32)?;
+        let predicted_scaling_scale_array =  optional_primitive!("predicted_scaling_scale", DataType::Float32, f32)?;
+        let predicted_scaling_shift_array =  optional_primitive!("predicted_scaling_shift", DataType::Float32, f32)?;
+        let num_reads_since_mux_change_array =  optional_primitive!("num_reads_since_mux_change", DataType::UInt32, u32)?;
+        let time_since_mux_change_array =  optional_primitive!("time_since_mux_change", DataType::Float32, f32)?;
+        let open_pore_level_array =  optional_primitive!("open_pore_level", DataType::Float32, f32)?;
+
+        Ok(ReadsTable { 
             read_id_array,
             signal_index_array,
+            channel_array,
+            well_array,
+            pore_type_array,
+            calibration_offset_array,
+            calibration_scale_array,
             read_number_array,
             start_array,
             median_before_array,
-            num_minknow_events_array,
             tracked_scaling_scale_array,
             tracked_scaling_shift_array,
             predicted_scaling_scale_array,
             predicted_scaling_shift_array,
             num_reads_since_mux_change_array,
             time_since_mux_change_array,
-            num_samples_array,
-            channel_array,
-            well_array,
-            pore_type_array,
-            calibration_offset_array,
-            calibration_scale_array,
+            num_minknow_events_array,
             end_reason_array,
             end_reason_forced_array,
             run_info_array,
-            current_index: 0,
+            num_samples_array,
+            open_pore_level_array,
             length,
+            current_index: 0
         })
+    }
+
+    /// Downcasts an Arrow array at the given index to a [`DictionaryArray<i16>`].
+    ///
+    /// Used for dictionary-encoded string columns (`pore_type`, `end_reason`, `run_info`),
+    /// where values are stored as integer keys into a shared string dictionary.
+    ///
+    /// # Arguments
+    /// * `arrays` - The full slice of arrays from the chunk.
+    /// * `index`  - The position of the target column within the slice.
+    /// * `name`   - The column name, included in the error message on failure.
+    ///
+    /// # Errors
+    /// Returns [`ReadsTableError::ArrayCastError`] if the array at `index` is not a
+    /// `DictionaryArray<i16>`.
+    fn cast_dict_array(arrays: &[Box<dyn Array>], index: usize, name: &str) -> Result<DictionaryArray<i16>, ReadsTableError> {
+        arrays[index]
+            .as_any()
+            .downcast_ref::<DictionaryArray<i16>>()
+            .ok_or_else(|| ReadsTableError::ArrayCastError { 
+                    index, 
+                    reason: format!("Failed to cast '{}' to DictionaryArray<i16>", name)
+                }
+            )
+            .cloned()
     }
 
     /// Retrieves a dictionary-encoded string value from a `DictionaryArray<i16>` at the given index.
@@ -338,6 +445,7 @@ impl ReadsTable {
                 },
             },
             Self::get_dict_value(&self.run_info_array, index),
+            Self::get_primitive(&self.open_pore_level_array, index),
             None
         ))
     }

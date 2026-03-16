@@ -13,6 +13,8 @@ pub enum ReadsTableError {
     #[error("Could not downcast the signal indices array")]
     SignalIndexArrayCastError,
     
+    #[error["Required column {0} is missing in reads table"]]
+    MissingRequiredColumn(String),
 }
 
 #[derive(Debug, thiserror::Error)]

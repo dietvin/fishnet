@@ -32,6 +32,7 @@ pub struct Pod5Read {
     calibration: Calibration,
     end_reason: EndReason,
     run_info_id: Option<String>,
+    open_pore_level: Option<f32>,
     signal: Option<Vec<i16>>
 }
 
@@ -52,6 +53,7 @@ impl Pod5Read {
         calibration: Calibration,
         end_reason: EndReason,
         run_info_id: Option<String>,
+        open_pore_level: Option<f32>,
         signal: Option<Vec<i16>>
     ) -> Self {
         Pod5Read {
@@ -70,6 +72,7 @@ impl Pod5Read {
             calibration,
             end_reason,
             run_info_id,
+            open_pore_level,
             signal    
         }
     }

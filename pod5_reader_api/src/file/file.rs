@@ -149,13 +149,14 @@ impl Pod5File {
             embedded_file_reads_table.length()
         )?;
 
+        let schema = reader_reads_table.metadata.schema.clone();
         let mut read_ids = Vec::new();
         let mut reads = HashMap::new();
         let mut n_signal_table_rows: usize = 0;
 
         for chunk_res in reader_reads_table.iter_chunks()? {
             let chunk = chunk_res?;
-            let reads_table = ReadsTable::from_chunk(chunk)?;
+            let reads_table = ReadsTable::from_chunk_and_schema(chunk, &schema)?;
     
             for read_res in reads_table {
                 let read = read_res?;
