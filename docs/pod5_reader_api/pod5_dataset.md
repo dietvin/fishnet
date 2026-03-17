@@ -24,7 +24,7 @@ use pod5_reader_api::dataset::Pod5Dataset;
 
 fn main() {
     let paths = vec![
-        PathBuf::from("example_data/can_reads.pod5"),
+        PathBuf::from("example_data/remora_example/can_reads.pod5"),
         // ...
     ];
 
@@ -47,7 +47,7 @@ use uuid::Uuid;
 
 fn main() {
     let paths = vec![
-        PathBuf::from("example_data/can_reads.pod5"),
+        PathBuf::from("example_data/remora_example/can_reads.pod5"),
         // ...
     ];
 
@@ -88,7 +88,7 @@ use uuid::Uuid;
 
 fn main() {
     let paths = vec![
-        PathBuf::from("example_data/can_reads.pod5"),
+        PathBuf::from("example_data/remora_example/can_reads.pod5"),
         // ...
     ];
     let n_workers = 4;

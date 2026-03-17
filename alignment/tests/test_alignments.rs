@@ -66,9 +66,9 @@ fn valid_extention(path: &PathBuf) -> bool {
 
 #[test]
 fn test_query_to_signal() {
-    let paths = parse_directory(&PathBuf::from("../example_data"));
+    let paths = parse_directory(&PathBuf::from("../example_data/remora_example"));
     let mut pod5_dataset = Pod5Dataset::new(&paths).unwrap();
-    let mut bam_file = BamFileLazy::new(&PathBuf::from("../example_data/can_mappings.bam")).unwrap();
+    let mut bam_file = BamFileLazy::new(&PathBuf::from("../example_data/remora_example/can_mappings.bam")).unwrap();
 
     for pod5_file in pod5_dataset.iter_files_mut() {
         let read_iterator = pod5_file.iter_reads().unwrap();
@@ -103,9 +103,9 @@ fn test_query_to_signal() {
 
 #[test]
 fn test_ref_to_signal() {
-    let paths = parse_directory(&PathBuf::from("../example_data"));
+    let paths = parse_directory(&PathBuf::from("../example_data/remora_example"));
     let mut pod5_dataset = Pod5Dataset::new(&paths).unwrap();
-    let mut bam_file = BamFileLazy::new(&PathBuf::from("../example_data/can_mappings.bam")).unwrap();
+    let mut bam_file = BamFileLazy::new(&PathBuf::from("../example_data/remora_example/can_mappings.bam")).unwrap();
 
     for pod5_file in pod5_dataset.iter_files_mut() {
         let read_iterator = pod5_file.iter_reads().unwrap();

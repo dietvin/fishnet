@@ -137,10 +137,10 @@ pub fn test_vectors_95_percent_equal(vec1: &[usize], vec2: &[usize]) -> (bool, f
 fn test_with_data_from(dirname: &str) {
     let dir = format!("tests/{}/full_process", dirname);
 
-    let path = PathBuf::from("../example_data/can_reads.pod5");
+    let path = PathBuf::from("../example_data/remora_example/can_reads.pod5");
     let mut pod5_file = Pod5File::new(&path).unwrap();
 
-    let path = "../example_data/can_mappings.bam";
+    let path = "../example_data/remora_example/can_mappings.bam";
     let mut bam_file = BamFileLazy::new(&PathBuf::from(path)).unwrap();
 
     let mut files= WalkDir::new(dir)
@@ -185,7 +185,7 @@ fn test_with_data_from(dirname: &str) {
 
         let settings = refine_settings_from_data(&data);
         let kmer_table = KmerTable::from_file(
-            &PathBuf::from("../example_data/levels.txt"),
+            &PathBuf::from("../example_data/remora_example/levels.txt"),
             false
         ).unwrap();
         let mut sig_map_refiner = SigMapRefiner::new(

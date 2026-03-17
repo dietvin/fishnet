@@ -230,7 +230,7 @@ fn test_with_data_from(dirname: &str) {
     let dir = format!("tests/{}/kmer_table/extract_levels", dirname);
 
     let kmer_table = KmerTable::from_file(
-        &PathBuf::from("../example_data/levels.txt"),
+        &PathBuf::from("../example_data/remora_example/levels.txt"),
         true
     ).unwrap();
 

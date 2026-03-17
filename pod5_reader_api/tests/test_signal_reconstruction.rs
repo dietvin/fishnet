@@ -13,7 +13,7 @@ fn load_data() -> SignalData {
 
 #[test]
 fn test_signal_resconstruction() {
-    let path = PathBuf::from("../example_data/can_reads.pod5");
+    let path = PathBuf::from("../example_data/remora_example/can_reads.pod5");
     let mut pod5_file = Pod5File::new(&path).unwrap();
     let read_iter = pod5_file.iter_reads().unwrap();
 

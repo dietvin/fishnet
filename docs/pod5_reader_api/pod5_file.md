@@ -19,7 +19,7 @@ use std::path::PathBuf;
 use pod5_reader_api::file::Pod5File;
 
 fn main() {
-    let path = PathBuf::from("example_data/can_reads.pod5");
+    let path = PathBuf::from("example_data/remora_example/can_reads.pod5");
     let mut pod5_file = Pod5File::new(&path).unwrap();
     let file_iterator = pod5_file.iter_reads().unwrap();
 
@@ -41,7 +41,7 @@ use pod5_reader_api::file::Pod5File;
 use uuid::Uuid;
 
 fn main() {
-    let path = PathBuf::from("example_data/can_reads.pod5");
+    let path = PathBuf::from("example_data/remora_example/can_reads.pod5");
     let read_id = Uuid::from_str("fbf9c81c-fdb2-4b41-85e1-0a2bd8b5a138").unwrap();
 
     let mut pod5_file = Pod5File::new(&path).unwrap();
@@ -68,7 +68,7 @@ use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use uuid::Uuid;
 
 fn main() {
-    let path = PathBuf::from("../example_data/can_reads.pod5");
+    let path = PathBuf::from("../example_data/remora_example/can_reads.pod5");
     let n_workers = 4;
 
     let pod5_file = Arc::new(
