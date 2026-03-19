@@ -48,6 +48,9 @@ use crate::errors::{InterpolationError, LinspaceError};
 /// ```
 /// 
 pub fn interpolate(x_ref: &[f64], y_ref: &[f64], x_query: &[f64]) -> Result<Vec<f64>, InterpolationError> {
+    
+    // TODO: Look into optimizing the code
+
     if x_ref.len() != y_ref.len() {
         return Err(InterpolationError::DifferentLength(x_ref.len(), y_ref.len()));
     } else if x_ref.is_empty() {
@@ -129,14 +132,14 @@ pub fn linspace(start: f64, stop: f64, num: usize) -> Result<Vec<f64>, LinspaceE
         return Ok(vec![start]);
     }
 
-    let mut result = Vec::with_capacity(num);
     // Calculate step size 
     let step = (stop - start) / (num - 1) as f64;
 
+    let mut result = vec![0.0; num];
+
     // Generate the sequence
     for i in 0..num {
-        let value = start + step * i as f64;
-        result.push(value);
+        result[i] = start + step * i as f64;
     }
     result[num-1] = stop;
 
