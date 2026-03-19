@@ -43,14 +43,14 @@ pub fn is_match_ops(cigar: &Op) -> bool {
 ///
 /// The returned knots will always include the start (0) and end positions
 /// of both sequences.
-pub fn calculate_knots(cigar: &Vec<Op>) -> (Vec<u32>, Vec<u32>) {
-    let mut current_site_q = 0u32;
-    let mut current_site_r = 0u32;
-    let mut query_knots = vec![0u32];
-    let mut ref_knots = vec![0u32];
+pub fn calculate_knots(cigar: &[Op]) -> (Vec<f64>, Vec<f64>) {
+    let mut current_site_q = 0f64;
+    let mut current_site_r = 0f64;
+    let mut query_knots = vec![0f64];
+    let mut ref_knots = vec![0f64];
 
     for el in cigar.iter() {
-        let cig_len = el.len() as u32;
+        let cig_len = el.len() as f64;
         if consumes_query(el) {
             current_site_q += cig_len;
         }
@@ -59,10 +59,10 @@ pub fn calculate_knots(cigar: &Vec<Op>) -> (Vec<u32>, Vec<u32>) {
         }
         if is_match_ops(el) {
             query_knots.push(current_site_q - cig_len);
-            query_knots.push(current_site_q - 1);
+            query_knots.push(current_site_q - 1f64);
 
             ref_knots.push(current_site_r - cig_len);
-            ref_knots.push(current_site_r - 1);
+            ref_knots.push(current_site_r - 1f64);
         }
     }
     

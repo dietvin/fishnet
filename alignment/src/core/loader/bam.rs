@@ -356,8 +356,8 @@ impl BamRead {
     ///
     /// * `Result<&usize, BamReadError>` - The length of the reference sequence, 
     /// or an error if unmapped
-    pub fn get_reference_len(&self) -> Result<&usize, BamReadError> {
-        self.reference_len.as_ref().ok_or(
+    pub fn get_reference_len(&self) -> Result<usize, BamReadError> {
+        self.reference_len.ok_or(
             BamReadError::NoSuchDataForUnmappedRead("reference_len".to_string())
         )
     }
