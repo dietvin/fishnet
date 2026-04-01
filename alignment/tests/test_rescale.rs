@@ -1,6 +1,6 @@
-use alignment::execute::config::refinement_config::RescaleAlgo;
+use alignment::core::refinement::rescaling::rescale;
+use alignment::core::refinement::rescaling::theil_sen::TheilSen;
 use approx::assert_relative_eq;
-use alignment::core::refinement::signal_map_refiner::rescale::rescale;
 use serde::{Deserialize, Serialize};
 use walkdir::WalkDir;
 use std::fs::File;
@@ -29,14 +29,14 @@ fn load_json(path: &str) -> JsonData {
 fn test_with_data_from(dirname: &str) {
     let dir = format!("tests/{}/rescale", dirname);
 
-    let rescale_algo = RescaleAlgo::TheilSen { 
-        dwell_filter_lower_percentile: 0.1, 
-        dwell_filter_upper_percentile: 0.9, 
-        min_abs_level: 0.2, 
-        n_bases_truncate: 10, 
-        min_num_filtered_levels: 10, 
-        max_points: 100000000 
-    };
+    let rescale_algo = TheilSen::new(
+        0.1, 
+        0.9, 
+        0.2, 
+        10, 
+        10, 
+        100000000 
+    );
 
     let mut files= WalkDir::new(dir)
         .into_iter()
@@ -52,12 +52,12 @@ fn test_with_data_from(dirname: &str) {
 
         let data = load_json(&path_str);
 
-        let (new_shift, new_scale) = rescale(
+        let (new_scale, new_shift) = rescale(
             data.scale, 
             data.shift, 
             &data.seq_to_sig_map, 
-            &data.levels, 
             &data.dacs, 
+            &data.levels, 
             &rescale_algo
         ).unwrap();
         

@@ -1,21 +1,26 @@
 use noodles::sam::alignment::record::cigar::Op;
 use pod5_reader_api::read::Pod5Read;
 
-use crate::{core::loader::bam::BamRead, error::alignment_errors::BaseReadError};
+use crate::{bam::read::BamRead, error::core::alignment::BaseReadError};
 
 /// Holds the data needed for the initial signal-to-sequence alignment.
 /// 
 /// The intended flow for BaseRead is the following:
 /// `BaseRead` -> `QueryAligned` -> `RefAligned
-pub(crate) struct BaseRead<'a> {
-    bam_read: &'a mut BamRead,
+pub struct BaseRead {
+    query_length: usize,
+    move_table: Vec<bool>,
+    stride: usize,
+    cigar: Option<Vec<Op>>,
+    reference_len: Option<usize>,
+
     trimmed_signal: Vec<i16>,
     num_samples_trimmed: usize,
     signal_offset: usize,
     reverse_signal: bool
 }
 
-impl<'a> BaseRead<'a> {
+impl BaseRead {
     /// Initialize a new instance.
     /// 
     /// Collects needed data from a pod5 and matching bam read.
@@ -42,9 +47,9 @@ impl<'a> BaseRead<'a> {
     /// * `BaseReadError::Pod5Error` - If the signal cannot be extracted from
     ///                                the pod5 read
     /// * `BaseReadError::TrimError` - If the signal trimming fails
-    pub(crate) fn new(
+    pub fn new(
         pod5_read: &Pod5Read, 
-        bam_read: &'a mut BamRead, 
+        bam_read: &BamRead, 
         reverse_signal: bool
     ) -> Result<Self, BaseReadError> {
         let pod5_id = pod5_read.read_id_string();
@@ -63,8 +68,18 @@ impl<'a> BaseRead<'a> {
             *bam_read.get_subread_signal_length()
         )?;
 
+        let query_length = bam_read.query_length();
+        let move_table = bam_read.move_table().to_vec();
+        let stride = bam_read.stride();
+        let cigar = bam_read.get_cigar_opt().cloned();
+        let reference_len = bam_read.get_reference_len_opt();
+
         Ok(Self { 
-            bam_read, 
+            query_length,
+            move_table,
+            stride,
+            cigar,
+            reference_len,
             trimmed_signal: signal,
             num_samples_trimmed,
             signal_offset,
@@ -164,10 +179,6 @@ impl<'a> BaseRead<'a> {
         Ok((num_samples_trimmed, signal_offset))
     }
 
-    pub(super) fn bam_read(&mut self) -> &mut BamRead {
-        self.bam_read
-    }
-
     pub(super) fn trimmed_signal(&self) -> &[i16] {
         &self.trimmed_signal
     }
@@ -176,7 +187,7 @@ impl<'a> BaseRead<'a> {
         self.num_samples_trimmed
     }
 
-    pub(super) fn signal_offset(&self) -> usize {
+    pub fn signal_offset(&self) -> usize {
         self.signal_offset
     }
 
@@ -185,24 +196,28 @@ impl<'a> BaseRead<'a> {
     }
 
     pub(super) fn query_length(&self) -> usize {
-        self.bam_read.query_length()
+        self.query_length
     }
 
     pub(super) fn move_table(&self) -> &[bool] {
-        self.bam_read.move_table()
+        &self.move_table
     }
 
     pub(super) fn stride(&self) -> usize {
-        self.bam_read.stride()
+        self.stride
     }
 
     pub(super) fn get_reference_len(&self) -> Result<usize, BaseReadError> {
-        Ok(self.bam_read.get_reference_len()?)
+        self.reference_len.ok_or(BaseReadError::ReferenceLenNone)
     }
 
     pub(super) fn get_cigar(&self) -> Result<&Vec<Op>, BaseReadError> {
-        self.bam_read.get_cigar()?.ok_or(
-            BaseReadError::CigarMissing
-        )
+        self.cigar.as_ref().ok_or(BaseReadError::CigarMissing)
+    }
+
+    pub(crate) fn signal_f32(&self) -> Vec<f32> {
+        self.trimmed_signal.iter()
+            .map(|&el| el as f32)
+            .collect::<Vec<f32>>()
     }
 }

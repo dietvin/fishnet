@@ -1,5 +1,6 @@
-use alignment::core::loader::bam::BamFileLazy;
-use alignment::core::alignment::aligned_read::AlignedRead;
+use alignment::bam::file::BamFileLazy;
+use alignment::core::alignment::aligned_read::{QueryAligned, RefAligned};
+use alignment::core::alignment::base_read::BaseRead;
 use pod5_reader_api::dataset::Pod5Dataset;
 
 use std::fs::{self, File};
@@ -74,18 +75,18 @@ fn test_query_to_signal() {
         let read_iterator = pod5_file.iter_reads().unwrap();
         for read_res in read_iterator {
             match read_res {
-                Ok(mut pod5_read) => {
+                Ok(pod5_read) => {
                     let read_id = pod5_read.read_id_string();
-                    let mut bam_read = bam_file.get(&read_id).unwrap();
+                    let bam_read = bam_file.get(&read_id).unwrap();
 
-                    let mut aligned_read = AlignedRead::new(
-                        &mut pod5_read, 
-                        &mut bam_read, 
+                    let base_read = BaseRead::new(
+                        &pod5_read,
+                        &bam_read,
                         false
                     ).unwrap();
+                    let query_aligned = QueryAligned::from_base_read(base_read).unwrap();
 
-                    aligned_read.align_query_to_signal().unwrap();
-                    let query_to_signal = aligned_read.query_to_signal().unwrap();
+                    let query_to_signal = query_aligned.query_to_signal;
 
                     let expected_mapping_path = format!(
                         "tests/alignments/{}_query_to_signal.txt",
@@ -111,19 +112,19 @@ fn test_ref_to_signal() {
         let read_iterator = pod5_file.iter_reads().unwrap();
         for read_res in read_iterator {
             match read_res {
-                Ok(mut pod5_read) => {
+                Ok(pod5_read) => {
                     let read_id = pod5_read.read_id_string();
-                let mut bam_read = bam_file.get(&read_id).unwrap();
+                let bam_read = bam_file.get(&read_id).unwrap();
 
-                let mut aligned_read = AlignedRead::new(
-                    &mut pod5_read, 
-                    &mut bam_read, 
+                let base_read = BaseRead::new(
+                    &pod5_read,
+                    &bam_read,
                     false
                 ).unwrap();
+                let query_aligned = QueryAligned::from_base_read(base_read).unwrap();
+                let ref_aligned = RefAligned::from_query_aligned(query_aligned).unwrap();
 
-                aligned_read.align_query_to_signal().unwrap();
-                aligned_read.align_reference_to_signal().unwrap();
-                let ref_to_signal = aligned_read.reference_to_signal().unwrap();
+                let ref_to_signal = ref_aligned.ref_to_signal;
 
                 let expected_mapping_path = format!(
                     "tests/alignments/{}_ref_to_signal.txt",

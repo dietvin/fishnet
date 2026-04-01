@@ -1,4 +1,4 @@
-use alignment::execute::init_cli::init_align;
+use alignment::execute::cli::init_align;
 use clap::{Command, crate_version};
 use console::style;
 use reformat::execute::init_cli::init_reformat;

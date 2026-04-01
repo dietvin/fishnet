@@ -1,8 +1,8 @@
+use alignment::core::refinement::band::sequence_band::SequenceBand;
+use alignment::core::refinement::band::signal_band::SignalBand;
 use serde::{Deserialize, Serialize};
 use std::fs::File;
 use std::io::BufReader;
-
-use alignment::core::refinement::refinement_core::bands::{Band, BandType};
 
 #[derive(Debug, Serialize, Deserialize)]
 struct JsonData {
@@ -34,22 +34,23 @@ fn test_with_data_from(dirname: &str) {
 
         let data = load_json(path_str);
 
-        let mut band = Band::compute_signal_band(
-            &data.seq_to_sig_map, 
-            data.levels.len(), 
-            data.band_half_width, 
+        let signal_band = SignalBand::new(
+            &data.seq_to_sig_map,
+            data.levels.len(),
+            data.band_half_width,
             true
         ).unwrap();
         
-        assert_eq!(*band.start(), data.sig_band_start, "Signal band start fail: {path_str}");
-        assert_eq!(*band.end(), data.sig_band_end, "Signal band end fail: {path_str}");
+        assert_eq!(signal_band.start, data.sig_band_start, "Signal band start fail: {path_str}");
+        assert_eq!(signal_band.end, data.sig_band_end, "Signal band end fail: {path_str}");
 
-        band.convert_to_sequence_band(data.adjust_band_min_step).unwrap();
+        let sequence_band = SequenceBand::from_signal_band(
+            signal_band,
+            data.adjust_band_min_step
+        ).unwrap();
 
-        // assert_eq!(3,4);
-        assert_eq!(*band.band_type(), BandType::SequenceBand);
-        assert_eq!(*band.start(), data.seq_band_start, "Sequence band start fail: {path_str}");
-        assert_eq!(*band.end(), data.seq_band_end, "Sequence band end fail: {path_str}");
+        assert_eq!(*sequence_band.start(), data.seq_band_start, "Sequence band start fail: {path_str}");
+        assert_eq!(*sequence_band.end(), data.seq_band_end, "Sequence band end fail: {path_str}");
     }
 
 }

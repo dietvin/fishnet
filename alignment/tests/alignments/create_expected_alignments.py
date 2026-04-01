@@ -3,8 +3,8 @@
 # The script should be started from the root directory of this repository:
 # python tests/expected_alignments/create_expected_alignments.py
 
-import pod5
-from remora import io
+import pod5 # type: ignore
+from remora import io # type: ignore
 from pathlib import Path
 import numpy as np
 

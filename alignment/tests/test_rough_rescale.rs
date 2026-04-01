@@ -1,7 +1,7 @@
 use std::{fs::File, io::BufReader, path::PathBuf};
 
+use alignment::core::refinement::rough_rescaling::{RoughRescaleAlgo, least_squares::RoughLeastSquares, theil_sen::RoughTheilSen};
 use approx::assert_relative_eq;
-use alignment::core::refinement::signal_map_refiner::rescale::{rough_rescale_lstsq, rough_rescale_theil_sen};
 use serde::{Deserialize, Serialize};
 use walkdir::WalkDir;
 
@@ -56,29 +56,34 @@ fn test_with_data_from(dirname: &str) {
 
         let data = load_json(&path_str);
 
-        let (shift, scale) = match data.rough_rescale_method.as_str() {
+        let (scale, shift) = match data.rough_rescale_method.as_str() {
             "theil_sen" => {
-                rough_rescale_theil_sen(
-                    data.scale, 
-                    data.shift, 
-                    &data.seq_to_sig_map, 
-                    &data.levels,
-                    &data.dacs,
-                    &data.quants, 
-                    data.clip_bases, 
+                let algo = RoughTheilSen::new(
+                    data.quants,
+                    data.clip_bases,
                     data.use_base_center
+                );
+
+                algo.rough_rescale(
+                    data.scale,
+                    data.shift,
+                    &data.seq_to_sig_map,
+                    &data.levels,
+                    &data.dacs
                 ).unwrap()
             }
             "least_squares" => {
-                rough_rescale_lstsq(
+                let algo = RoughLeastSquares::new(
+                    data.quants, 
+                    data.clip_bases, 
+                    data.use_base_center
+                );
+                algo.rough_rescale(
                     data.scale, 
                     data.shift, 
                     &data.seq_to_sig_map, 
                     &data.levels,
                     &data.dacs,
-                    &data.quants, 
-                    data.clip_bases, 
-                    data.use_base_center
                 ).unwrap()
             }
             _ => {

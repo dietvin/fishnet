@@ -6,17 +6,17 @@ use crate::{
             helpers::{calculate_knots, is_match_ops},
         },
     },
-    error::alignment_errors::{
+    error::core::alignment::{
         QueryAlignedError, RefAlignedError
     }
 };
 
-pub(crate) struct QueryAligned<'a> {
-    base: BaseRead<'a>,
+pub struct QueryAligned {
+    pub base: BaseRead,
     pub query_to_signal: Vec<usize>
 }
 
-impl<'a> QueryAligned<'a> {
+impl QueryAligned {
     /// Aligns the query (base-called) sequence to raw signal measurements, producing a 
     /// QueryAligned instance.
     /// 
@@ -51,7 +51,7 @@ impl<'a> QueryAligned<'a> {
     ///
     /// * `QueryAlignedError::DiscordantToSequence` - If the number of steps in the mapping doesn't match the expected query length.
     /// * `QueryAlignedError::DiscordantToSignal` - If the move table length is inconsistent with the signal length and stride.
-    pub(super) fn from_base_read(base_read: BaseRead<'a>) -> Result<Self, QueryAlignedError> {
+    pub fn from_base_read(base_read: BaseRead) -> Result<Self, QueryAlignedError> {
         let query_length = base_read.query_length();
         let move_table = base_read.move_table();
         let stride = base_read.stride();
@@ -87,13 +87,13 @@ impl<'a> QueryAligned<'a> {
     }
 }
 
-pub(crate) struct RefAligned<'a> {
-    base: BaseRead<'a>,
+pub struct RefAligned {
+    pub base: BaseRead,
     pub query_to_signal: Vec<usize>,
     pub ref_to_signal: Vec<usize>
 }
 
-impl<'a> RefAligned<'a> {
+impl RefAligned {
     /// Aligns a reference sequence to raw signal measurements, producing a 
     /// QueryAligned instance.
     ///
@@ -134,7 +134,7 @@ impl<'a> RefAligned<'a> {
     /// * `RefAlignedError::NoMatchOps` - If the CIGAR string contains no match operations
     /// * `RefAlignedError::DiscordantToSequence` - If the number of points in the mapping doesn't match the reference length
     /// * `RefAlignedError::LinInterpError` - If linear interpolation fails
-    pub(super) fn from_query_aligned(query_aligned: QueryAligned<'a>) -> Result<Self, RefAlignedError> {
+    pub fn from_query_aligned(query_aligned: QueryAligned) -> Result<Self, RefAlignedError> {
 
         // TODO: Look into merging the two separate interpolation steps into one
 

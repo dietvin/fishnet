@@ -1,6 +1,7 @@
-use alignment::core::refinement::refinement_core::bands::{Band, BandType};
-use alignment::core::refinement::refinement_core::dp_algorithm::banded_dp;
-use alignment::execute::config::refinement_config::RefineAlgo;
+use alignment::core::refinement::band::sequence_band::SequenceBand;
+use alignment::core::refinement::dp::banded_db;
+use alignment::core::refinement::dp::forward_step::dwell_penalty::DwellPenalty;
+use alignment::core::refinement::dp::forward_step::viterbi::Viterbi;
 use serde::{Deserialize, Serialize};
 use std::fs::File;
 use std::io::BufReader;
@@ -42,30 +43,41 @@ fn test_with_data_from(dirname: &str) {
         let path_str = file_name.to_str().unwrap();
 
         let data = load_json(path_str);
-        let band = Band::new(
-            BandType::SequenceBand, 
-            data.sequence_band_start, 
+
+        let band = SequenceBand::from_existing_vecs(
+            data.sequence_band_start,
             data.sequence_band_end
         );
-        
-        let method = match data.core_method.as_str() {
+
+        let refined_map = match data.core_method.as_str() {
             // Hardcoded default values used during testing, because 
             // I exported the already calulated array
-            "dwell_penalty" => RefineAlgo::DwellPenalty { 
-                target: 4.0, // data.short_dwell_penalty.target, 
-                limit: 3.0, // data.short_dwell_penalty.limit, 
-                weight: 0.5 // data.short_dwell_penalty.weight 
+            "dwell_penalty" => {
+                let algo = DwellPenalty::new(
+                4.0, // data.short_dwell_penalty.target, 
+                3.0, // data.short_dwell_penalty.limit, 
+                0.5 // data.short_dwell_penalty.weight 
+                );
+
+                banded_db(
+                    &data.signal,
+                    &data.levels,
+                    &band,
+                    &algo
+                )
+            }
+            "Viterbi" => {
+                let algo = Viterbi;
+
+                banded_db(
+                    &data.signal,
+                    &data.levels,
+                    &band,
+                    &algo
+                )
             },
-            "Viterbi" => RefineAlgo::Viterbi,
             _ => panic!("Unknown core_method")
         };
-
-        let refined_map = banded_dp(
-            &data.signal, 
-            &data.levels, 
-            &band,
-            &method
-        );
 
         assert_eq!(refined_map, data.path, "Path differs from expected for: {path_str}");
     }

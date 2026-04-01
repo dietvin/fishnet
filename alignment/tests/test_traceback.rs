@@ -1,5 +1,5 @@
-use alignment::core::refinement::refinement_core::bands::{Band, BandType};
-use alignment::core::refinement::refinement_core::dp_algorithm::traceback::banded_traceback;
+use alignment::core::refinement::band::sequence_band::SequenceBand;
+use alignment::core::refinement::dp::traceback::traceback;
 use serde::{Deserialize, Serialize};
 use std::fs::File;
 use std::io::BufReader;
@@ -31,19 +31,18 @@ fn test_with_data_from(dirname: &str) {
         let path_str = file_name.to_str().unwrap();
 
         let data = load_json(path_str);
-        
-        let band = Band::new(
-            BandType::SequenceBand, 
-            data.seq_band_start, 
+
+        let band = SequenceBand::from_existing_vecs(
+            data.seq_band_start,
             data.seq_band_end
         );
 
         let mut path = vec![0; data.path.len()];
 
-        banded_traceback(
-            &mut path, 
-            &band, 
-            &data.base_offsets, 
+        traceback(
+            &mut path,
+            &band,
+            &data.base_offsets,
             &data.traceback
         );
 

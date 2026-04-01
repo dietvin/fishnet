@@ -81,3 +81,15 @@ pub enum LinspaceError {
     #[error("The num argument must be larger than 0")]
     ZeroElements
 }
+
+#[derive(Debug, thiserror::Error)]
+pub enum QuantileCalcError {
+    #[error("Empty data vec provided")]
+    EmptyDataVec,
+
+    #[error("Empty quantiles vec provided")]
+    EmptyQuantVec,
+
+    #[error("Invalid quantile value: {0} (must be between 0.0 and 1.0)")]
+    InvalidQuant(f32),
+}

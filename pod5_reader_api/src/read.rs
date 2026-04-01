@@ -92,8 +92,8 @@ impl Pod5Read {
     }
 
     /// Returns the read number if present.
-    pub fn read_number(&self) -> Option<&u32> {
-        self.read_number.as_ref()
+    pub fn read_number(&self) -> Option<u32> {
+        self.read_number
     }
 
     /// Returns the start sample index if present.
@@ -102,13 +102,13 @@ impl Pod5Read {
     }
 
     /// Returns the median before value if present.
-    pub fn median_before(&self) -> Option<&f32> {
-        self.median_before.as_ref()
+    pub fn median_before(&self) -> Option<f32> {
+        self.median_before
     }
 
     /// Returns the number of events detected by MinKNOW for this read if present.
-    pub fn num_minknow_events(&self) -> Option<&u64> {
-        self.num_minknow_events.as_ref()
+    pub fn num_minknow_events(&self) -> Option<u64> {
+        self.num_minknow_events
     }
 
     /// Returns the tracked scaling parameters used by MinKNOW for this read.
@@ -122,13 +122,13 @@ impl Pod5Read {
     }
 
     /// Returns the number of reads since the last mux change if present.
-    pub fn num_reads_since_mux_change(&self) -> Option<&u32> {
-        self.num_reads_since_mux_change.as_ref()
+    pub fn num_reads_since_mux_change(&self) -> Option<u32> {
+        self.num_reads_since_mux_change
     }
 
     /// Returns the time in seconds since the last mux change if present.
-    pub fn time_since_mux_change(&self) -> Option<&f32> {
-        self.time_since_mux_change.as_ref()
+    pub fn time_since_mux_change(&self) -> Option<f32> {
+        self.time_since_mux_change
     }
 
     /// Returns the total number of signal samples for this read if present.
@@ -173,7 +173,7 @@ impl Pod5Read {
     }
 
     /// Returns the read number or an error if it is not available.
-    pub fn require_read_number(&self) -> Result<&u32, Pod5ReadError> {
+    pub fn require_read_number(&self) -> Result<u32, Pod5ReadError> {
         Ok(self.read_number().ok_or(Pod5ReadError::MissingField("read_number"))?)       
     }
 
@@ -183,22 +183,22 @@ impl Pod5Read {
     }
 
     /// Returns the median before value or an error if it is not available.
-    pub fn require_median_before(&self) -> Result<&f32, Pod5ReadError> {
+    pub fn require_median_before(&self) -> Result<f32, Pod5ReadError> {
         Ok(self.median_before().ok_or(Pod5ReadError::MissingField("median_before"))?)
     }
 
     /// Returns the number of MinKNOW events or an error if it is not available.
-    pub fn require_num_minknow_events(&self) -> Result<&u64, Pod5ReadError> {
+    pub fn require_num_minknow_events(&self) -> Result<u64, Pod5ReadError> {
         Ok(self.num_minknow_events().ok_or(Pod5ReadError::MissingField("num_minknow_events"))?)
     }
 
     /// Returns the number of reads since the last mux change or an error if not available.
-    pub fn require_num_reads_since_mux_change(&self) -> Result<&u32, Pod5ReadError> {
+    pub fn require_num_reads_since_mux_change(&self) -> Result<u32, Pod5ReadError> {
         Ok(self.num_reads_since_mux_change().ok_or(Pod5ReadError::MissingField("num_reads_since_mux_change"))?)
     }
 
     /// Returns the time since the last mux change or an error if not available.
-    pub fn require_time_since_mux_change(&self) -> Result<&f32, Pod5ReadError> {
+    pub fn require_time_since_mux_change(&self) -> Result<f32, Pod5ReadError> {
         Ok(self.time_since_mux_change().ok_or(Pod5ReadError::MissingField("time_since_mux_change"))?)
     }
 
@@ -207,15 +207,15 @@ impl Pod5Read {
         Ok(self.num_samples().ok_or(Pod5ReadError::MissingField("num_samples"))?)
     }
 
-    pub fn require_calibration_offset(&self) -> Result<&f32, Pod5ReadError> {
-        match &self.calibration.offset {
+    pub fn require_calibration_offset(&self) -> Result<f32, Pod5ReadError> {
+        match self.calibration.offset {
             Some(offset) => Ok(offset),
             None => Err(Pod5ReadError::MissingField("calibration offset"))
         }
     }
 
-    pub fn require_calibration_scale(&self) -> Result<&f32, Pod5ReadError> {
-        match &self.calibration.scale {
+    pub fn require_calibration_scale(&self) -> Result<f32, Pod5ReadError> {
+        match self.calibration.scale {
             Some(scale) => Ok(scale),
             None => Err(Pod5ReadError::MissingField("calibration scale"))
         }
@@ -240,4 +240,10 @@ impl Pod5Read {
     pub(crate) fn set_signal(&mut self, signal: Vec<i16>) {
         self.signal = Some(signal)
     } 
+
+    /// Consumes itself to return the signal.
+    /// Used in main worker loop to extract the signal without cloning.
+    pub fn into_output_data(self) -> Result<Vec<i16>, Pod5ReadError> {
+        self.signal.ok_or(Pod5ReadError::MissingField("signal"))
+    }
 }

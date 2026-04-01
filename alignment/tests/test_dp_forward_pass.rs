@@ -1,7 +1,8 @@
-use alignment::execute::config::refinement_config::RefineAlgo;
+use alignment::core::refinement::band::sequence_band::SequenceBand;
+use alignment::core::refinement::dp::forward_pass::forward_pass;
+use alignment::core::refinement::dp::forward_step::dwell_penalty::DwellPenalty;
+use alignment::core::refinement::dp::forward_step::viterbi::Viterbi;
 use approx::assert_relative_eq;
-use alignment::core::refinement::refinement_core::bands::{Band, BandType};
-use alignment::core::refinement::refinement_core::dp_algorithm::forward_pass::forward_pass;
 use serde::{Deserialize, Serialize};
 use std::fs::File;
 use std::io::BufReader;
@@ -46,36 +47,43 @@ fn test_with_data_from(dirname: &str) {
         let path_str = file_name.to_str().unwrap();
 
         let data = load_json(path_str);
-        let band = Band::new(
-            BandType::SequenceBand, 
-            data.seq_band_start, 
+        let band = SequenceBand::from_existing_vecs(
+            data.seq_band_start,
             data.seq_band_end
         );
         
         let mut scores = vec![f32::INFINITY; data.all_scores_len];
         let mut traceback = vec![0; data.traceback_len];
 
-        let method = match data.core_method.as_str() {
-            // Hardcoded default values used during testing, because 
-            // I exported the already calulated array
-            "dwell_penalty" => RefineAlgo::DwellPenalty { 
-                target: 4.0, // data.short_dwell_penalty.target, 
-                limit: 3.0, // data.short_dwell_penalty.limit, 
-                weight: 0.5 // data.short_dwell_penalty.weight 
-            },
-            "Viterbi" => RefineAlgo::Viterbi,
-            _ => panic!("Unknown core_method")
-        };
+        match data.core_method.as_str() {
+            "dwell_penalty" => {
+                let algo = DwellPenalty::new(4.0, 3.0, 0.5);
 
-        forward_pass(
-            &mut scores, 
-            &mut traceback, 
-            &data.signal, 
-            &data.levels, 
-            &band, 
-            &data.base_offsets, 
-            &method
-        );
+                forward_pass(
+                    &mut scores,
+                    &mut traceback,
+                    &data.signal,
+                    &data.levels,
+                    &band,
+                    &data.base_offsets,
+                    &algo
+                );
+            }
+            "Viterbi" => {
+                let algo = Viterbi;
+
+                forward_pass(
+                    &mut scores,
+                    &mut traceback,
+                    &data.signal,
+                    &data.levels,
+                    &band,
+                    &data.base_offsets,
+                    &algo
+                );
+            }
+            _ => panic!("Unknown core_method")            
+        }
 
         for (r, e) in scores.iter().zip(data.all_scores_result.iter()) {
             assert_relative_eq!(r, e, epsilon=0.01);

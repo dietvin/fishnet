@@ -1,4 +1,5 @@
 use crate::cli::init_cli;
+
 mod cli;
 
 fn main() {

@@ -1,0 +1,100 @@
+use helper::errors::QuantileCalcError;
+
+#[derive(Debug, thiserror::Error)]
+pub enum RoughRescaleError {
+    #[error("Signal vector is empty")]
+    EmptySignalVector,
+
+    #[error("Levels vector is empty")]
+    EmptyLevelsVector,
+
+    #[error("Failed to prepare the data: {0}")]
+    PrepError(String),
+
+    #[error("Failed to calculate the quantiles: {0}")]
+    QuantileError(#[from] QuantileCalcError),
+
+    #[error("No valid data points found after filtering")]
+    NoValidDataPoints,
+
+    #[error("Calculated scale is zero or too small: {0}")]
+    InvalidScaleValue(f32),
+
+    #[error("Least squares calculation failed: {0}")]
+    LstqFailed(#[from] LeastSquaresError),
+
+    #[error("Thein Sen calculation failed: {0}")]
+    TheilSenFailed(#[from] TheilSenError)
+}
+
+
+#[derive(Debug, thiserror::Error)]
+pub enum RescaleError {
+    #[error("Empty signal to sequence map")]
+    EmptyMap,
+    
+    #[error("Invalid levels vec length: {0} (expected_length: {1}")]
+    InvalidLevelsLen(usize, usize),
+
+    #[error("Least squares calculation failed: {0}")]
+    LstqFailed(#[from] LeastSquaresError),
+
+    #[error("Thein Sen calculation failed: {0}")]
+    TheilSenFailed(#[from] TheilSenError),
+
+    #[error("Filtering error: {0}")]
+    FilterError(#[from] RescaleFilterError)
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum RescaleFilterError {
+    #[error("Not enough bases for rescaling: {0} (need >{1})")]
+    BelowMinNumFiltered(usize, usize),
+    #[error("Sequence is too short for truncation: {0} (2*{1} would be truncated)")]
+    TooShortForTruncation(usize, usize),
+    #[error("Sequence is too short after truncation: {0} remaining after trimming (need >{1})")]
+    TooShortAfterTruncation(usize, usize),
+    #[error("Failed to calculate the quantiles: {0}")]
+    QuantileError(#[from] QuantileCalcError),
+
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum LeastSquaresError {
+    #[error("Length mismatch: {0} (x) vs {1} (y)")]
+    LengthMismatch(usize, usize),
+
+    #[error("Zero division")]
+    ZeroDivision,
+
+    #[error("Not enough data points for linear regression (need at least 2)")]
+    InsufficientDataPoints(usize),
+    
+    #[error("Data contains NaN or Infinity values")]
+    InvalidFloatingPointValues,
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum TheilSenError {
+    #[error("Length mismatch: {0} (x) vs {1} (y)")]
+    LengthMismatch(usize, usize),
+
+    #[error("All computed slopes are zero, unable to perform Theil-Sen estimation")]
+    AllSlopesZero,
+
+    #[error("Slope is zero, unable to compute scaling factors")]
+    MedianSlopeZero,
+
+    #[error("Cannot compute median of empty vector")]
+    MedianCalcEmptyVec,
+
+    #[error("Requested subsample size {0} is larger than the data size {1}")]
+    InvalidSubsampleSize(usize, usize),
+    
+    #[error("Not enough valid slopes could be calculated")]
+    InsufficientValidSlopes,
+    
+    #[error("Data contains NaN or Infinity values")]
+    InvalidFloatingPointValues,
+}
+

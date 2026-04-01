@@ -3,7 +3,7 @@
  * into a Config struct.
  */
 
-pub fn calc_quantiles(min: f32, max: f32, steps: usize) -> Vec<f32> {
+pub(super) fn calc_quantiles(min: f32, max: f32, steps: usize) -> Vec<f32> {
     if steps < 2 {
         return vec![min]; // or panic!("Steps must be >= 2");
     }
