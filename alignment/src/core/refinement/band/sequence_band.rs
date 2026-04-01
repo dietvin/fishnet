@@ -1,6 +1,6 @@
 use crate::{
     core::refinement::band::{
-        helpers::{validate_band, validate_sequence_band}, 
+        helpers::validate_sequence_band, 
         signal_band::SignalBand
     }, error::core::refinement::band::SequenceBandError, 
 };

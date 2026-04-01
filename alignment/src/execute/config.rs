@@ -1,7 +1,15 @@
 use std::{path::PathBuf, vec};
 
 use clap::ArgMatches;
-use helper::{errors::CliError, file_handling::{check_and_get_pod5_input, check_input_file, check_output_file}, io::OutputFormat};
+use helper::{
+    errors::CliError,
+    file_handling::{
+        check_and_get_pod5_input,
+        check_input_file,
+        check_output_file
+    },
+    io::OutputFormat
+};
 use log::LevelFilter;
 
 use crate::execute::config::helpers::calc_quantiles;
@@ -51,7 +59,7 @@ pub struct Config {
 }
 
 /// Path and normalisation flag for an external k-mer signal-level table.
-pub(crate) struct KmerTableConfig {
+pub struct KmerTableConfig {
     /// Filesystem path to the plain-text k-mer table file.
     pub path: PathBuf,
     /// When `true`, level values in the table are normalised before use.
@@ -59,7 +67,7 @@ pub(crate) struct KmerTableConfig {
 }
 
 /// Selects which sequence(s) are aligned to the raw nanopore signal.
-pub(crate) enum AlignmentType {
+pub enum AlignmentType {
     /// Align only the query (basecalled) sequence to the signal.
     Query,
     /// Align only the reference sequence to the signal.
@@ -69,7 +77,7 @@ pub(crate) enum AlignmentType {
 }
 
 /// Logging destination and verbosity level.
-pub(crate) struct LogConfig {
+pub struct LogConfig {
     /// Filesystem path of the log file that will be written.
     pub path: PathBuf,
     /// Maximum log level that will be emitted (e.g. `Info`, `Debug`).
@@ -77,7 +85,7 @@ pub(crate) struct LogConfig {
 } 
 
 /// Controls where and how pipeline output is written.
-pub(crate) struct OutputConfig {
+pub struct OutputConfig {
     /// Filesystem path of the output file.
     pub path: PathBuf,
     /// Determines which fields are included in each output record.
@@ -95,7 +103,7 @@ pub(crate) struct OutputConfig {
 }
 
 /// Controls the verbosity / richness of each output record.
-pub(crate) enum OutputLevel {
+pub enum OutputLevel {
     /// Only positional and per-base alignment statistics; no sequence or signal
     /// data is included.
     Minimal,
@@ -106,7 +114,7 @@ pub(crate) enum OutputLevel {
 }
 
 /// Parameters for the coarse rescaling step applied before fine rescaling.
-pub(crate) struct RoughRescaleConfig {
+pub struct RoughRescaleConfig {
     /// Algorithm used to fit the rough linear rescaling model.
     pub algo: RoughRescaleAlgoOptions,
     /// Quantile values used to build the signal-level histogram for rescaling.
@@ -122,7 +130,7 @@ pub(crate) struct RoughRescaleConfig {
 }
 
 /// Algorithm used for the coarse (rough) rescaling step.
-pub(crate) enum RoughRescaleAlgoOptions {
+pub enum RoughRescaleAlgoOptions {
     /// Ordinary least-squares linear regression.
     LeastSquares,
     /// Theil–Sen robust estimator, less sensitive to outlier signal levels.
@@ -134,7 +142,7 @@ pub(crate) enum RoughRescaleAlgoOptions {
 /// Both variants share a common set of dwell-filtering and level-quality
 /// parameters; `TheilSen` additionally exposes a `max_points` cap to keep
 /// runtime bounded on very long reads.
-pub(crate) enum RescaleAlgoOptions {
+pub enum RescaleAlgoOptions {
     /// Ordinary least-squares linear rescaling.
     LeastSquares {
         /// Lower percentile bound for the per-base dwell-time filter.
@@ -174,7 +182,7 @@ pub(crate) enum RescaleAlgoOptions {
 }
 
 /// Algorithm used for the DP-based signal-to-sequence refinement step.
-pub(crate) enum RefineAlgoOptions {
+pub enum RefineAlgoOptions {
     /// Standard Viterbi decoding; selects the globally most probable
     /// segmentation path with no additional penalty terms.
     Viterbi,
@@ -194,7 +202,7 @@ pub(crate) enum RefineAlgoOptions {
 }
 
 /// Parameters for the banded dynamic-programming alignment.
-pub(crate) struct BandConfig {
+pub struct BandConfig {
     /// Half-width of the DP band in samples; larger values increase recall at
     /// the cost of runtime.
     pub half_bandwidth: usize,

@@ -21,11 +21,6 @@ impl DwellPenalty {
         Self { penalty_vec }
     }
 
-    /// Initialization function for tests
-    fn with_penalty_vec(penalty_vec: Vec<f32>) -> Self {
-        Self { penalty_vec }
-    }
-
     /// Calculates penalty values for deviations from target dwell times
     ///
     /// This function generates a vector of penalty values used in the dwell penalty algorithm.
@@ -198,6 +193,13 @@ impl RefinementAlgo for DwellPenalty {
 mod tests {
     use crate::core::refinement::dp::forward_step::RefinementAlgo;
     use super::DwellPenalty;
+
+    impl DwellPenalty {
+        /// Initialization function for tests
+        fn with_penalty_vec(penalty_vec: Vec<f32>) -> Self {
+            Self { penalty_vec }
+        }
+    }
 
     /// Test the penalty vector calculation
     #[test]

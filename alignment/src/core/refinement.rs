@@ -54,8 +54,8 @@ use crate::{
             rough_rescaling::RoughRescaleAlgo
         }
     },
-    error::core::refinement::RefinementError, output::{record::{BothResult, IntoOutputRecord, QueryToSignalResult, RefToSignalResult}, schema::OutputSchema},
-
+    error::core::refinement::RefinementError,
+    output::record::{BothResult, QueryToSignalResult, RefToSignalResult},
 };
 
 pub mod rough_rescaling;

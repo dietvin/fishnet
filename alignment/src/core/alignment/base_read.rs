@@ -179,10 +179,6 @@ impl BaseRead {
         Ok((num_samples_trimmed, signal_offset))
     }
 
-    pub(super) fn trimmed_signal(&self) -> &[i16] {
-        &self.trimmed_signal
-    }
-
     pub(super) fn num_samples_trimmed(&self) -> usize {
         self.num_samples_trimmed
     }
