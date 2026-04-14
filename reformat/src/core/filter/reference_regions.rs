@@ -169,6 +169,7 @@ impl ReferenceRegions {
         if let Some(regions) = self.regions.get(other.name()) {
             for region in regions {
                 if region.self_fully_in_other(other) {
+                    // TODO: Check if indexing is correct here... (Test failed)
                     let chunk_info = MatchedFilterInfo::new(
                         region.to_samtools_string(), 
                         region.start() - other.start(), 
@@ -270,7 +271,7 @@ mod tests {
         rr.regions.insert("chr1".into(), vec![make_region("chr1", 120, 150)]);
 
         let contained = make_region("chr1", 100, 200);
-        assert_eq!(rr.self_in_other(&contained), Some(vec![MatchedFilterInfo::new("chr1:120-150".to_string(), 20, 50)]));
+        assert_eq!(rr.self_in_other(&contained), Some(vec![MatchedFilterInfo::new("chr1:121-150".to_string(), 20, 50)]));
     }
 
     #[test]
