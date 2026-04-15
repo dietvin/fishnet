@@ -1,0 +1,44 @@
+site_name: Fishnet Docs
+site_url: https://dietvin.github.io/fishnet
+repo_url: https://github.com/dietvin/fishnet
+repo_name: fishnet
+
+site_description: "Documentation for Fishnet, a signal-to-sequence aligner for Nanopore sequencing data"
+site_author: "Vincent Dietrich"
+
+theme:
+  name: material
+  locale: en
+  logo: images/fishnet_logo_icon.png
+  favicon: images/fishnet_logo_icon.png
+  features:
+      - content.tabs.link
+
+nav:
+  - Home: index.md
+  - Installation: installation.md
+  - Align:
+    - Overview: align/index.md
+    - Command Line Arguments: align/command_line_arguments.md
+    - Output Formats: align/output_formats.md
+    - Examples: align/examples.md
+    - Algorithm Details: align/algorithm_details.md
+    - Kmer Table Matching: align/kmer_table_matching.md
+  - Reformat:
+    - Overview: reformat/index.md
+    - Command Line Arguments: reformat/command_line_arguments.md
+    - Filtering Options: reformat/filtering_options.md
+    - Reformatting strategies: reformat/reformatting_strategies.md
+    - Output Formats: reformat/output_formats.md
+    - Examples: reformat/examples.md
+  - Pod5 Reader API:
+    - Overview: pod5_reader_api/index.md
+    - Pod5Dataset: pod5_reader_api/pod5_dataset.md
+    - Pod5File: pod5_reader_api/pod5_file.md
+    - Pod5Read: pod5_reader_api/pod5_read.md
+
+markdown_extensions:
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.superfences
+  - pymdownx.details

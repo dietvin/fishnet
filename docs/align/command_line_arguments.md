@@ -23,7 +23,7 @@ There are various parameters available to set more general settings or to fine-t
 | **Argument** | **Type** | **Default** | **Description** |
 |-|-|-|-|
 | `-r, --rna` | Flag | - | Whether direct RNA data is provided. If set, reverses the raw signal (3'->5') to match the base-called/mapped 5'->3' orientation. |
-| `-k, --kmer-table <kmer_table>` | Path (file) | - | Path to a [kmer level table](https://github.com/nanoporetech/kmer_models). This is only required if no embedded kmer table can be matched to given data ([more information](./docs/align/kmer_table_matching.md)) |
+| `-k, --kmer-table <kmer_table>` | Path (file) | - | Path to a [kmer level table](https://github.com/nanoporetech/kmer_models). This is only required if no embedded kmer table can be matched to given data ([more information](kmer_table_matching.md)) |
 | `-a, --alignment-type <type>` | Enum (`query`, `reference`, `both`) | `query` | Determines the type of alignment to perform. `query`: aligns signal to base-called query sequence. `reference`: aligns signal to the reference sequence (if mapped). |
 
 ### Output settings
