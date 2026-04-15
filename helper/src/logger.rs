@@ -25,7 +25,6 @@ use log4rs::{
     append::file::FileAppender, 
     config::{
         Appender, 
-        Logger, 
         Root
     }, 
     encode::pattern::PatternEncoder, 
