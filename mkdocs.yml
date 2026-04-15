@@ -13,6 +13,8 @@ theme:
   favicon: images/fishnet_logo_icon.png
   features:
       - content.tabs.link
+  palette:
+    primary: blue
 
 nav:
   - Home: index.md
