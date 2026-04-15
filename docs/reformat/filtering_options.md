@@ -5,6 +5,7 @@ Filtering limits processing to **regions or motifs of interest**, reducing both 
 When working with reference-to-signal alignments, bases are processed only if they fall within specified regions. 
 
 There are three ways to provide reference regions:
+
 | **Flag**                                       | **Description**                                                                                                         |
 | ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
 | `--ref-regions <REF:START-END>`                | Specify regions directly (1-based, inclusive). Multiple regions space-separated.                                        |
@@ -13,10 +14,7 @@ There are three ways to provide reference regions:
 
 
 ### Positions with windows
-This mode targets a specific site plus a window around it, e.g.:
-```text
-ChrA:8-4
-```
+This mode targets a specific site plus a window around it, e.g.: `ChrA:8-4`
 ```text
 1-based index:          1 2 3 4 5 6 7 8 9 0 1 2 3 4 5
 Ref sequence:           A C G T A G C T A A A G T C T
@@ -27,6 +25,7 @@ Region of interest:          |--------X--------|
 Motif filtering works for both query- and reference-to-signal alignments. Only alignment segments exactly matching a provided motif are processed. (Requires fishnet align output level 2 or 3 to include sequence information.)
 
 There are two ways to provide motifs:
+
 | **Flag**                 | **Description**                                                          |
 | ------------------------ | ------------------------------------------------------------------------ |
 | `--motifs <MOTIF-1> ...` | Provide motifs directly. Named automatically (`motif1`, `motif2`, …).    |

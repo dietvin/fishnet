@@ -2,6 +2,7 @@
 The `Pod5Read` struct grants access to the signal and metadata corresponding to a single read, all of which can be accessed by various getter functions. A read can not be manually initialized, but needs to be retrieved from a pod5 file or dataset.
 
 The following table shows all fields that are accessible from a Pod5Read. The descriptions are taken mostly from the [official pod5 docs](https://github.com/nanoporetech/pod5-file-format/blob/master/docs/tables/reads.toml).
+
 | Field | Description |
 |-|-|
 | read_id | Globally-unique identifier for the read, can be converted to a string form (using standard routines in other libraries) which matches how reads are identified elsewhere |

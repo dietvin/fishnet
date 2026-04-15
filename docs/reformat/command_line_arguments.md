@@ -1,5 +1,6 @@
 # Command line arguments
 The table below show all arguments that are available in the `reformat` module.
+
 | **Argument**                                             | **Type**                                                      | **Default**      | **Description**                                                               |
 | -------------------------------------------------------- | ------------------------------------------------------------- | ---------------- | ----------------------------------------------------------------------------- |
 | `-h, --help`                                             | Flag                                                          | –                | Print help message.                                                           |

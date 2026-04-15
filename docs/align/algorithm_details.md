@@ -1,14 +1,5 @@
 # Algorithm details
 
-## Table of contents
-- [Initial alignment](#initial-alignment)
-- [Refinement](#refinement)
-    - [Refinement workflow](#refinement-workflow)
-    - [Signal normalization](#signal-normalization)
-    - [Rough rescaling](#rough-rescaling)
-    - [Boundary optimization](#boundary-optimization)
-    - [Iterative refinement strategy](#iterative-refinement-strategy)
-
 ## Initial alignment
 An itital alignment is constructed using the move table generated during base-calling. This is an array of boolean values that indicates when the sequencer detected a new base in the signal, represented by a 1. By combining this information with the sampling stride, a mapping from positions in the base-called (query) sequence to positions in the raw signal is created. 
 
@@ -22,6 +13,7 @@ The refinement is performed iteratively with configurable parameters that contro
 
 ### Refinement workflow
 The refinement process follows this general workflow:
+
 1. **Initial signal normalization**: Raw signal measurements are transformed to normalized values using calibration parameters from the sequencer and signal statistics (see [Signal normalization](#signal-normalization))
 
 2. **Optional rough rescaling**: A coarse-grained scaling adjustment using quantile-based regression to improve the baseline divergence between observed and expected measurements (see  [Rough rescaling](#rough-rescaling))
@@ -75,6 +67,7 @@ The core alignment refinement adjusts the mapping between sequence positions and
 
 ### Iterative refinement strategy
 The iterative refinement process repeats the process of:
+
 1. Signal normalization using current normalization parameters
 2. Boundary optimization via dynamic programming
 3. Parameter recalibration on new boundaries

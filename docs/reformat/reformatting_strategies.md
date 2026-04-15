@@ -2,7 +2,7 @@
 Two main strategies are available:
 ## 1. Base-wise Statistics
 
-<img src="./images/base-wise-stats.jpg" alt="Base-wise stats overview" width="500"/>
+![Base-wise stats overview](../images/base-wise-stats.jpg)
 
 Each signal segment aligned to a base of interest is summarized into statistics that represent its characteristics.
 
@@ -22,7 +22,7 @@ You can specify a custom subset via:
 
 ## 2. Interpolation into uniform shapes
 
-<img src="./images/interpolation.jpg" alt="Interpolation overview" width="500"/>
+![Interpolation overview](../images/interpolation.jpg)
 
 Instead of condensing each segment into statistics, the signal is reshaped into a **fixed number of samples per base** using linear interpolation.
 This allows direct comparison or machine-learning-based analysis across bases.

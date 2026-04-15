@@ -9,9 +9,11 @@ Different analyses benefit from different output shapes:
 | **Nested**          | Hierarchical data storage (Parquet) for other downstream processes | One row per region, arrays per field |
 
 ## 1. Melted (Long)
+
 Each base of interest becomes one row.
 
 ### Base-wise statistics
+
 For *N* statistics:
 
 | **Column**                | **Description**                           |
@@ -25,7 +27,9 @@ For *N* statistics:
 
 
 ### Interpolation
+
 For target size *T*:
+
 | **Column**                    | **Description**                           |
 | ----------------------------- | ----------------------------------------- |
 | `read_id`                     | Unique read ID                            |
@@ -38,11 +42,14 @@ For target size *T*:
 
 
 ## 2. Exploded (Wide)
+
 Each region–read pair becomes one row. All values for all bases appear as separate columns. 
 (Requires all regions to have the same length.)
 
 ### Base-wise statistics
+
 For regions of length *M* and *N* statistics:
+
 | **Column**                      | **Description**               |
 | ------------------------------- | ----------------------------- |
 | `read_id`                       | Unique read ID                |
@@ -52,7 +59,9 @@ For regions of length *M* and *N* statistics:
 | `<STAT-1>_0 ... <STAT-N>_(M-1)` | Per-base statistics           |
 
 ### Interpolation
+
 For regions of length *M* and *N* statistics:
+
 | **Column**                                  | **Description**               |
 | ------------------------------------------- | ----------------------------- |
 | `read_id`                                   | Unique read ID                |
@@ -66,9 +75,11 @@ For regions of length *M* and *N* statistics:
 
 
 ## 3. Nested (Parquet only)
+
 Each row represents one read–region pair. Fields store lists or 2D arrays.
 
 ### Base-wise statistics
+
 | **Column**              | **Description**                                                     |
 | ----------------------- | ------------------------------------------------------------------- |
 | `read_id`               | Unique read ID                                                      |
@@ -78,6 +89,7 @@ Each row represents one read–region pair. Fields store lists or 2D arrays.
 | `<STAT-1> ... <STAT-N>` | Lists of per-base statistic values (length = current region length) |
 
 ### Interpolation
+
 With all regions of interest of length M and an interpolation target size of T:
 
 | **Column**            | **Description**                                                 |
