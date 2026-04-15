@@ -50,8 +50,7 @@ use crate::errors::LoggerError;
 /// * `Result<(), Box<dyn std::error::Error>>` - Success or an error if logger setup fails
 pub fn setup_logger(
     path: &PathBuf, 
-    default_level: LevelFilter,
-    module_filters: Vec<(&str, LevelFilter)>,
+    level: LevelFilter,
     include_function_name: bool
 ) -> Result<(), LoggerError> {
     let pattern = if include_function_name {
@@ -64,28 +63,15 @@ pub fn setup_logger(
         .encoder(Box::new(PatternEncoder::new(pattern)))
         .build(path)?;
 
-    let mut config_builder = Config::builder()
+    let config_builder = Config::builder()
         .appender(Appender::builder().build("logfile", Box::new(logfile)));
 
-    let mut info_string = String::new();
-
-    for (module, level) in module_filters {
-        info_string.push_str(&format!("{}: {},", module, level));
-
-        let logger = Logger::builder()
-            .appender("logfile")
-            .additive(false)
-            .build(module, level);
-
-        config_builder = config_builder.logger(logger)
-    }
-
     let config = config_builder
-        .build(Root::builder().appender("logfile").build(default_level))?;
+        .build(Root::builder().appender("logfile").build(level))?;
 
     log4rs::init_config(config)?;
-    log::info!("Logger initialized. Writing to file: '{}'. Logging level(s):", path.display());
-    log::info!("Logging level root: {}, Module logging levels: {}", default_level, info_string);
+    log::info!("*********** Started processing  ***********");
+    log::info!("Logger initialized. Writing to file: '{}'. Logging level: {}", path.display(), level);
     Ok(())
 }
 

@@ -533,6 +533,8 @@ fn refine_alignment<
         &trimmed_signal
     )?;
 
+    log::trace!("Initial scale and shift: scale = {}, shift = {}", scale, shift);
+
     let seq_to_signal_map_start = seq_to_signal_map[0];
     let seq_to_signal_map_end = seq_to_signal_map[seq_to_signal_map.len() - 1];
 
@@ -583,6 +585,9 @@ fn refine_alignment<
                 &levels,
                 rescale_algo
             )?;
+            log::trace!(
+                "Updated scale and shift in refinement iteration {}: scale = {}, shift = {}", i, scale, shift
+            );
         }
     }
 

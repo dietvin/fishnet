@@ -80,6 +80,8 @@ where
     OS: OutputSchema,
     OB: Buffer<OS>,
 {
+    log::info!("Worker thread started");
+
     for (pod5_read, bam_read, read_id) in data_receiver {
 
         log::debug!("{read_id}: Starting alignment for read");

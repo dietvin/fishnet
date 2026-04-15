@@ -188,12 +188,16 @@ where
 
     // Join producer, worker and progress threads
     catch_thread_join_error(producer_handle.join(), "producer");
+    log::info!("Joined producer thread");
+
     let mut i = 0;
     for handle in worker_handles {
         catch_thread_join_error(handle.join(), &format!("worker{i}"));
+        log::info!("Joined worker{i}");
         i += 1;
     }
     catch_thread_join_error(progress_handle.join(), "progress");
+    log::info!("Joined progress thread");
 
     // Join the writer thread with an additional progress bar 
     // in case it takes a bit longer to write remaining data
@@ -206,6 +210,11 @@ where
     );
     progress_bar_finishing.enable_steady_tick(Duration::from_millis(100));
     progress_bar_finishing.set_message("Writing remaining data...");
+
     catch_thread_join_error(writer_handle.join(), "writer");
+    log::info!("Joined writer thread");
+
     progress_bar_finishing.finish_with_message(format!("{}", style("Finished.").green()));
+
+    log::info!("*********** Finished processing ***********");
 }

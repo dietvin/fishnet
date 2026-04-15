@@ -53,7 +53,7 @@ impl BaseRead {
         reverse_signal: bool
     ) -> Result<Self, BaseReadError> {
         let pod5_id = pod5_read.read_id_string();
-        log::info!("Initializing AlignedRead '{}'", pod5_id);
+        log::debug!("Initializing AlignedRead '{}'", pod5_id);
         let bam_id = bam_read.read_id();
         if pod5_id != bam_id {
             return Err(BaseReadError::IdMismatch(pod5_id.into(), bam_id.into()));

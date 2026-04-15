@@ -52,10 +52,7 @@ where
         }
     }
 
-    match output_writer.finalize() {
-        Ok(_) => {
-            log::debug!("Successfully finalized writer");
-        }
-        Err(e) => catch_error(e, "Failed to finalize the writer")
+    if let Err(e) = output_writer.finalize() {
+        catch_error(e, "Failed to finalize the writer");
     }
 }

@@ -57,7 +57,7 @@ pub(super) fn build_reference_sequence(
     cigar: &[Op],
     md_tag: &[u8]
 ) -> Result<Vec<u8>, RefSeqReconstructError> {
-    log::debug!(
+    log::trace!(
         "build_reference_sequence input: query_sequence = {}, cigar = {}, md_tag = {}",
         get_log_vector_sample(query_sequence, 10),
         get_log_vector_sample(cigar, 10),
@@ -197,7 +197,7 @@ pub(super) fn build_reference_sequence(
     process_matches(&n_matches, &mut reference_idx, &reference_sequence);
 
     log::debug!(
-        "rescale output: reference_sequence = {}",
+        "Finished reference sequence recostruction: {}",
         get_log_vector_sample(&reference_sequence, 10),
     );
 

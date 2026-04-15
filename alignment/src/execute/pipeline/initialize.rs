@@ -1,4 +1,4 @@
-use std::{sync::Arc, time::Duration};
+use std::{ffi::OsString, sync::Arc, time::Duration};
 
 use console::style;
 use helper::logger::setup_logger;
@@ -48,14 +48,15 @@ pub(super) fn load_data_pipeline(config: &Config) -> (Pod5Dataset, BamFileLazy, 
         match setup_logger(
             &config.log_config.path, 
             config.log_config.level,
-            vec![], 
             false
         ) {
             Ok(_) => {
-                log::info!(
-                    "Successfully initialized logger with level {}. Writing to {}",
-                    config.log_config.level, config.log_config.path.display()
-                );
+                let raw_args = std::env::args_os().collect::<Vec<OsString>>()
+                    .iter()
+                    .map(|s| s.to_string_lossy())
+                    .collect::<Vec<_>>()
+                    .join(" ");
+                log::info!("Command: {}", raw_args);
             }
             Err(e) => catch_error(e, "Failed to initialize logger")
         }
@@ -67,8 +68,8 @@ pub(super) fn load_data_pipeline(config: &Config) -> (Pod5Dataset, BamFileLazy, 
     let bam_file = match BamFileLazy::new(&config.bam_path) {
         Ok(v) => {
             log::info!(
-                "Successfully initialized BAM file {}",
-                config.bam_path.display()
+                "Successfully initialized BAM file from path '{}' with {} reads",
+                config.bam_path.display(), v.index().len()
             );
             v
         }
@@ -103,7 +104,13 @@ pub(super) fn load_data_pipeline(config: &Config) -> (Pod5Dataset, BamFileLazy, 
                 &kmer_table_config.path,
                 kmer_table_config.normalize_levels
             ) {
-                Ok(v) => Arc::new(v),
+                Ok(v) => {
+                    log::info!(
+                        "Loaded kmer table from file '{}'",
+                        &kmer_table_config.path.display()
+                    );
+                    Arc::new(v)
+                },
                 Err(e) => catch_error(e, &format!(
                     "Failed to read kmer table from file '{}'",
                     &kmer_table_config.path.display()

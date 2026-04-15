@@ -38,6 +38,8 @@ pub(super) fn producer_pipeline(
     data_sender: Sender<(Pod5Read, BamRead, String)>,
     progress_sender: Sender<bool>
 ) {
+    log::info!("Starting producer thread");
+
     for pod5_file in pod5_dataset.iter_files_mut() {
         let pod5_read_iter = match pod5_file.iter_reads() {
             Ok(v) => v,

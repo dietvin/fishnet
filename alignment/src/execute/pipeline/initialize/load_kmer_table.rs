@@ -36,7 +36,7 @@ pub(crate) fn load_kmer_table(header: &Header) -> Result<KmerTable, KmerTableLoa
     let fitting_kmer_table = AvailableKmerTables::from_basecall_model_str(basecall_model_str)?;
     let kmer_table = fitting_kmer_table.load()?;
 
-    log::debug!("Matched kmer table {} to basecall model {}", kmer_table.source_str(), basecall_model_str);
+    log::info!("Loaded embedded kmer table '{}' to match basecall model '{}'", kmer_table.source_str(), basecall_model_str);
     
     Ok(kmer_table)
 }

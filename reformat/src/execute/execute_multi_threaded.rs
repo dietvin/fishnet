@@ -51,7 +51,6 @@ pub(super) fn run_reformat_multi_threaded(config: ConfigReformat) -> Result<(), 
         setup_logger(
             config.log_path(), 
             *config.log_level(), 
-            vec![], 
             false
         )?;
     }

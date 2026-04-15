@@ -73,8 +73,6 @@ impl BamRead {
             .map(|rn| rn.to_string())
             .ok_or(BamReadError::ReadIdError)?;
 
-        log::info!("Initializing BamRead '{}'", read_id);
-
         let mut query= bam_record.sequence().iter().collect::<Vec<u8>>();
         let query_length = query.len();
 
@@ -149,7 +147,7 @@ impl BamRead {
         }
 
         log::debug!(
-            "BamRead::new info: read id = {}; is mapped = {}; query length = {}, reference length = {:?}", 
+            "Initialized BamRead '{}' (is mapped = {}; query length = {}, reference length = {:?})", 
             read_id, mapped, query_length, reference_len
         );
 

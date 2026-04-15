@@ -48,8 +48,6 @@ impl BamFileLazy {
     ///
     /// This operation can be expensive for large BAM files as it requires a full scan.
     pub fn new(path: &PathBuf) -> Result<Self, BamFileError> {
-        log::info!("Initializing BamFileLazy from file '{}'", path.display());
-
         // Initialize a bam Reader wrapping a bgzf Reader in order to store offsets 
         // of the contained reads 
         let file = File::open(path)?;
@@ -88,7 +86,6 @@ impl BamFileLazy {
             }
         }
 
-        log::debug!("BamFileLazy::new info: path = {}, #reads = {}", path.display(), index.len());
         Ok(BamFileLazy {
             path: path.clone(),
             bam_reader,
@@ -115,7 +112,6 @@ impl BamFileLazy {
     /// * `BamFileError::IndexError` - If the read ID is not found in the index
     /// * `BamFileError::ValueError` - If the record cannot be read after seeking
     pub fn get(&mut self, id: &str) -> Result<BamRead, BamFileError> {
-        log::info!("Loading BamRead '{}'", id);
         let offset = *self.index.get(id).ok_or(
             BamFileError::IndexError(String::from(id))
         )?;

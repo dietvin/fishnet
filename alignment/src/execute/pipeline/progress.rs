@@ -26,6 +26,8 @@ use indicatif::{ProgressBar, ProgressStyle};
 pub(super) fn progress_pipeline(
     progress_receiver: Receiver<bool>
 ) {
+    log::info!("Starting progress thread");
+
     let mut counter = 0;
     let mut n_success = 0;
     let mut n_failed = 0;
@@ -66,4 +68,9 @@ pub(super) fn progress_pipeline(
         style(format!("{} ✓ ", n_success)).green(),
         style(format!("{} ✗ ", n_failed)).red()
     ));
+
+    log::info!(
+        "Progress thread finished with {} successful and {} failed alignments",
+        n_success, n_failed
+    );
 }
