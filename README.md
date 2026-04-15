@@ -1,5 +1,7 @@
 ![fishnet_logo](docs/images/fishnet_logo_wide_cropped.png)
 
+![CI](https://img.shields.io/github/actions/workflow/status/dietvin/fishnet/build.yml?branch=main) ![Release](https://img.shields.io/github/v/release/dietvin/fishnet) ![Downloads](https://img.shields.io/github/downloads/dietvin/fishnet/total) [![Docs](https://img.shields.io/badge/docs-online-blue)](https://dietvin.github.io/fishnet/) ![License](https://img.shields.io/github/license/dietvin/fishnet)
+
 ## TL;DR
 
 Signal-to-sequence alignments like [Remora](https://github.com/nanoporetech/remora), but faster and more accessible. [Download fishnet](https://github.com/dietvin/fishnet/releases/latest), extract the binary and run the `align` command:
