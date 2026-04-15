@@ -23,7 +23,7 @@ dependencies = [
 
 [[package]]
 name = "alignment"
-version = "0.3.1"
+version = "0.4.0"
 dependencies = [
  "approx",
  "arrow2",
@@ -568,7 +568,7 @@ checksum = "37909eebbb50d72f9059c3b6d82c0463f2ff062c9e95845c43a6c9c0355411be"
 
 [[package]]
 name = "fishnet"
-version = "0.3.1"
+version = "0.4.0"
 dependencies = [
  "alignment",
  "clap",
@@ -754,7 +754,7 @@ checksum = "9229cfe53dfd69f0609a49f65461bd93001ea1ef889cd5529dd176593f5338a1"
 
 [[package]]
 name = "helper"
-version = "0.3.1"
+version = "0.4.0"
 dependencies = [
  "approx",
  "log",
@@ -858,7 +858,7 @@ dependencies = [
 
 [[package]]
 name = "kmer_table"
-version = "0.3.1"
+version = "0.4.0"
 dependencies = [
  "helper",
  "log",
@@ -1226,7 +1226,7 @@ dependencies = [
 
 [[package]]
 name = "pod5_reader_api"
-version = "0.3.1"
+version = "0.4.0"
 dependencies = [
  "arrow2",
  "bitvec",
@@ -1356,7 +1356,7 @@ dependencies = [
 
 [[package]]
 name = "reformat"
-version = "0.3.1"
+version = "0.4.0"
 dependencies = [
  "arrow2",
  "clap",
