@@ -37,3 +37,14 @@ Beyond the code the repo contains [example data](example_data/) to test fishnet,
 ## License
 
 This project is licensed under the GPL3.0 License. See the [LICENSE](./LICENSE) file for details.
+
+## Citation
+
+Fishnet is currently under review in Genome Biology: 
+
+DOI: [https://doi.org/10.21203/rs.3.rs-8345719/v1](https://doi.org/10.21203/rs.3.rs-8345719/v1)
+
+If you use Fishnet in your work, we would be really happy if you cite us:
+```
+Vincent Dietrich, Lioba Lehmann, Stefan Pastore et al. Fishnet simplifies and accelerates signal-to-sequence alignment in Nanopore sequencing, 16 January 2026, PREPRINT (Version 1) available at Research Square [https://doi.org/10.21203/rs.3.rs-8345719/v1]
+```
