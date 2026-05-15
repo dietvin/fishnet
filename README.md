@@ -36,7 +36,8 @@ Beyond the code the repo contains [example data](example_data/) to test fishnet,
 
 ## License
 
-This project is licensed under the GPL3.0 License. See the [LICENSE](./LICENSE) file for details.
+Fishnet is licensed under the Oxford Nanopore Technologies Public License v1.0 as it reimplements the signal-to-sequence alignment algorithm from ONT's [Remora](https://github.com/nanoporetech/remora).
+See the [LICENSE](./LICENSE) file for details.
 
 ## Citation
 
