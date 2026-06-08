@@ -1,22 +1,30 @@
 # Examples
 
-Aligning mapped **DNA** data to the reference:
-```bash
-fishnet \
-    --bam <bam-file> \
-    --pod5 <pod5-file1> <pod5-file2> <pod5-file3> \
-    --kmer-table <kmer-table-file> \
-    --out <output-file-name>.parquet \
-    --alignment-type reference
-``` 
+The following examples assume that the current working directory is the repository root. It used the data in [`example_data`](../../example_data/).
 
-Aligning **direct RNA** data to the base-called sequence:
+Aligning **DNA** reads to their basecalled (**query**) sequences:
 ```bash
-fishnet \
-    --bam <bam-file> \
-    --pod5 <pod5-directory> \
-    --kmer-table <kmer-table-file> \
-    --out <output-file-name>.parquet \
+fishnet align \
+    --bam example_data/DNA_R10/mappings.bam \
+    --pod5 example_data/DNA_R10/reads.pod5 \
+    --out alignments.parquet
+```
+
+Aligning the same DNA data to the mapped **reference** sequences:
+```bash
+fishnet align \
+    --bam example_data/DNA_R10/mappings.bam \
+    --pod5 example_data/DNA_R10/reads.pod5 \
+    --out alignments.parquet \
+    --alignment-type reference
+```
+
+Aligning **direct RNA** reads to their **query** sequences:
+```bash
+fishnet align \
+    --bam example_data/RNA004/mappings.bam \
+    --pod5 example_data/RNA004/reads.pod5 \
+    --out alignments.parquet \
     --rna
 ``` 
 

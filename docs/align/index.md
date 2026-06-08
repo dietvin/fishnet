@@ -7,8 +7,6 @@ fishnet align \
   --out <output-file>
 ```
 
-![align command demo](../images/align_demo.gif)
-
 With `Fishnet`, signal-to-sequence alignments are created using the `align` command. It is possible to align both the base-called (query) and (if present) the reference sequences to the signal.
 
 ???+ note "General info: Signal-to-sequence alignments"
@@ -24,7 +22,7 @@ With `Fishnet`, signal-to-sequence alignments are created using the `align` comm
         │   x    x   xxxx      x       │
         │    xxxx        xxxxxx        │
         └──────────────────────────────┘
-        012345678901234567890123456789  (Signal index)
+         012345678901234567890123456789  (Signal index)
 
         Sequence:
         A C G T A                 (length = 5)
@@ -52,23 +50,23 @@ Usage examples are provided in [Examples](examples.md).
 
 The following arguments are required:
 
-| Long flag | Short flag | Explanation | Type |
+| Long flag | Short flag | Type | Description
 |-|-|-|-|
-| --pod5 | -p | Path(s) to one or more pod5 files and/or directories containing pod5 files (separate multiple paths by space) | Path(s) (file or directory) |
-| --bam | -b | Path to a bam file (as given by Dorado; must contain **move tables** for each read) | Path (file) |
-| --out | -o | Path to the output file. Must end with .parquet (recommended) or .jsonl depending on the wanted output format | Path (file) |
+| `--bam <bam>`|  `-b <bam>` | Path (file) | Path(s) to one or more pod5 files and/or directories containing pod5 files (separate multiple paths by space) |
+| `--pod5 <pod5>` | `-p <pod5>` | Path(s) (file or directory) | Path to a bam file (as given by Dorado; must contain **move tables** for each read) |
+| `--out <output>` | `-o <output>` | Path (file) | Path to the output file. Must end with .parquet (recommended) or .jsonl depending on the wanted output format |
 
 ## Optional arguments
 
 The following arguments are the most relevant optional arguments for most users:
 
-| Long flag | Short flag |Explanation | Type |
+| Long flag | Short flag | Type | Description
 |-|-|-|-|
-| --rna | -r | Whether the provided data is direct RNA sequencing data. If set, the signal gets reversed for the alignment (dRNA signals are measured 3'-5') | Flag |
-| --kmer-table | -k | Path to a [kmer level table](https://github.com/nanoporetech/kmer_models). This is only required if no embedded kmer table can be matched to given data ([more information](kmer_table_matching.md)) | Path (file) |
-| --alignment-type | -a | Which type(s) of alignment to generate. Can be '**query**' (Default) to align the signal to the base-called sequence, '**reference**' to align to the reference sequence (if mapped)or '**both**' to do both. | Enum (`query`, `reference`, `both`) |
-| --threads | -t | Number of parallel threads to use. Default: **8** | int |
-| --force-overwrite | -f | If set and an output file already exists, this file will be overwritten. Raises an error otherwise | Flag |
+| `--rna` | `-r` | Flag | Whether the provided data is direct RNA sequencing data. If set, the signal gets reversed for the alignment (dRNA signals are measured 3'-5')
+| `--kmer-table <kmer_table>` | `-k <kmer_table>` | Path (file) | Path to a [kmer level table](https://github.com/nanoporetech/kmer_models). This is only required if no embedded kmer table can be matched to given data ([more information](kmer_table_matching.md))
+| `--alignment-type <type>` | `-a <type>` | Enum (`query`, `reference`, `both`) | Which type(s) of alignment to generate. Can be '**query**' (Default) to align the signal to the base-called sequence, '**reference**' to align to the reference sequence (if mapped)or '**both**' to do both.
+| `--threads <n>` |`-t <n>` | Integer | Number of parallel threads to use. Default: **8**
+| `--force-overwrite` | `-f` | Flag | If set and an output file already exists, this file will be overwritten. Raises an error otherwise
 
 For the sake of simplicity, the table shows only a subset of the optional arguments. For an overview of all arguments, see [Command line arguments](command_line_arguments.md).
 

@@ -1,13 +1,13 @@
 # Algorithm details
 
 ## Initial alignment
-An itital alignment is constructed using the move table generated during base-calling. This is an array of boolean values that indicates when the sequencer detected a new base in the signal, represented by a 1. By combining this information with the sampling stride, a mapping from positions in the base-called (query) sequence to positions in the raw signal is created. 
+An itital alignment is constructed using the **move table** generated during base-calling. This is an array of boolean values that indicates when the sequencer detected a new base in the signal, represented by a 1. By combining this information with the sampling stride (stored in the first value of the move table), a mapping from positions in the base-called (query) sequence to positions in the raw signal is created. 
 
 If the read is mapped to a reference, the associated CIGAR string can be used to derive a reference-to-signal alignment. This is done by first computing a reference-to-query mapping based on the CIGAR operations and then translating it to signal coordinates via the query-to-signal mapping, followed by linear interpolation to obtain a dense signal alignment for each reference position.
 
 
 ## Refinement
-The inital alignment is solely based on the move table and does not account for the actual measured signal intensities. The refinement process improves this alignment by shifting alignment boundaries in a way that minimizes the discrepancy between observed signal levels and the expected signal levels for the corresponding k-mers, as defined by ONT's k-mer models.
+The inital alignment is solely based on the move table and does not account for the actual measured signal intensities. The refinement process improves this alignment by shifting alignment boundaries in a way that minimizes the discrepancy between observed signal levels and the expected signal levels for the corresponding k-mers, as defined by ONT's [k-mer models](kmer_table_matching.md).
 
 The refinement is performed iteratively with configurable parameters that control the number of refinement iterations, the algorithms used for the refinement and the algorithm used for signal normalization.
 
@@ -16,9 +16,9 @@ The refinement process follows this general workflow:
 
 1. **Initial signal normalization**: Raw signal measurements are transformed to normalized values using calibration parameters from the sequencer and signal statistics (see [Signal normalization](#signal-normalization))
 
-2. **Optional rough rescaling**: A coarse-grained scaling adjustment using quantile-based regression to improve the baseline divergence between observed and expected measurements (see  [Rough rescaling](#rough-rescaling))
+2. **Optional rough rescaling**: A coarse-grained scaling adjustment using quantile-based regression to improve the baseline divergence between observed and expected measurements (see [Rough rescaling](#rough-rescaling))
 
-3. **Iterative refinement**: Multiple rounds of boundary optimization with recalibration between iterations (see  [Boundary optimization](#boundary-optimization))
+3. **Iterative refinement**: Multiple rounds of boundary optimization with recalibration between iterations (see [Boundary optimization](#boundary-optimization))
 
 4. **Final alignment**: Alignment with boundaries shifted to minimize the distance between observed and expected signal measurements
 
