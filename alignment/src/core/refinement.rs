@@ -201,7 +201,7 @@ where
         let trimmed_signal = aligned_read.base.signal_f32();
         let trimmed_signal_offset = aligned_read.base.signal_offset();
 
-        let query_to_sig = refine_alignment(
+        let (query_to_sig, shift, scale) = refine_alignment(
             query_to_sig,
             bam_read.query(),
 
@@ -222,7 +222,7 @@ where
             self.min_step,
         )?;
 
-        Ok(QueryToSignalResult { query_to_sig })
+        Ok(QueryToSignalResult { query_to_sig, shift, scale })
     }
 }
 
@@ -296,7 +296,7 @@ where
         let trimmed_signal = aligned_read.base.signal_f32();
         let trimmed_signal_offset = aligned_read.base.signal_offset();
 
-        let ref_to_sig = refine_alignment(
+        let (ref_to_sig, shift, scale) = refine_alignment(
             ref_to_sig,
             bam_read.get_reference()?,
 
@@ -317,7 +317,7 @@ where
             self.min_step,
         )?;
 
-        Ok(RefToSignalResult { ref_to_sig })
+        Ok(RefToSignalResult { ref_to_sig, shift, scale })
     }
 }
 
@@ -394,7 +394,7 @@ where
         let query_to_sig = aligned_read.query_to_signal;
         let ref_to_sig = aligned_read.ref_to_signal;
     
-        let query_to_sig = refine_alignment(
+        let (query_to_sig, query_shift, query_scale) = refine_alignment(
             query_to_sig,
             bam_read.query(),
 
@@ -415,7 +415,7 @@ where
             self.min_step,
         )?;
 
-        let ref_to_sig = refine_alignment(
+        let (ref_to_sig, ref_shift, ref_scale) = refine_alignment(
             ref_to_sig,
             bam_read.get_reference()?,
 
@@ -436,7 +436,10 @@ where
             self.min_step,
         )?;
 
-        Ok(BothResult { query_to_sig, ref_to_sig })
+        Ok(BothResult {
+            query_to_sig, query_shift, query_scale,
+            ref_to_sig, ref_shift, ref_scale
+        })
     }
 }
 
@@ -515,7 +518,7 @@ fn refine_alignment<
     band_half_bandwidth: usize,
     band_is_banded: bool,
     band_min_step: usize
-) -> Result<Vec<usize>, RefinementError> {
+) -> Result<(Vec<usize>, f32, f32), RefinementError> {
     let levels = kmer_table.extract_levels(sequence)?;
 
     let (mut scale, mut shift) = calculate_initial_scaling_shift(
@@ -575,27 +578,24 @@ fn refine_alignment<
             .iter_mut()
             .for_each(|el| *el += seq_to_signal_map_start);
 
-        // Skip rescaling in last iteration
-        if i < n_refinement_iter - 1 {
-            (scale, shift) = rescale(
-                scale,
-                shift,
-                &seq_to_signal_map,
-                &trimmed_signal,
-                &levels,
-                rescale_algo
-            )?;
-            log::trace!(
-                "Updated scale and shift in refinement iteration {}: scale = {}, shift = {}", i, scale, shift
-            );
-        }
+        (scale, shift) = rescale(
+            scale,
+            shift,
+            &seq_to_signal_map,
+            &trimmed_signal,
+            &levels,
+            rescale_algo
+        )?;
+        log::trace!(
+            "Updated scale and shift in refinement iteration {}: scale = {}, shift = {}", i, scale, shift
+        );
     }
 
     seq_to_signal_map
         .iter_mut()
         .for_each(|el| *el += trimmed_signal_offset);
 
-    Ok(seq_to_signal_map)
+    Ok((seq_to_signal_map, shift, scale))
 }
 
 

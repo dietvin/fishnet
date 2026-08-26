@@ -60,12 +60,16 @@ use crate::{
 pub struct ParquetBuffer {
     read_id: MutableUtf8Array<i32>,
     query_to_sig: MutableListArray<i32, MutablePrimitiveArray<u64>>,
+    query_shift: MutablePrimitiveArray<f32>,
+    query_scale: MutablePrimitiveArray<f32>,
     ref_to_sig: MutableListArray<i32, MutablePrimitiveArray<u64>>,
+    ref_shift: MutablePrimitiveArray<f32>,
+    ref_scale: MutablePrimitiveArray<f32>,
     ref_name: MutableUtf8Array<i32>,
     ref_start: MutablePrimitiveArray<u64>,
     query_seq: MutableUtf8Array<i32>,
     ref_seq: MutableUtf8Array<i32>,
-    signal: MutableListArray<i32, MutablePrimitiveArray<i16>>,
+    signal: MutableListArray<i32, MutablePrimitiveArray<f32>>,
 
     current_size_bytes: usize,
     flush_threshold_bytes: usize,
@@ -98,10 +102,16 @@ impl ParquetBuffer {
             SEQ_CAPACITY
         );
 
+        let query_shift = Self::alloc_shift_scale(ROW_CAPACITY);
+        let query_scale = Self::alloc_shift_scale(ROW_CAPACITY);
+
         let ref_to_sig = Self::alloc_map(
             ROW_CAPACITY,
             SEQ_CAPACITY
         );
+
+        let ref_shift = Self::alloc_shift_scale(ROW_CAPACITY);
+        let ref_scale = Self::alloc_shift_scale(ROW_CAPACITY);
 
         let ref_name = Self::alloc_ref_name(ROW_CAPACITY);
 
@@ -124,8 +134,12 @@ impl ParquetBuffer {
 
         Self { 
             read_id,
-            query_to_sig,
+            query_to_sig, 
+            query_shift,
+            query_scale,
             ref_to_sig,
+            ref_shift,
+            ref_scale,
             ref_name,
             ref_start,
             query_seq,
@@ -160,6 +174,14 @@ impl ParquetBuffer {
         map
     }
 
+    fn alloc_shift_scale(
+        row_capacity: usize
+    ) -> MutablePrimitiveArray<f32> {
+        MutablePrimitiveArray::<f32>::with_capacity(
+            row_capacity
+        )
+    }
+
     fn alloc_ref_name(
         row_capacity: usize
     ) -> MutableUtf8Array<i32> {
@@ -190,8 +212,8 @@ impl ParquetBuffer {
     fn alloc_signal(
         row_capacity: usize,
         signal_capacity: usize
-    ) -> MutableListArray<i32, MutablePrimitiveArray<i16>> {
-        let mut signal = MutableListArray::<i32, MutablePrimitiveArray<i16>>::with_capacity(
+    ) -> MutableListArray<i32, MutablePrimitiveArray<f32>> {
+        let mut signal = MutableListArray::<i32, MutablePrimitiveArray<f32>>::with_capacity(
             row_capacity
         );
         signal.mut_values().reserve(row_capacity * signal_capacity);
@@ -225,20 +247,33 @@ impl<S: OutputSchema> Buffer<S> for ParquetBuffer {
 
         if S::HAS_QUERY_TO_SIGNAL {
             let v = record.query_to_sig.expect("schema guarantees query_to_sig");
-            self.current_size_bytes += v.len() * std::mem::size_of::<u64>();
+            self.current_size_bytes += v.len() * std::mem::size_of::<u64>() + 2 * std::mem::size_of::<f32>();
 
             self.query_to_sig.try_push(Some(
                 v.iter().map(|&el| Some(el as u64))
-            ))?
+            ))?;
+
+            let v = record.query_shift.expect("schema guarantees query_shift");
+            self.query_shift.try_push(Some(v))?;
+            
+            let v = record.query_shift.expect("schema guarantees query_scale");
+            self.query_scale.try_push(Some(v))?;
+
         }
 
         if S::HAS_REF_TO_SIGNAL {
             let v = record.ref_to_sig.expect("schema guarantees ref_to_sig");
-            self.current_size_bytes += v.len() * std::mem::size_of::<u64>();
+            self.current_size_bytes += v.len() * std::mem::size_of::<u64>() + 2 * std::mem::size_of::<f32>();
 
             self.ref_to_sig.try_push(Some(
                 v.iter().map(|&el| Some(el as u64))
             ))?;
+
+            let v = record.ref_shift.expect("schema guarantees ref_shift");
+            self.ref_shift.try_push(Some(v))?;
+            
+            let v = record.ref_shift.expect("schema guarantees ref_scale");
+            self.ref_scale.try_push(Some(v))?;
         }
 
         if S::HAS_REF_META {
@@ -266,7 +301,7 @@ impl<S: OutputSchema> Buffer<S> for ParquetBuffer {
 
         if S::HAS_SIGNAL {
             let v = record.signal.expect("schema guarantees signal");
-            self.current_size_bytes += v.len() * std::mem::size_of::<i16>();
+            self.current_size_bytes += v.len() * std::mem::size_of::<f32>();
             self.signal.try_push(Some(
                 v.iter().map(|&el| Some(el))
             ))?;
@@ -315,6 +350,18 @@ impl<S: OutputSchema> Buffer<S> for ParquetBuffer {
                 Self::alloc_map(self.row_capacity, self.sequence_capacity)
             );
             columns.push(query_to_sig.as_box());
+
+            let mut query_shift = replace(
+                &mut self.query_shift,
+                Self::alloc_shift_scale(self.row_capacity)
+            );
+            columns.push(query_shift.as_box());
+
+            let mut query_scale = replace(
+                &mut self.query_scale,
+                Self::alloc_shift_scale(self.row_capacity)
+            );
+            columns.push(query_scale.as_box());
         }
 
         if S::HAS_REF_TO_SIGNAL {
@@ -323,6 +370,18 @@ impl<S: OutputSchema> Buffer<S> for ParquetBuffer {
                 Self::alloc_map(self.row_capacity, self.sequence_capacity)
             );
             columns.push(ref_to_sig.as_box());
+
+            let mut ref_shift = replace(
+                &mut self.ref_shift,
+                Self::alloc_shift_scale(self.row_capacity)
+            );
+            columns.push(ref_shift.as_box());
+
+            let mut ref_scale = replace(
+                &mut self.ref_scale,
+                Self::alloc_shift_scale(self.row_capacity)
+            );
+            columns.push(ref_scale.as_box());
         }
 
         if S::HAS_REF_META {

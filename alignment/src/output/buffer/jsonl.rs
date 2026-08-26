@@ -47,7 +47,15 @@ struct OutputRecordSer {
     #[serde(skip_serializing_if = "Option::is_none")]
     query_to_sig: Option<Vec<usize>>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    query_shift: Option<f32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    query_scale: Option<f32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     ref_to_sig: Option<Vec<usize>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    ref_shift: Option<f32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    ref_scale: Option<f32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     ref_name: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -57,7 +65,7 @@ struct OutputRecordSer {
     #[serde(skip_serializing_if = "Option::is_none")]
     ref_seq: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    signal: Option<Vec<i16>>
+    signal: Option<Vec<f32>>
 }
 
 impl<S: OutputSchema> Buffer<S> for JsonlBuffer {
@@ -70,7 +78,11 @@ impl<S: OutputSchema> Buffer<S> for JsonlBuffer {
         let record_ser = OutputRecordSer {
             read_id:        record.read_id,
             query_to_sig:   if S::HAS_QUERY_TO_SIGNAL { record.query_to_sig } else { None },
+            query_shift:    if S::HAS_QUERY_TO_SIGNAL { record.query_shift } else { None },
+            query_scale:    if S::HAS_QUERY_TO_SIGNAL { record.query_scale } else { None },
             ref_to_sig:     if S::HAS_REF_TO_SIGNAL { record.ref_to_sig } else { None },
+            ref_shift:      if S::HAS_REF_TO_SIGNAL { record.ref_shift } else { None },
+            ref_scale:      if S::HAS_REF_TO_SIGNAL { record.ref_scale } else { None },
             ref_name:       if S::HAS_REF_META { record.ref_name } else { None },
             ref_start:      if S::HAS_REF_META { record.ref_start } else { None },
             query_seq:      if S::HAS_QUERY_SEQ { record.query_seq } else { None },

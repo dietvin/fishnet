@@ -85,6 +85,16 @@ impl ParquetWriter {
                 )),
                 true
             ));
+            fields.push(Field::new(
+                "query_shift",
+                DataType::Float32,
+            false
+            ));
+            fields.push(Field::new(
+                "query_scale",
+                DataType::Float32,
+            false
+            ));
         }
 
         if S::HAS_REF_TO_SIGNAL {
@@ -94,6 +104,16 @@ impl ParquetWriter {
                     Field::new("item", DataType::UInt64, true)
                 )),
                 true
+            ));
+            fields.push(Field::new(
+                "ref_shift",
+                DataType::Float32,
+            false
+            ));
+            fields.push(Field::new(
+                "ref_scale",
+                DataType::Float32,
+            false
             ));
         }
 
@@ -130,7 +150,7 @@ impl ParquetWriter {
             fields.push(Field::new(
                 "signal", 
                 DataType::List(Box::new(
-                    Field::new("item", DataType::Int16, true)
+                    Field::new("item", DataType::Float32, true)
                 )),
                 true
             ));
