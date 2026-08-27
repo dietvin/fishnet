@@ -79,7 +79,7 @@ use clap::{value_parser, Arg, ArgAction, Command};
 ///                          ignored if set to 0. (Only processed if `rescale-algo` is `theil-sen`; default: 1000) 
 pub fn init_align() -> Command {
     let command = Command::new("align")
-        .about("Perform signal-to-sequence alignment")
+        .about("Perform signal-to-sequence alignment. . For detailed documentation, refer to https://dietvin.github.io/fishnet/align/.")
         .arg(
             Arg::new("bam")
                 .long("bam")

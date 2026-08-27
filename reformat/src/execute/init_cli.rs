@@ -3,7 +3,7 @@ use clap::{value_parser, Arg, ArgAction, ArgGroup, Command};
 
 pub fn init_reformat() -> Command {
     let command = Command::new("reformat")
-        .about("Process alignments to prepare for analyses")
+        .about("Process alignments to prepare for analyses. For detailed documentation, refer to https://dietvin.github.io/fishnet/reformat/.")
 
         // Required IO
 
@@ -349,69 +349,6 @@ the alignment failed for (some) given reads. Logging is disabled by default."
 "Path to the log file. Only regarded if debug-level is other than 'off'. If the log 
 file exists already new logging output gets appended to the file."
                 )
-        )
-
-        .after_long_help(
-"Notes about the coordinate systems for filtering reads:
--------------------------------------------------------
-
-The filtering flag for reference regions follow the following
-coordinate systems:
-
-Example sequence chrA:  A C G T A T A C C T
-                        0 1 2 3 4 5 6 7 8 9  (0-based index)
-                        1 2 3 4 5 6 7 8 9 10 (1-based index)
-
-1. BED file (--bed-file):
-   - Coordinates follow BED conventions
-   - Coordinates are 0-based, start is inclusive, end is exclusive
-   - Example line:   chrA   1   9
-   - Covers bases 2 through 9 of:  A C G T A T A C C T
-                                     C G T A T A C C
-
-2. Region string (--ref-regions):
-   - Coordinates follow samtools-style conventions
-   - Coordinates are 1-based, and both start and end are inclusive
-   - Example:        chrA:2-9
-   - Covers bases 2 through 9 of:  A C G T A T A C C T
-                                     C G T A T A C C
-
-3. Position with window (--positions-of-interest):
-   - Coordinates follow samtools-style conventions
-   - Site is 1-based; window expands symmetrically
-   - Example:        chrA:5-3
-   - Covers bases 2 through 8 of:  A C G T A T A C C T
-                                     C G T A T A C
-
-Notes about the output shape:
-------------------------------
-Example dataset: Two reads (A & B) aligned to the reference, two reference 
-regions of length 2, two statistics (mean, std)
-
-1. Melted - long format:
-read_id | ref_region | ref_name | base_position | base | mean  | std
---------+------------+----------+---------------+------+-------+------
-readA   | motif1     | chr1     | 1             | C    | 0.52  | 0.10
-readA   | motif1     | chr1     | 2             | G    | 0.61  | 0.12
-readB   | motif1     | chr1     | 1             | C    | 0.48  | 0.09
-readB   | motif1     | chr1     | 2             | G    | 0.58  | 0.15
-
-2. Exploded - wide format:
-read_id | ref_region | ref_name | read_start | base_1 | base_2 | mean_1 | mean_2 | std_1 | std_2
---------+------------+----------+------------+--------+--------+--------+--------+-------+-------
-readA   | motif1     | chr1     | 100        | C      | G      | 0.52   | 0.61   | 0.10  | 0.12
-readB   | motif1     | chr1     | 200        | C      | G      | 0.48   | 0.58   | 0.09  | 0.15
-
-Note that all regions of interests must be the same length here!
-
-3. Nested - list format: 
-read_id | ref_region | ref_name | read_start | bases   | mean        | std
---------+------------+----------+------------+---------+-------------+-------------
-readA   | motif1     | chr1     | 100        | [C, G]  | [0.52, 0.61]| [0.10, 0.12]
-readB   | motif1     | chr1     | 200        | [C, G]  | [0.48, 0.58]| [0.09, 0.15]
-
-Note that the nested format is only available for parquet output!
-"
         );
 
     command
