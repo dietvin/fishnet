@@ -23,8 +23,12 @@ use helper::{
 pub(crate) enum Column {
     ReadId,
     QueryAlignment,
+    QueryShift,
+    QueryScale,
     QuerySequence,
     RefAlignment,
+    RefShift,
+    RefScale,
     RefSequence,
     RefName,
     RefStart,
@@ -232,8 +236,6 @@ pub struct ConfigReformat {
     signal_source: SignalSource,
     /// Whether to use dRNA-specific processing (affects POD5 signal extraction)
     is_drna: bool,
-    /// Whether to normalize the signal
-    norm_signal: bool,
     /// Whether to normalize the dwells
     norm_dwells: bool,
     /// How to reformat the signal data
@@ -342,7 +344,6 @@ impl ConfigReformat {
 
         let reformat_strategy = Self::parse_reformat_strategy(matches)?;
         let is_drna = matches.get_flag("rna");
-        let norm_signal = !matches.get_flag("skip-signal-norm");
         let norm_dwells = !matches.get_flag("skip-dwell-norm");
 
         // === Determining which columns are needed for processing ===
@@ -435,7 +436,6 @@ impl ConfigReformat {
             output_file,
             signal_source,
             is_drna,
-            norm_signal,
             norm_dwells,
             filter_source,
             reformat_strategy,
@@ -954,12 +954,6 @@ impl ConfigReformat {
     /// This affects how POD5 signal data is extracted and processed.
     pub fn is_drna(&self) -> bool {
         self.is_drna
-    }
-
-    /// Returns whether the signal should be z-standardized before
-    /// processing.
-    pub fn norm_signal(&self) -> bool {
-        self.norm_signal
     }
 
     /// Returns whether the dwell values should be z-standardized 

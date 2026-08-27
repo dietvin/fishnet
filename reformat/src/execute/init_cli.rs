@@ -187,17 +187,6 @@ reference and query alignments. Note that 'query' is incompatible with the --ref
                 )                
         )
         .arg(
-            Arg::new("skip-signal-norm")
-                .long("skip-signal-norm")
-                .action(ArgAction::SetTrue)
-                .help_heading("Processing strategy")
-                .help("Skip signal normalization")
-                .long_help(
-"Skip signal normalization. If set, the z-standardization of the signal measurements
-gets skipped during processing."
-                )
-            )
-        .arg(
             Arg::new("skip-dwell-norm")
                 .long("skip-dwell-norm")
                 .action(ArgAction::SetTrue)

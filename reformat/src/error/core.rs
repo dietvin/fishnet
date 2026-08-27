@@ -12,12 +12,6 @@ pub(crate) mod loader {
     }
 
     #[derive(Debug, thiserror::Error)]
-    pub(crate) enum StatsError {
-        #[error("0-division occured during normalization")]
-        ZeroDivision
-    }
-
-    #[derive(Debug, thiserror::Error)]
     pub(crate) enum AlignmentChunkError {
         #[error("No data found for column {0} at index {1}")]
         ColumnIndexError(&'static str, usize),
@@ -37,10 +31,6 @@ pub(crate) mod loader {
         Pod5ReadError(#[from] Pod5ReadError),
         #[error("Row error: {0}")]
         RowError(#[from] RowError),
-        #[error("Error calculating statistics: {0}")]
-        StatsError(#[from] StatsError),
-        #[error("Standard deviation is 0")]
-        StdZero
     }
 
     #[derive(Debug, thiserror::Error)]
@@ -71,10 +61,6 @@ pub(crate) mod loader {
         Pod5ReadError(#[from] Pod5ReadError),
         #[error("Pod5Dataset is needed, but is None")]
         Pod5DatasetMissing,
-        #[error("Error calculating statistics: {0}")]
-        StatsError(#[from] StatsError),
-        #[error("Standard deviation is 0")]
-        StdZero,
         #[error("Row error: {0}")]
         RowError(#[from] RowError),
     }

@@ -30,8 +30,6 @@ pub(crate) struct RowIterator {
     /// Flag that indicates whether to reverse the signal in 
     /// case signal get extracted from the Pod5Dataset
     is_rna: bool,
-    /// Flag that indicates whether the signal should get normalized
-    norm_signal: bool,
     /// Arrow FileReader for the parquet file
     file_reader: FileReader<File>,
     /// Currently loaded chunk (None if no more chunks)
@@ -63,8 +61,7 @@ impl RowIterator {
         chunk_size: usize, 
         columns_of_interest: &[Column], 
         pod5_dataset: Option<Pod5Dataset>,
-        is_rna: bool,
-        norm_signal: bool
+        is_rna: bool
     ) -> Result<Self, RowIteratorError> {
         let mut file = File::open(path)?;
 
@@ -93,7 +90,6 @@ impl RowIterator {
             column_index,
             pod5_dataset,
             is_rna,
-            norm_signal,
             file_reader,
             current_chunk,
             current_chunk_index: 0,
@@ -123,8 +119,7 @@ impl Iterator for RowIterator {
         match self.current_chunk.get_row(
             self.current_chunk_index, 
             &mut self.pod5_dataset,
-            self.is_rna,
-            self.norm_signal
+            self.is_rna
         ) {
             Ok(row) => {
                 self.current_chunk_index += 1;

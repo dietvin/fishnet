@@ -5,8 +5,8 @@ use crate::{core::reformater::reformated::ReformatedInterp, error::core::reforma
 pub(super) fn reformat_interpolate(
     sequence_slice: &[u8],
     alignment_slice: &[usize],
-    dwells_slice: &[f64],
-    full_signal: &[f64],
+    dwells_slice: &[f32],
+    full_signal: &[f32],
     target_len: usize
 ) -> Result<ReformatedInterp, InterpolationError> {
     let mut output_row = ReformatedInterp::new(sequence_slice, dwells_slice);

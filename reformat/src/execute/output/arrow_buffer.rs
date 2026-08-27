@@ -64,7 +64,7 @@ pub(crate) enum ArrowBuffer {
         /// The nucleotide base at each position (A, C, G, T)
         buffer_base: MutableUtf8Array<i32>,
         /// Statistics for each base position, keyed by statistic type
-        dynamic_buffer_stats: HashMap<Stats, MutablePrimitiveArray<f64>>,
+        dynamic_buffer_stats: HashMap<Stats, MutablePrimitiveArray<f32>>,
         /// Ordered list of statistics to maintain consistent column ordering
         /// used when flushing the buffer
         stats_in_order: Vec<Stats>
@@ -83,7 +83,7 @@ pub(crate) enum ArrowBuffer {
         dynamic_buffer_bases: Vec<MutableUtf8Array<i32>>,
         /// Statistics organized as: HashMap<StatType, Vec<BufferPerBasePosition>>
         /// Outer Vec has length equal to number of base positions        
-        dynamic_buffer_stats: HashMap<Stats, Vec<MutablePrimitiveArray<f64>>>,
+        dynamic_buffer_stats: HashMap<Stats, Vec<MutablePrimitiveArray<f32>>>,
         /// Ordered list of statistics to maintain consistent column ordering
         /// used when flushing the buffer
         stats_in_order: Vec<Stats>
@@ -102,7 +102,7 @@ pub(crate) enum ArrowBuffer {
         buffer_bases: MutableUtf8Array<i32>,
         /// Statistics organized as: HashMap<StatType, Vec<BufferPerBasePosition>>
         /// Outer Vec has length equal to number of base positions        
-        dynamic_buffer_stats: HashMap<Stats, MutableListArray<i32, MutablePrimitiveArray<f64>>>,
+        dynamic_buffer_stats: HashMap<Stats, MutableListArray<i32, MutablePrimitiveArray<f32>>>,
         /// Ordered list of statistics to maintain consistent column ordering
         /// used when flushing the buffer
         stats_in_order: Vec<Stats>
@@ -123,9 +123,9 @@ pub(crate) enum ArrowBuffer {
         buffer_base: MutableUtf8Array<i32>,
         /// Interpolated signal values, with one buffer per interpolation position
         /// Outer Vec has length equal to interpolation target length
-        dynamic_buffer_signals: Vec<MutablePrimitiveArray<f64>>,
+        dynamic_buffer_signals: Vec<MutablePrimitiveArray<f32>>,
         /// Dwell time for each base
-        buffer_dwells: MutablePrimitiveArray<f64>,
+        buffer_dwells: MutablePrimitiveArray<f32>,
     },
 
     /// Buffer for interpolated signal data in exploded (wide) format.
@@ -142,9 +142,9 @@ pub(crate) enum ArrowBuffer {
         /// Interpolated signals organized as: Vec<BasePosition, Vec<InterpolationPosition>>
         /// Outer Vec has length equal to number of bases
         /// Inner Vec has length equal to interpolation target length
-        dynamic_buffer_signals: Vec<Vec<MutablePrimitiveArray<f64>>>,
+        dynamic_buffer_signals: Vec<Vec<MutablePrimitiveArray<f32>>>,
         /// Dwell times with one buffer per base position
-        dynamic_buffer_dwells: Vec<MutablePrimitiveArray<f64>>,
+        dynamic_buffer_dwells: Vec<MutablePrimitiveArray<f32>>,
     },
 
     /// Buffer for interpolated signal data in nested format.
@@ -160,9 +160,9 @@ pub(crate) enum ArrowBuffer {
         buffer_bases: MutableUtf8Array<i32>,
         /// Nested list of signals: outer list for bases, inner list for interpolation positions
         /// Structure: List<List<Float64>> where outer list has one element per base
-        buffer_signals: MutableListArray<i32, MutableListArray<i32, MutablePrimitiveArray<f64>>>, 
+        buffer_signals: MutableListArray<i32, MutableListArray<i32, MutablePrimitiveArray<f32>>>, 
         /// Dwell times stored as a list, one array per read containing dwells for all bases
-        buffer_dwells: MutableListArray<i32, MutablePrimitiveArray<f64>>
+        buffer_dwells: MutableListArray<i32, MutablePrimitiveArray<f32>>
     }
 }
 
@@ -192,7 +192,7 @@ impl ArrowBuffer {
             (ReformatStrategy::ReadWiseStats { stats }, OutputShape::Melted) => {
                 let mut dynamic_buffer_stats = HashMap::with_capacity(stats.len());
                 for stat in stats {
-                    dynamic_buffer_stats.insert(stat.clone(), MutablePrimitiveArray::<f64>::with_capacity(buffer_size));
+                    dynamic_buffer_stats.insert(stat.clone(), MutablePrimitiveArray::<f32>::with_capacity(buffer_size));
                 }
                 Self::StatsMelted { 
                     buffer_read_id: MutableUtf8Array::<i32>::with_capacity(buffer_size), 
@@ -210,7 +210,7 @@ impl ArrowBuffer {
                     for stat in stats {
                         dynamic_buffer_stats.insert(
                             stat.clone(), 
-                            vec![MutablePrimitiveArray::<f64>::with_capacity(buffer_size); num_bases]
+                            vec![MutablePrimitiveArray::<f32>::with_capacity(buffer_size); num_bases]
                         );
                     }
                     Self::StatsExploded { 
@@ -230,7 +230,7 @@ impl ArrowBuffer {
                 for stat in stats {
                     dynamic_buffer_stats.insert(
                         stat.clone(),
-                        MutableListArray::<i32, MutablePrimitiveArray<f64>>::with_capacity(buffer_size)
+                        MutableListArray::<i32, MutablePrimitiveArray<f32>>::with_capacity(buffer_size)
                     );
                 }
                 Self::StatsNested { 
@@ -248,8 +248,8 @@ impl ArrowBuffer {
                 buffer_region_of_interest: MutableUtf8Array::<i32>::with_capacity(buffer_size),
                 buffer_base_index: MutablePrimitiveArray::<u64>::with_capacity(buffer_size),
                 buffer_base: MutableUtf8Array::<i32>::with_capacity(buffer_size),
-                dynamic_buffer_signals: vec![MutablePrimitiveArray::<f64>::with_capacity(buffer_size); *target_len],
-                buffer_dwells: MutablePrimitiveArray::<f64>::with_capacity(buffer_size)
+                dynamic_buffer_signals: vec![MutablePrimitiveArray::<f32>::with_capacity(buffer_size); *target_len],
+                buffer_dwells: MutablePrimitiveArray::<f32>::with_capacity(buffer_size)
             },
             (ReformatStrategy::Interpolation { target_len }, OutputShape::Exploded) => { 
                 if let Some(num_bases) = uniform_roi_length {
@@ -258,8 +258,8 @@ impl ArrowBuffer {
                         buffer_start_index_on_read: MutablePrimitiveArray::<u64>::with_capacity(buffer_size),
                         buffer_region_of_interest: MutableUtf8Array::<i32>::with_capacity(buffer_size),
                         dynamic_buffer_bases: vec![MutableUtf8Array::<i32>::with_capacity(buffer_size); num_bases],
-                        dynamic_buffer_signals: vec![vec![MutablePrimitiveArray::<f64>::with_capacity(buffer_size); *target_len]; num_bases],
-                        dynamic_buffer_dwells: vec![MutablePrimitiveArray::<f64>::with_capacity(buffer_size); num_bases]
+                        dynamic_buffer_signals: vec![vec![MutablePrimitiveArray::<f32>::with_capacity(buffer_size); *target_len]; num_bases],
+                        dynamic_buffer_dwells: vec![MutablePrimitiveArray::<f32>::with_capacity(buffer_size); num_bases]
                     }
                 } else {
                     unreachable!("It's checked before that all regions of interest have the same length when output shape is Exploded")
@@ -270,8 +270,8 @@ impl ArrowBuffer {
                 buffer_start_index_on_read: MutablePrimitiveArray::<u64>::with_capacity(buffer_size),
                 buffer_region_of_interest: MutableUtf8Array::<i32>::with_capacity(buffer_size),
                 buffer_bases: MutableUtf8Array::<i32>::with_capacity(buffer_size),
-                buffer_signals: MutableListArray::<i32, MutableListArray<i32, MutablePrimitiveArray<f64>>>::with_capacity(buffer_size),
-                buffer_dwells: MutableListArray::<i32, MutablePrimitiveArray<f64>>::with_capacity(buffer_size)
+                buffer_signals: MutableListArray::<i32, MutableListArray<i32, MutablePrimitiveArray<f32>>>::with_capacity(buffer_size),
+                buffer_dwells: MutableListArray::<i32, MutablePrimitiveArray<f32>>::with_capacity(buffer_size)
             }
         }
     }
@@ -383,7 +383,7 @@ impl ArrowBuffer {
         start_index_on_alignment: usize, 
         matched_region_name: &str, 
         bases: Vec<u8>,
-        stat_collection: HashMap<Stats, Vec<f64>>,
+        stat_collection: HashMap<Stats, Vec<f32>>,
     ) -> Result<(), ArrowBufferError> {
         if let ArrowBuffer::StatsMelted { 
             buffer_read_id, 
@@ -447,7 +447,7 @@ impl ArrowBuffer {
         start_index_on_alignment: usize, 
         matched_region_name: &str, 
         bases: Vec<u8>,
-        stat_collection: HashMap<Stats, Vec<f64>>,
+        stat_collection: HashMap<Stats, Vec<f32>>,
     ) -> Result<(), ArrowBufferError> {
         if let ArrowBuffer::StatsExploded { 
             buffer_read_id, 
@@ -511,7 +511,7 @@ impl ArrowBuffer {
         start_index_on_alignment: usize, 
         matched_region_name: &str, 
         bases: Vec<u8>,
-        stat_collection: HashMap<Stats, Vec<f64>>,
+        stat_collection: HashMap<Stats, Vec<f32>>,
     ) -> Result<(), ArrowBufferError> {
         if let ArrowBuffer::StatsNested { 
             buffer_read_id, 
@@ -527,7 +527,7 @@ impl ArrowBuffer {
                 for (stat, values) in stat_collection {
                     let values = values.iter()
                         .map(|&v| Some(v))
-                        .collect::<Vec<Option<f64>>>();
+                        .collect::<Vec<Option<f32>>>();
                     let stats_buffer = dynamic_buffer_stats
                         .get_mut(&stat)
                         .ok_or(ArrowBufferError::KeyError(stat))?;
@@ -572,8 +572,8 @@ impl ArrowBuffer {
         start_index_on_alignment: usize,
         matched_region_name: &str,
         bases: Vec<u8>,
-        signals: Vec<Vec<f64>>,
-        dwells: Vec<f64>,
+        signals: Vec<Vec<f32>>,
+        dwells: Vec<f32>,
     ) -> Result<(), ArrowBufferError> {
         if let ArrowBuffer::InterpMelted { 
             buffer_read_id, 
@@ -642,8 +642,8 @@ impl ArrowBuffer {
         start_index_on_alignment: usize,
         matched_region_name: &str,
         bases: Vec<u8>,
-        signals: Vec<Vec<f64>>,
-        dwells: Vec<f64>,
+        signals: Vec<Vec<f32>>,
+        dwells: Vec<f32>,
     ) -> Result<(), ArrowBufferError> {
         if let ArrowBuffer::InterpExploded { 
             buffer_read_id, 
@@ -714,8 +714,8 @@ impl ArrowBuffer {
         start_index_on_alignment: usize,
         matched_region_name: &str,
         bases: Vec<u8>,
-        signals: Vec<Vec<f64>>,
-        dwells: Vec<f64>,
+        signals: Vec<Vec<f32>>,
+        dwells: Vec<f32>,
     ) -> Result<(), ArrowBufferError> {
         if let ArrowBuffer::InterpNested { 
             buffer_read_id, 
@@ -736,12 +736,12 @@ impl ArrowBuffer {
                 .map(|signal_for_base| Some(signal_for_base
                     .iter()
                     .map(|&el| Some(el))
-                    .collect::<Vec<Option<f64>>>())
+                    .collect::<Vec<Option<f32>>>())
                 )
-                .collect::<Vec<Option<Vec<Option<f64>>>>>();
+                .collect::<Vec<Option<Vec<Option<f32>>>>>();
             buffer_signals.try_push(Some(signals))?;
 
-            let dwells = dwells.iter().map(|&el| Some(el)).collect::<Vec<Option<f64>>>();
+            let dwells = dwells.iter().map(|&el| Some(el)).collect::<Vec<Option<f32>>>();
             buffer_dwells.try_push(Some(dwells))?;
 
             Ok(())

@@ -10,12 +10,12 @@ use crate::error::core::reformat::StatError;
 ///
 /// # Errors
 /// Returns `StatError::VecEmpty` if the input is empty.
-pub(super) fn mean(values: &[f64]) -> Result<f64, StatError> {
+pub(super) fn mean(values: &[f32]) -> Result<f32, StatError> {
     if values.is_empty() {
         return Err(StatError::VecEmpty);
     }
-    let sum = values.iter().sum::<f64>();
-    let n = values.len() as f64;
+    let sum = values.iter().sum::<f32>();
+    let n = values.len() as f32;
     Ok(sum / n)
 }
 
@@ -30,24 +30,24 @@ pub(super) fn mean(values: &[f64]) -> Result<f64, StatError> {
 ///
 /// # Errors
 /// Returns `StatError::VecEmpty` if the input is empty.
-pub(super) fn std_dev(values: &[f64]) -> Result<f64, StatError> {
+pub(super) fn std_dev(values: &[f32]) -> Result<f32, StatError> {
     if values.is_empty() {
         return Err(StatError::VecEmpty);
     }
 
-    let mut mean = 0.0f64;
-    let mut sum_sq_dev = 0.0f64;
+    let mut mean = 0.0f32;
+    let mut sum_sq_dev = 0.0f32;
     let mut count = 0usize;
 
     values.iter().for_each(|&el| {
         count += 1;
         let delta = el - mean;
-        mean += delta / count as f64;
+        mean += delta / count as f32;
         let delta2 = el - mean;
         sum_sq_dev += delta * delta2;
     });
 
-    let variance = sum_sq_dev / count as f64;
+    let variance = sum_sq_dev / count as f32;
     Ok(variance.sqrt())
 }
 
@@ -64,7 +64,7 @@ pub(super) fn std_dev(values: &[f64]) -> Result<f64, StatError> {
 ///
 /// # Errors
 /// Returns `StatError::VecEmpty` if the input is empty.
-pub(super) fn median(values: &[f64]) -> Result<f64, StatError> {
+pub(super) fn median(values: &[f32]) -> Result<f32, StatError> {
     if values.is_empty() {
         return Err(StatError::VecEmpty);
     }
@@ -98,24 +98,24 @@ pub(super) fn median(values: &[f64]) -> Result<f64, StatError> {
 /// # Errors
 /// * `StatError::VecEmpty` if input is empty.
 /// * `StatError::ZeroDivision` if standard deviation is zero.
-pub(super) fn signal_to_noise(values: &[f64]) -> Result<(f64, f64, f64), StatError> {
+pub(super) fn signal_to_noise(values: &[f32]) -> Result<(f32, f32, f32), StatError> {
     if values.is_empty() {
         return Err(StatError::VecEmpty);
     }
 
-    let mut mean = 0.0f64;
-    let mut sum_sq_dev = 0.0f64;
+    let mut mean = 0.0f32;
+    let mut sum_sq_dev = 0.0f32;
     let mut count = 0usize;
 
     values.iter().for_each(|&el| {
         count += 1;
         let delta = el - mean;
-        mean += delta / count as f64;
+        mean += delta / count as f32;
         let delta2 = el - mean;
         sum_sq_dev += delta * delta2;
     });
 
-    let variance = sum_sq_dev / count as f64;
+    let variance = sum_sq_dev / count as f32;
     let stdev = variance.sqrt();
 
     if stdev == 0.0 {
@@ -142,24 +142,24 @@ pub(super) fn signal_to_noise(values: &[f64]) -> Result<(f64, f64, f64), StatErr
 ///
 /// # Errors
 /// * `StatError::VecEmpty` if input is empty.
-pub(super) fn mean_and_stdev(values: &[f64]) -> Result<(f64, f64), StatError> {
+pub(super) fn mean_and_stdev(values: &[f32]) -> Result<(f32, f32), StatError> {
     if values.is_empty() {
         return Err(StatError::VecEmpty);
     }
 
-    let mut mean = 0.0f64;
-    let mut sum_sq_dev = 0.0f64;
+    let mut mean = 0.0f32;
+    let mut sum_sq_dev = 0.0f32;
     let mut count = 0usize;
 
     values.iter().for_each(|&el| {
         count += 1;
         let delta = el - mean;
-        mean += delta / count as f64;
+        mean += delta / count as f32;
         let delta2 = el - mean;
         sum_sq_dev += delta * delta2;
     });
 
-    let variance = sum_sq_dev / count as f64;
+    let variance = sum_sq_dev / count as f32;
     let stdev = variance.sqrt();
     
     Ok((mean, stdev))

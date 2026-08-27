@@ -3,10 +3,7 @@ use pod5_reader_api::dataset::Pod5DatasetThreadSafe;
 use uuid::Uuid;
 
 use crate::{
-    core::alignment_loader::{
-        row::Row, 
-        stats::{mean_i16, std_i16}
-    }, 
+    core::alignment_loader::row::Row, 
     error::core::loader::RawRowDataError
 };
 
@@ -22,6 +19,10 @@ pub(crate) struct RawRowData {
     pub read_id: Uuid,
     /// Query/reference-to-signal alignment
     pub alignment: Vec<usize>,
+    /// Query/reference shift parameter for normalization
+    pub shift: f32,
+    /// Query/reference scale parameter for normalization
+    pub scale: f32,
     /// Query/reference sequence, if present
     pub sequence: Option<Vec<u8>>,
     /// Reference sequence name this read aligns to (if applicable)
@@ -30,7 +31,7 @@ pub(crate) struct RawRowData {
     /// (if applicable; 1-based coordinate)
     pub ref_start: Option<usize>,
     /// Raw current measurements
-    pub signal: Option<Vec<i16>>
+    pub signal: Option<Vec<f32>>
 }
 
 impl RawRowData {
@@ -58,8 +59,7 @@ impl RawRowData {
     pub fn into_row(
         self,
         pod5_dataset: &Arc<Option<Pod5DatasetThreadSafe>>,
-        is_rna: bool,
-        norm_signal: bool
+        is_rna: bool
     ) -> Result<Row, RawRowDataError> {
         let sequence = match self.sequence {
             Some(mut bases) => {
@@ -88,8 +88,9 @@ impl RawRowData {
                         let mut signal = dataset
                             .get_read(&self.read_id)?
                             .require_signal()?
-                            .to_vec();
-
+                            .iter()
+                            .map(|&el| (el as f32 - self.shift) / self.scale)
+                            .collect::<Vec<f32>>();
                         if is_rna {
                             signal.reverse();
                         }
@@ -98,22 +99,6 @@ impl RawRowData {
                     None => return Err(RawRowDataError::Pod5DatasetMissing)
                 }
             }
-        };
-
-
-        let signal = if norm_signal {
-            let signal_mean = mean_i16(&signal)?;
-            let signal_std = std_i16(&signal)?;
-            if signal_std == 0.0 {
-                return Err(RawRowDataError::StdZero);
-            }
-            signal.iter()
-                .map(|&el| (el as f64 - signal_mean) / signal_std)
-                .collect::<Vec<f64>>()
-        } else {
-            signal.iter()
-                .map(|&el| el as f64)
-                .collect()
         };
 
         let row = Row::new(

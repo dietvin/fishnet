@@ -117,7 +117,7 @@ impl OutputWriterArrow {
                 fields.push(Field::new("base_index", DataType::UInt64, false));
                 fields.push(Field::new("base", DataType::Utf8, false));
                 for stat in stats {
-                    fields.push(Field::new(stat.to_str(), DataType::Float64, false));
+                    fields.push(Field::new(stat.to_str(), DataType::Float32, false));
                 }
             }
 
@@ -136,7 +136,7 @@ impl OutputWriterArrow {
                         for base_idx in 0..roi_length {
                             fields.push(Field::new(
                                 format!("{}_{}", stat.to_str(), base_idx),
-                                DataType::Float64,
+                                DataType::Float32,
                                 false
                             ));
                         }
@@ -152,7 +152,7 @@ impl OutputWriterArrow {
                     fields.push(Field::new(
                         format!("{}", stat.to_str()), 
                         DataType::List(Box::new(
-                            Field::new("item", DataType::Float64, false)
+                            Field::new("item", DataType::Float32, false)
                         )), 
                         false
                     ));
@@ -170,7 +170,7 @@ impl OutputWriterArrow {
                     ));
                 }
 
-                fields.push(Field::new("dwell", DataType::Float64, false));
+                fields.push(Field::new("dwell", DataType::Float32, false));
             }
 
             (ReformatStrategy::Interpolation { target_len }, OutputShape::Exploded) => {
@@ -188,7 +188,7 @@ impl OutputWriterArrow {
                         for signal_idx in 0..*target_len {
                             fields.push(Field::new(
                                 format!("signal_base{}_{}", base_idx, signal_idx),
-                                DataType::Float64,
+                                DataType::Float32,
                                 false
                             ));
                         }
@@ -197,7 +197,7 @@ impl OutputWriterArrow {
                     for base_idx in 0..roi_length {
                         fields.push(Field::new(
                             format!("dwell_{}", base_idx),
-                            DataType::Float64,
+                            DataType::Float32,
                             false
                         ));
                     }
@@ -217,7 +217,7 @@ impl OutputWriterArrow {
                         Field::new(
                             "signal_for_base", 
                             DataType::List(Box::new(
-                                Field::new("interpolated_measurement", DataType::Float64, false)
+                                Field::new("interpolated_measurement", DataType::Float32, false)
                             )), 
                             false
                         )

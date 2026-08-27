@@ -1,7 +1,7 @@
 use arrow2::{
     array::{
         Array, 
-        Int16Array, 
+        Float32Array,
         ListArray,
         UInt64Array,
         Utf8Array
@@ -15,8 +15,7 @@ use crate::{
     core::alignment_loader::{
         column_index::ColumnIndex, 
         raw_row_data::RawRowData, 
-        row::Row, 
-        stats::{mean_i16, std_i16}
+        row::Row
     }, 
     error::core::loader::AlignmentChunkError
 };
@@ -33,6 +32,10 @@ pub(super) struct AlignmentChunk {
     read_id: Vec<Uuid>,
     /// Vector of alignment coordinate vectors
     alignment: Vec<Vec<usize>>,
+    /// Vector of shift normalization values
+    shift: Vec<f32>,
+    /// Vector of scale normalization values
+    scale: Vec<f32>,
     /// Optional vector of sequence strings
     sequences: Option<Vec<Vec<u8>>>,
     /// Optional vector of reference names
@@ -40,7 +43,7 @@ pub(super) struct AlignmentChunk {
     /// Optional vector of reference start positions
     ref_start: Option<Vec<usize>>,
     /// Optional vector of signal data vectors
-    signal: Option<Vec<Vec<i16>>>
+    signal: Option<Vec<Vec<f32>>>
 }
 
 
@@ -71,6 +74,20 @@ impl AlignmentChunk {
             arrays.get(column_index.alignment)
             .ok_or_else(|| AlignmentChunkError::ColumnIndexError(
                 "alignment", column_index.alignment
+            ))?
+        )?;
+
+        let shift = Self::parse_f32_col(
+            arrays.get(column_index.shift)
+            .ok_or_else(|| AlignmentChunkError::ColumnIndexError(
+                "shift", column_index.alignment
+            ))?
+        )?;
+
+        let scale = Self::parse_f32_col(
+            arrays.get(column_index.scale)
+            .ok_or_else(|| AlignmentChunkError::ColumnIndexError(
+                "scale", column_index.alignment
             ))?
         )?;
 
@@ -122,6 +139,8 @@ impl AlignmentChunk {
             length: read_id.len(),
             read_id,
             alignment,
+            shift,
+            scale,
             sequences,
             ref_name,
             ref_start,
@@ -157,6 +176,20 @@ impl AlignmentChunk {
                 Self::parse_usize_col(&arr)
             })
             .collect()
+    }
+
+    fn parse_f32_col(array: &Box<dyn Array>) -> Result<Vec<f32>, AlignmentChunkError> {
+        array
+            .as_any()
+            .downcast_ref::<Float32Array>()
+            .ok_or_else(|| AlignmentChunkError::DowncastError("UInt64Array"))?
+            .iter()
+            .map(|el_opt| {
+                el_opt
+                    .ok_or(AlignmentChunkError::ValueNone)
+                    .map(|&val| val)
+            })
+            .collect()   
     }
 
     /// Parses a column containing string values.
@@ -205,7 +238,7 @@ impl AlignmentChunk {
     }
 
     /// Parses a column containing lists of i16 signal values.
-    fn parse_signal_col(array: &Box<dyn Array>) -> Result<Vec<Vec<i16>>, AlignmentChunkError> {
+    fn parse_signal_col(array: &Box<dyn Array>) -> Result<Vec<Vec<f32>>, AlignmentChunkError> {
         array
             .as_any()
             .downcast_ref::<ListArray<i32>>()
@@ -214,8 +247,8 @@ impl AlignmentChunk {
             .map(|arr_opt| {
                 let arr = arr_opt.ok_or(AlignmentChunkError::ValueNone)?;
                 arr.as_any()
-                        .downcast_ref::<Int16Array>()
-                        .ok_or(AlignmentChunkError::DowncastError("UInt16Array"))?
+                        .downcast_ref::<Float32Array>()
+                        .ok_or(AlignmentChunkError::DowncastError("Float32Array"))?
                         .iter().map(|el_opt| {
                             el_opt
                                 .copied()
@@ -244,8 +277,7 @@ impl AlignmentChunk {
         &self, 
         idx: usize, 
         pod5_dataset: &mut Option<Pod5Dataset>, 
-        is_rna: bool, 
-        norm_signal: bool
+        is_rna: bool
     ) -> Result<Row, AlignmentChunkError> {
         if idx >= self.length {
             return Err(AlignmentChunkError::InvalidIndex(idx, self.length));
@@ -253,6 +285,9 @@ impl AlignmentChunk {
 
         let read_id = self.read_id[idx];
         let alignment = self.alignment[idx].clone();
+
+        let shift = self.shift[idx];
+        let scale = self.shift[idx];
 
         let sequence = match &self.sequences {
             Some(seq) => {
@@ -291,7 +326,9 @@ impl AlignmentChunk {
                 let mut signal = dataset
                     .get_read(&read_id)?
                     .require_signal()?
-                    .to_vec();
+                    .iter()
+                    .map(|&el| (el as f32 - shift) / scale)
+                    .collect::<Vec<f32>>();
 
                 if is_rna {
                     signal.reverse();
@@ -299,23 +336,6 @@ impl AlignmentChunk {
 
                 signal
             }
-        };
-
-        let signal = if norm_signal {
-            // Performing z-standardization here, so the 
-            // signal only needs to be cloned once
-            let signal_mean = mean_i16(&signal)?;
-            let signal_std = std_i16(&signal)?;
-            if signal_std == 0.0 {
-                return Err(AlignmentChunkError::StdZero);
-            }
-            signal.iter()
-                .map(|&el| (el as f64 - signal_mean)/signal_std)
-                .collect::<Vec<f64>>()
-        } else {
-            signal.iter()
-                .map(|&el| el as f64)
-                .collect()
         };
 
         let row = Row::new(
@@ -354,6 +374,8 @@ impl AlignmentChunk {
         Ok(RawRowData { 
             read_id: self.read_id[idx],
             alignment: self.alignment[idx].clone(),
+            shift: self.shift[idx],
+            scale: self.scale[idx],
             sequence: self.sequences.as_ref().map(|seq| seq[idx].clone()),
             ref_name: self.ref_name.as_ref().map(|names| names[idx].clone()),
             ref_start: self.ref_start.as_ref().map(|starts| starts[idx]),

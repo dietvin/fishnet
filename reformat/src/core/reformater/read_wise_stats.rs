@@ -29,8 +29,8 @@ use crate::{
 pub(super) fn reformat_read_wise_stats(
     sequence_slice: &[u8],
     alignment_slice: &[usize],
-    dwells_slice: &[f64],
-    full_signal: &[f64],
+    dwells_slice: &[f32],
+    full_signal: &[f32],
     stats: &[Stats]
 ) -> Result<ReformatedBaseStat, ReadWiseStatsError> {
     let mut output_row = ReformatedBaseStat::from_stats_empty(

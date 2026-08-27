@@ -17,6 +17,10 @@ pub(super) struct ColumnIndex {
     pub(super) read_id: usize,
     /// Index of the alignment column (query_to_signal or ref_to_signal)
     pub(super) alignment: usize,
+    /// Index of the shift value column (query_shift or ref_shift)
+    pub(super) shift: usize,
+    /// Index of the scale value column (query_scale or ref_scale)
+    pub(super) scale: usize,
     /// Index of the sequence column (query_sequence or ref_sequence), if present
     pub(super) sequence: Option<usize>,
     /// Index of the reference name column, if present
@@ -54,8 +58,12 @@ impl ColumnIndex {
                 Ok(match field.name.as_str() {
                     "read_id" => Column::ReadId,
                     "query_to_signal" => Column::QueryAlignment,
+                    "query_shift" => Column::QueryShift,
+                    "query_scale" => Column::QueryScale,
                     "query_sequence" => Column::QuerySequence,
                     "ref_to_signal" => Column::RefAlignment,
+                    "ref_shift" => Column::RefShift,
+                    "ref_scale" => Column::RefScale,
                     "ref_sequence" => Column::RefSequence,
                     "ref_name" => Column::RefName,
                     "ref_start" => Column::RefStart,
@@ -77,6 +85,8 @@ impl ColumnIndex {
         // Columns of interest can contain the following data:
         // - ReadId always present
         // - Always one of: QueryAlignment, RefAlignment (depending of alignment type)
+        // - Always one of: QueryShift, RefShift (depending of alignment type)
+        // - Always one of: QueryScale, RefScale (depending of alignment type)
         // - One of the following (depending on filter source):
         //      1. RefName and RefStart
         //      2. One of: QuerySequence, RefSequence 
@@ -87,12 +97,22 @@ impl ColumnIndex {
             .ok_or_else(|| ColumnIndexError::MissingColumn("read_id", Column::QueryAlignment))?;
         
         // Determine alignment column (query or reference)
-        let alignment = if columns_of_interest.contains(&Column::QueryAlignment) {
-            *field_indices.get(&Column::QueryAlignment)
-                .ok_or_else(|| ColumnIndexError::MissingColumn("alignment", Column::QueryAlignment))?
+        let (alignment, shift, scale) = if columns_of_interest.contains(&Column::QueryAlignment) {
+            let alignment = *field_indices.get(&Column::QueryAlignment)
+                .ok_or_else(|| ColumnIndexError::MissingColumn("alignment", Column::QueryAlignment))?;
+            let shift = *field_indices.get(&Column::QueryShift)
+                .ok_or_else(|| ColumnIndexError::MissingColumn("shift", Column::QueryAlignment))?;
+            let scale = *field_indices.get(&Column::QueryScale)
+                .ok_or_else(|| ColumnIndexError::MissingColumn("scale", Column::QueryAlignment))?;
+            (alignment, shift, scale)
         } else {
-            *field_indices.get(&Column::RefAlignment)
-                .ok_or_else(|| ColumnIndexError::MissingColumn("alignment", Column::RefAlignment))?
+            let alignment = *field_indices.get(&Column::RefAlignment)
+                .ok_or_else(|| ColumnIndexError::MissingColumn("alignment", Column::RefAlignment))?;
+            let shift = *field_indices.get(&Column::RefShift)
+                .ok_or_else(|| ColumnIndexError::MissingColumn("shift", Column::RefAlignment))?;
+            let scale = *field_indices.get(&Column::RefScale)
+                .ok_or_else(|| ColumnIndexError::MissingColumn("scale", Column::RefAlignment))?;
+            (alignment, shift, scale)
         };
 
         // Determine sequence column
@@ -137,6 +157,8 @@ impl ColumnIndex {
         Ok(Self { 
             read_id,
             alignment,
+            shift,
+            scale,
             sequence,
             ref_name,
             ref_start,

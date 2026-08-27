@@ -13,5 +13,3 @@ pub(crate) mod row_iterator;
 // Modules for multi-threaded iteration
 pub(crate) mod raw_row_iterator;
 pub(crate) mod raw_row_data;
-
-mod stats;

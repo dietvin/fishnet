@@ -79,7 +79,9 @@ pub enum InterpolationError {
 #[derive(Debug, thiserror::Error)]
 pub enum LinspaceError {
     #[error("The num argument must be larger than 0")]
-    ZeroElements
+    ZeroElements,
+    #[error("Failed to transform to T")]
+    Transform
 }
 
 #[derive(Debug, thiserror::Error)]

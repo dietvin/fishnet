@@ -23,11 +23,11 @@ use crate::{
 /// * `signal_to_noise` - Optional per-base signal-to-noise ratios.
 pub(crate) struct ReformatedBaseStat {
     bases: Vec<u8>,
-    mean: Option<Vec<f64>>,
-    median: Option<Vec<f64>>,
-    stdev: Option<Vec<f64>>,
-    dwell: Option<Vec<f64>>,
-    signal_to_noise: Option<Vec<f64>>
+    mean: Option<Vec<f32>>,
+    median: Option<Vec<f32>>,
+    stdev: Option<Vec<f32>>,
+    dwell: Option<Vec<f32>>,
+    signal_to_noise: Option<Vec<f32>>
 }
 
 impl ReformatedBaseStat {
@@ -46,11 +46,11 @@ impl ReformatedBaseStat {
         stats: &[Stats], 
         bases: &[u8]
     ) -> Self {
-        let mut mean: Option<Vec<f64>> = None;
-        let mut median: Option<Vec<f64>> = None;
-        let mut stdev: Option<Vec<f64>> = None;
-        let mut dwell: Option<Vec<f64>> = None;
-        let mut signal_to_noise: Option<Vec<f64>> = None;
+        let mut mean: Option<Vec<f32>> = None;
+        let mut median: Option<Vec<f32>> = None;
+        let mut stdev: Option<Vec<f32>> = None;
+        let mut dwell: Option<Vec<f32>> = None;
+        let mut signal_to_noise: Option<Vec<f32>> = None;
 
         let target_length = bases.len();
 
@@ -82,7 +82,7 @@ impl ReformatedBaseStat {
     /// # Errors
     /// Returns `ReformatedRowStatError::UnexpectedStat` if mean was not
     /// requested during initialization.
-    pub(super) fn push_mean(&mut self, value: f64) -> Result<(), ReformatedRowStatError> {
+    pub(super) fn push_mean(&mut self, value: f32) -> Result<(), ReformatedRowStatError> {
         if let Some(values) = &mut self.mean {
             values.push(value);
             Ok(())
@@ -99,7 +99,7 @@ impl ReformatedBaseStat {
     /// # Errors
     /// Returns `ReformatedRowStatError::UnexpectedStat` if median was not
     /// requested during initialization.
-    pub(super) fn push_median(&mut self, value: f64) -> Result<(), ReformatedRowStatError> {
+    pub(super) fn push_median(&mut self, value: f32) -> Result<(), ReformatedRowStatError> {
         if let Some(values) = &mut self.median {
             values.push(value);
             Ok(())
@@ -116,7 +116,7 @@ impl ReformatedBaseStat {
     /// # Errors
     /// Returns `ReformatedRowStatError::UnexpectedStat` if standard deviation 
     /// was not requested during initialization.
-    pub(super) fn push_std(&mut self, value: f64) -> Result<(), ReformatedRowStatError> {
+    pub(super) fn push_std(&mut self, value: f32) -> Result<(), ReformatedRowStatError> {
         if let Some(values) = &mut self.stdev {
             values.push(value);
             Ok(())
@@ -133,7 +133,7 @@ impl ReformatedBaseStat {
     /// # Errors
     /// Returns `ReformatedRowStatError::UnexpectedStat` if dwell was not
     /// requested during initialization.
-    pub(super) fn push_dwell(&mut self, value: f64) -> Result<(), ReformatedRowStatError> {
+    pub(super) fn push_dwell(&mut self, value: f32) -> Result<(), ReformatedRowStatError> {
         if let Some(values) = &mut self.dwell {
             values.push(value);
             Ok(())
@@ -150,7 +150,7 @@ impl ReformatedBaseStat {
     /// # Errors
     /// Returns `ReformatedRowStatError::UnexpectedStat` if signal-to-noise was not
     /// requested during initialization.
-    pub(super) fn push_signal_to_noise(&mut self, value: f64) -> Result<(), ReformatedRowStatError> {
+    pub(super) fn push_signal_to_noise(&mut self, value: f32) -> Result<(), ReformatedRowStatError> {
         if let Some(values) = &mut self.signal_to_noise {
             values.push(value);
             Ok(())
@@ -165,11 +165,11 @@ impl ReformatedBaseStat {
     /// 1. The base sequence encoded in a Vec<u8>
     /// 2. The statistics of each base collected in a Hashmap
     ///    where the keys are the calculated statistics. The
-    ///    values are Vec<f64> with the same length as the base
+    ///    values are Vec<f32> with the same length as the base
     ///    sequence
     pub(crate) fn into_inner(self) -> Result<(
         Vec<u8>,
-        HashMap<Stats, Vec<f64>>
+        HashMap<Stats, Vec<f32>>
     ), ReformatedRowStatError> {
         let mut stats_collection = HashMap::new();
         let bases = self.bases;
@@ -186,9 +186,9 @@ impl ReformatedBaseStat {
 
     fn collect_data(
         stat: Stats,
-        vec_opt: Option<Vec<f64>>, 
+        vec_opt: Option<Vec<f32>>, 
         n_bases: usize, 
-        stats_collection: &mut HashMap<Stats, Vec<f64>>
+        stats_collection: &mut HashMap<Stats, Vec<f32>>
     ) -> Result<(), ReformatedRowStatError> {
         if let Some(vec) = vec_opt {
             if vec.len() != n_bases {
@@ -222,8 +222,8 @@ impl ReformatedBaseStat {
 /// * `dwells`: M 
 pub(crate) struct ReformatedInterp {
     bases: Vec<u8>,
-    signal_interp: Vec<Vec<f64>>,
-    dwells: Vec<f64>
+    signal_interp: Vec<Vec<f32>>,
+    dwells: Vec<f32>
 }
 
 impl ReformatedInterp {
@@ -236,7 +236,7 @@ impl ReformatedInterp {
     /// # Arguments
     /// * `bases` - The u8 encodings of the sequence
     /// * `dwell` - The dwells for each base
-    pub(super) fn new(bases: &[u8], dwells: &[f64]) -> Self {
+    pub(super) fn new(bases: &[u8], dwells: &[f32]) -> Self {
         let length = bases.len();
         let signal_interp = Vec::with_capacity(length);
         Self { 
@@ -251,7 +251,7 @@ impl ReformatedInterp {
     /// # Arguments
     /// * `signal_interp` - The interpolated signal for the i-th
     ///                     base
-    pub(super) fn push_signal(&mut self, singal_interp: Vec<f64>) {
+    pub(super) fn push_signal(&mut self, singal_interp: Vec<f32>) {
         self.signal_interp.push(singal_interp.to_vec());
     }
 
@@ -265,12 +265,12 @@ impl ReformatedInterp {
     /// 3. The dwells for each base
     /// 
     /// # Returns
-    /// * `Ok((Vec<u8>, Vec<Vec<f64>>, Vec<f64>))` - A tuple containing 
+    /// * `Ok((Vec<u8>, Vec<Vec<f32>>, Vec<f32>))` - A tuple containing 
     ///     the sequence, the interpolated signal and the dwells.
     /// * `Err(ReformatedRowInterpError::LengthMismatch)` - If the length
     ///     of the dwells or the signal (outer) mismatches the length of
     ///     the sequence 
-    pub(crate) fn into_inner(self) -> Result<(Vec<u8>, Vec<Vec<f64>>, Vec<f64>), ReformatedRowInterpError> {
+    pub(crate) fn into_inner(self) -> Result<(Vec<u8>, Vec<Vec<f32>>, Vec<f32>), ReformatedRowInterpError> {
         let n_bases = self.bases.len();
         
         if self.dwells.len() != n_bases {

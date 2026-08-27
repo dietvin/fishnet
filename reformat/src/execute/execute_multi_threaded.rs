@@ -240,7 +240,6 @@ pub(super) fn run_reformat_multi_threaded(config: ConfigReformat) -> Result<(), 
         let filter = Arc::clone(&filter);
         let pod5_dataset = Arc::clone(&pod5_dataset);
         let is_rna = config.is_drna().clone();
-        let norm_signal = config.norm_signal().clone();
         let reformat_strategy = config.reformat_strategy().clone();
         let norm_dwells = config.norm_dwells().clone();
 
@@ -253,8 +252,7 @@ pub(super) fn run_reformat_multi_threaded(config: ConfigReformat) -> Result<(), 
                     // Perform the expensive row initialization in parallel
                     let row = match raw_row_data.into_row(
                         &pod5_dataset, 
-                        is_rna, 
-                        norm_signal
+                        is_rna
                     ) {
                         Ok(row) => {
                             log::debug!("Constructed row from raw row data for read {}", row.read_id());

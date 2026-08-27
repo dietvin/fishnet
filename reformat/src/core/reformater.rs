@@ -26,7 +26,7 @@ pub(crate) fn reformat(
     read_id: &Uuid,
     sequence: &[u8],
     alignment: &[usize],
-    signal: &[f64],
+    signal: &[f32],
     chunk_info: &MatchedFilterInfo,
     reformat_strategy: &ReformatStrategy,
     norm_dwells: bool
@@ -40,8 +40,8 @@ pub(crate) fn reformat(
     // regions. But this seems a bit cleaner so I'll leave it here for now
     let dwells = alignment
         .windows(2)
-        .map(|window| (window[1] - window[0]) as f64)
-        .collect::<Vec<f64>>();
+        .map(|window| (window[1] - window[0]) as f32)
+        .collect::<Vec<f32>>();
 
     let dwells = if norm_dwells {
         let dwells_mean = mean(&dwells)?;
@@ -53,7 +53,7 @@ pub(crate) fn reformat(
         dwells[chunk_info.start_index..chunk_info.end_index]
             .iter()
             .map(|&el| (el - dwells_mean) / dwells_std)
-            .collect::<Vec<f64>>()
+            .collect::<Vec<f32>>()
     } else {
         dwells[chunk_info.start_index..chunk_info.end_index].to_vec()
     };

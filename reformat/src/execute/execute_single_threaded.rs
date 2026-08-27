@@ -87,8 +87,7 @@ pub(super) fn run_reformat_single_threaded(config: ConfigReformat) -> Result<(),
         config.input_chunk_size(),
         config.columns_of_interest(),
         pod5_dataset,
-        config.is_drna(),
-        config.norm_signal()
+        config.is_drna()
     ) {
         Ok(alignment_iter) => alignment_iter,
         Err(e) => {

@@ -241,9 +241,8 @@ impl Pod5Read {
         self.signal = Some(signal)
     } 
 
-    /// Consumes itself to return the signal.
-    /// Used in main worker loop to extract the signal without cloning.
-    pub fn into_output_data(self) -> Result<Vec<i16>, Pod5ReadError> {
+    /// Returns the actual signal data if it has been loaded, consuming self in the process.
+    pub fn into_signal(self) -> Result<Vec<i16>, Pod5ReadError> {
         self.signal.ok_or(Pod5ReadError::MissingField("signal"))
     }
 }
