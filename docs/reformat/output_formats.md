@@ -10,7 +10,7 @@ Different analyses benefit from different output shapes:
 
 ## 1. Melted (Long)
 
-Each base of interest becomes one row.
+One row for each base of interest.
 
 ### Base-wise statistics
 
@@ -23,7 +23,9 @@ For *N* statistics:
 | `region_of_interest`      | Region name                               |
 | `base_index`              | Position within region                    |
 | `base`                    | Base character                            |
-| `<STAT-1>` ... `<STAT-N>` | Computed statistics for this base         |
+| `<STAT-1>`                | First computed statistics for this base   |
+| ...                       | ...                                       |
+| `<STAT-N>`                | Nth computed statistics for this base     |
 
 
 ### Interpolation
@@ -37,13 +39,13 @@ For target size *T*:
 | `region_of_interest`          | Region name                               |
 | `base_index`                  | Position within region                    |
 | `base`                        | Base character                            |
-| `signal_0` ... `signal_(T-1)` | Interpolated signal values                |
-| `dwell`                       | Dwell value for the base                  |
+| `signals`                     | The *T* interpolated signal values        |
+| `dwells`                      | Dwell value for the base                  |
 
 
 ## 2. Exploded (Wide)
 
-Each region–read pair becomes one row. All values for all bases appear as separate columns. 
+Each region-read pair becomes one row. All values for all bases appear as separate columns. 
 (Requires all regions to have the same length.)
 
 ### Base-wise statistics

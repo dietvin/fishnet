@@ -13,9 +13,7 @@ fishnet reformat \
   --strategy stats \
   --stats mean std dwell \
   --out ref_positions_stats.tsv \
-  --output-shape melted \
-  --threads 8 \
-  --force-overwrite
+  --output-shape melted
 ```
 
 **Explanation:**
@@ -38,9 +36,7 @@ fishnet reformat \
   --strategy interpolate \
   --target-size 50 \
   --out interpolated_query_signal.parquet \
-  --output-shape nested \
-  --threads 8 \
-  --force-overwrite
+  --output-shape nested
 ```
 
 **Explanation:**
@@ -50,7 +46,7 @@ fishnet reformat \
 - `nested` output preserves per-base signal arrays in Parquet — ideal for machine learning input.
 
 
-## Detailled (minimal) processing example
+## Detailed (minimal) processing example
 The following examples shows what gets calculated and how it gets written to file with different output settings. We'll use the following example:
 - reference to signal alignment of two reads:
   1. readA maps to chr1:3-8

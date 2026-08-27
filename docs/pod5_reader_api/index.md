@@ -1,6 +1,6 @@
 # POD5 reader API
 
-The `POD5 reader API` provides straight-forward and efficient access to the current signal and corresponding metadata stored in pod5 files. Key features are:
+The `POD5 reader API` provides straight-forward access to the current signal and corresponding metadata stored in pod5 files. Key features are:
 
 - **Lazy loading** of pod5 files to enable memory-efficient reading
 - **Read-wise iteration** to access a large number of reads in straight-forward manner
