@@ -1,4 +1,5 @@
 use crate::errors::{InterpolationError, LinspaceError};
+use num_traits::Float;
 
 /// Performs linear interpolation similar to NumPy's `interp` function.
 ///
@@ -47,7 +48,7 @@ use crate::errors::{InterpolationError, LinspaceError};
 /// assert_eq!(result, vec![20.0]); // Uses the last y-value for x=1.0
 /// ```
 /// 
-pub fn interpolate(x_ref: &[f64], y_ref: &[f64], x_query: &[f64]) -> Result<Vec<f64>, InterpolationError> {
+pub fn interpolate<T: Float>(x_ref: &[T], y_ref: &[T], x_query: &[T]) -> Result<Vec<T>, InterpolationError> {
     
     // TODO: Look into optimizing the code
 
@@ -79,7 +80,7 @@ pub fn interpolate(x_ref: &[f64], y_ref: &[f64], x_query: &[f64]) -> Result<Vec<
         }
     }
 
-    let mut result = vec![0.0; x_query.len()];
+    let mut result = vec![T::zero(); x_query.len()];
 
     // In case only one unique point remains after de-duplication
     // all queries map to the single y-value
@@ -110,7 +111,7 @@ pub fn interpolate(x_ref: &[f64], y_ref: &[f64], x_query: &[f64]) -> Result<Vec<
                 .saturating_sub(1);
 
             let dx = unique_x[j + 1] - unique_x[j];
-            if dx.abs() < f64::EPSILON {
+            if dx.abs() < T::epsilon() {
                 // Catches case where the two x-values are very close together
                 // (to avoid near-zero division)
                 result[i] = unique_y[j];
@@ -125,7 +126,7 @@ pub fn interpolate(x_ref: &[f64], y_ref: &[f64], x_query: &[f64]) -> Result<Vec<
 }
 
 
-pub fn linspace(start: f64, stop: f64, num: usize) -> Result<Vec<f64>, LinspaceError> {
+pub fn linspace<T: Float>(start: T, stop: T, num: usize) -> Result<Vec<T>, LinspaceError> {
     if num == 0 {
         return Err(LinspaceError::ZeroElements);
     } else if num == 1 {
@@ -133,13 +134,13 @@ pub fn linspace(start: f64, stop: f64, num: usize) -> Result<Vec<f64>, LinspaceE
     }
 
     // Calculate step size 
-    let step = (stop - start) / (num - 1) as f64;
+    let step = (stop - start) / T::from(num - 1).ok_or(LinspaceError::Transform)?;
 
-    let mut result = vec![0.0; num];
+    let mut result = vec![T::zero(); num];
 
     // Generate the sequence
     for i in 0..num {
-        result[i] = start + step * i as f64;
+        result[i] = start + step * T::from(i).ok_or(LinspaceError::Transform)?;
     }
     result[num-1] = stop;
 
