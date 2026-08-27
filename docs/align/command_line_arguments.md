@@ -1,11 +1,10 @@
 # Command line arguments
 
-The table below shows all arguments that are available in the command line interface.
+The table below shows all arguments that are available in the `align` module.
 
-| **Argument**    | **Type** | **Default** | **Description**                                                             |
-| --------------- | -------- | ----------- | --------------------------------------------------------------------------- |
-| `-h, --help`    | Flag     | -           | Print help message explaining all flags. `-h` shows a more compact version. |
-| `-v, --version` | Flag     | -           | Print the program version.                                                  |
+| Long flag | Short flag | Type | Default | Description
+|-|-|-|-|-
+| `--help` | `-h` | Flag | - | Print help message explaining all flags. `-h` shows a more compact version than `--help`.
 
 ## Required Input/Output
 

@@ -72,7 +72,7 @@ For the sake of simplicity, the table shows only a subset of the optional argume
 
 ## Output
 
-The output format is determined by the file extension provided in the output file path. Available formats are [Parquet](https://parquet.apache.org/docs/overview/) (`.parquet`) and [JSONL](https://jsonlines.org/) (`.jsonl`) format. Parquet format is recommended as it is more efficient due to compression and chunked writing/reading.
+The output format is determined by the file extension provided in the output file path. Available formats are [Parquet](https://parquet.apache.org/docs/overview/) (`.parquet`) and [JSONL](https://jsonlines.org/) (`.json`) format. Parquet format is recommended as it is more efficient due to compression and chunked writing/reading.
 
 The exact output structure depends on the given values for the `--alignment-type` and `--output-level` flags. For a detailled overview on which columns are present with which settings, see [Output formats](output_formats.md).
 
