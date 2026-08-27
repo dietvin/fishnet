@@ -24,12 +24,14 @@ Depending on the selection, the minimal output dataset can contain the following
 ### Query-to-signal info
 
 When query-to-signal alignments are generated, the following colums are always present:
+
 - `query_to_signal`: The alignment boundaries
 - `query_shift` + `query_scale`: Signal normalization parameters ($signal_{norm}=\frac{signal - shift}{scale}$, where signal refers to the DACs stored in a POD5 read)
 
 ### Reference-to-signal info
 
 When reference-to-signal alignments are generated, the following colums are always present:
+
 - `ref_to_signal`: The alignment boundaries
 - `ref_shift` + `ref_scale`: Signal normalization parameters (see above)
 - `ref_name`: The sequence name a read mapped to
@@ -39,6 +41,7 @@ When reference-to-signal alignments are generated, the following colums are alwa
 ## Additional output options
 
 The `--output-level` determines which additional data gets written. Valid options are:
+
 - `1`: Only the core data gets written
 - `2`: The **(query and/or reference) sequence(s)** get written to file as well
 - `3`: The sequence(s) and the **normalized signal** get written to file as well
