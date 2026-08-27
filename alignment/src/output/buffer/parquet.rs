@@ -256,7 +256,7 @@ impl<S: OutputSchema> Buffer<S> for ParquetBuffer {
             let v = record.query_shift.expect("schema guarantees query_shift");
             self.query_shift.try_push(Some(v))?;
             
-            let v = record.query_shift.expect("schema guarantees query_scale");
+            let v = record.query_scale.expect("schema guarantees query_scale");
             self.query_scale.try_push(Some(v))?;
 
         }
@@ -272,7 +272,7 @@ impl<S: OutputSchema> Buffer<S> for ParquetBuffer {
             let v = record.ref_shift.expect("schema guarantees ref_shift");
             self.ref_shift.try_push(Some(v))?;
             
-            let v = record.ref_shift.expect("schema guarantees ref_scale");
+            let v = record.ref_scale.expect("schema guarantees ref_scale");
             self.ref_scale.try_push(Some(v))?;
         }
 
