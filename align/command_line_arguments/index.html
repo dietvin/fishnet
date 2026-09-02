@@ -1,0 +1,1629 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Documentation for Fishnet, a signal-to-sequence aligner for Nanopore sequencing data">
+      
+      
+        <meta name="author" content="Vincent Dietrich">
+      
+      
+        <link rel="canonical" href="https://dietvin.github.io/fishnet/align/command_line_arguments/">
+      
+      
+        <link rel="prev" href="../">
+      
+      
+        <link rel="next" href="../output_formats/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../images/fishnet_logo_icon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Command Line Arguments - Fishnet Docs</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="blue" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#command-line-arguments" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Fishnet Docs" class="md-header__button md-logo" aria-label="Fishnet Docs" data-md-component="logo">
+      
+  <img src="../../images/fishnet_logo_icon.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Fishnet Docs
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Command Line Arguments
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/dietvin/fishnet" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    fishnet
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Fishnet Docs" class="md-nav__button md-logo" aria-label="Fishnet Docs" data-md-component="logo">
+      
+  <img src="../../images/fishnet_logo_icon.png" alt="logo">
+
+    </a>
+    Fishnet Docs
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/dietvin/fishnet" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    fishnet
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Align
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Align
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Command Line Arguments
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Command Line Arguments
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#required-inputoutput" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Required Input/Output
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#optional-arguments" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Optional Arguments
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Optional Arguments">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#general-settings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        General settings
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#output-settings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Output settings
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#threading-settings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Threading settings
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#logging-settings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Logging settings
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#refinement-dynamic-programming" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Refinement – Dynamic Programming
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#refinement-rescaling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Refinement – Rescaling
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#refinement-rough-rescaling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Refinement – Rough Rescaling
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../output_formats/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Output Formats
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../examples/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Examples
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../algorithm_details/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Algorithm Details
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../kmer_table_matching/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Kmer Table Matching
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reformat
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reformat
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reformat/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reformat/command_line_arguments/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Command Line Arguments
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reformat/filtering_options/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Filtering Options
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reformat/reformatting_strategies/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reformatting strategies
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reformat/output_formats/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Output Formats
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reformat/examples/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Examples
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pod5 Reader API
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Pod5 Reader API
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../pod5_reader_api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../pod5_reader_api/pod5_dataset/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pod5Dataset
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../pod5_reader_api/pod5_file/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pod5File
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../pod5_reader_api/pod5_read/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pod5Read
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#required-inputoutput" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Required Input/Output
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#optional-arguments" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Optional Arguments
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Optional Arguments">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#general-settings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        General settings
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#output-settings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Output settings
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#threading-settings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Threading settings
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#logging-settings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Logging settings
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#refinement-dynamic-programming" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Refinement – Dynamic Programming
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#refinement-rescaling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Refinement – Rescaling
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#refinement-rough-rescaling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Refinement – Rough Rescaling
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="command-line-arguments">Command line arguments</h1>
+<p>The table below shows all arguments that are available in the <code>align</code> module.</p>
+<table>
+<thead>
+<tr>
+<th>Long flag</th>
+<th>Short flag</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--help</code></td>
+<td><code>-h</code></td>
+<td>Flag</td>
+<td>-</td>
+<td>Print help message explaining all flags. <code>-h</code> shows a more compact version than <code>--help</code>.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="required-inputoutput">Required Input/Output</h2>
+<table>
+<thead>
+<tr>
+<th>Long flag</th>
+<th>Short flag</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--bam &lt;bam&gt;</code></td>
+<td><code>-b &lt;bam&gt;</code></td>
+<td>Path (file)</td>
+<td>-</td>
+<td>Path to a BAM input file. Only a single file must be provided.</td>
+</tr>
+<tr>
+<td><code>--pod5 &lt;pod5&gt;</code></td>
+<td><code>-p &lt;pod5&gt;</code></td>
+<td>Path(s) (file or directory)</td>
+<td>-</td>
+<td>Path(s) to the POD5 input. Multiple paths can be provided space-separated. Each path can point to a file or directory. If a directory is provided, all <code>.pod5</code> files within it are processed. File and directory paths can be combined.</td>
+</tr>
+<tr>
+<td><code>--out &lt;output&gt;</code></td>
+<td><code>-o &lt;output&gt;</code></td>
+<td>Path (file)</td>
+<td>-</td>
+<td>Path to the output file. The file extension determines the format: <code>.parquet</code> for Parquet output, <code>.jsonl</code> for JSONL output.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="optional-arguments">Optional Arguments</h2>
+<p>There are various parameters available to set more general settings or to fine-tune the algorithm. For clarity, optional arguments are grouped by function.</p>
+<h3 id="general-settings">General settings</h3>
+<table>
+<thead>
+<tr>
+<th>Long flag</th>
+<th>Short flag</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--rna</code></td>
+<td><code>-r</code></td>
+<td>Flag</td>
+<td>-</td>
+<td>Whether direct RNA data is provided. If set, reverses the raw signal (3'-&gt;5') to match the base-called/mapped 5'-&gt;3' orientation.</td>
+</tr>
+<tr>
+<td><code>--kmer-table &lt;kmer_table&gt;</code></td>
+<td><code>-k &lt;kmer_table&gt;</code></td>
+<td>Path (file)</td>
+<td>-</td>
+<td>Path to a <a href="https://github.com/nanoporetech/kmer_models">kmer level table</a>. This is only required if no embedded kmer table can be matched to given data (<a href="../kmer_table_matching/">more information</a>)</td>
+</tr>
+<tr>
+<td><code>--alignment-type &lt;type&gt;</code></td>
+<td><code>-a &lt;type&gt;</code></td>
+<td>Enum (<code>query</code>, <code>reference</code>, <code>both</code>)</td>
+<td><code>query</code></td>
+<td>Determines the type of alignment to perform. <code>query</code>: aligns signal to base-called query sequence. <code>reference</code>: aligns signal to the reference sequence (if mapped).</td>
+</tr>
+</tbody>
+</table>
+<h3 id="output-settings">Output settings</h3>
+<table>
+<thead>
+<tr>
+<th>Long flag</th>
+<th>Short flag</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--output-level &lt;level&gt;</code></td>
+<td><code>-l &lt;level&gt;</code></td>
+<td>Enum (<code>1</code>, <code>2</code>, <code>3</code>)</td>
+<td><code>2</code></td>
+<td>Controls the output detail level: <strong>1:</strong> read ID + alignment(s); <strong>2:</strong> + sequences; <strong>3:</strong> + signal. Note: including signal greatly increases file size.</td>
+</tr>
+<tr>
+<td><code>--force-overwrite</code></td>
+<td><code>-f</code></td>
+<td>Flag</td>
+<td>-</td>
+<td>Overwrite existing output files if set. Otherwise, raises an error if the output file already exists.</td>
+</tr>
+<tr>
+<td><code>--output-batch-size &lt;size&gt;</code></td>
+<td>-</td>
+<td>Integer</td>
+<td><code>64000000</code></td>
+<td>The maximum estimated data size in bytes that is buffered before flushing the data to file.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="threading-settings">Threading settings</h3>
+<table>
+<thead>
+<tr>
+<th>Long flag</th>
+<th>Short flag</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--threads &lt;n&gt;</code></td>
+<td><code>-t &lt;n&gt;</code></td>
+<td>Integer</td>
+<td><code>8</code></td>
+<td>Number of parallel worker threads used. In addition to the main thread and the specified worker threads, Fishnet spawns one output threads that collects processed data, and one progress thread that handles the progress bar.</td>
+</tr>
+<tr>
+<td><code>--queue-size &lt;size&gt;</code></td>
+<td>-</td>
+<td>Integer</td>
+<td><code>16000</code></td>
+<td>Size of the queue for transferring data to and from worker threads. Reducing the queue size lowers memory usage.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="logging-settings">Logging settings</h3>
+<table>
+<thead>
+<tr>
+<th>Long flag</th>
+<th>Short flag</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--log-level &lt;level&gt;</code></td>
+<td>-</td>
+<td>Enum (<code>off</code>, <code>error</code>, <code>warn</code>, <code>info</code>, <code>debug</code>, <code>trace</code>)</td>
+<td><code>off</code></td>
+<td>Sets logging verbosity. The amount of intermediate information increases from <code>error</code> to <code>trace</code>. Use <code>error</code> for a summary of failed alignments.</td>
+</tr>
+<tr>
+<td><code>--log-path &lt;path&gt;</code></td>
+<td>-</td>
+<td>Path (file)</td>
+<td><code>log.txt</code></td>
+<td>Path to the log file. Only used if <code>log-level</code> is not <code>off</code>. Existing logs are appended to.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="refinement-dynamic-programming">Refinement – Dynamic Programming</h3>
+<table>
+<thead>
+<tr>
+<th>Long flag</th>
+<th>Short flag</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--refine-iters &lt;n&gt;</code></td>
+<td><code>-i &lt;n&gt;</code></td>
+<td>Integer</td>
+<td><code>2</code></td>
+<td>Number of refinement iterations. In each iteration, alignment boundaries are adjusted to minimize signal differences, and rescaling parameters are recalculated. Set to <code>0</code> to skip refinement.</td>
+</tr>
+<tr>
+<td><code>--refine-algo &lt;algo&gt;</code></td>
+<td>-</td>
+<td>Enum (<code>viterbi</code>, <code>dwell-penalty</code>)</td>
+<td><code>dwell-penalty</code></td>
+<td>Refinement algorithm. <code>dwell-penalty</code> internally uses Viterbi but penalizes short dwell times.</td>
+</tr>
+<tr>
+<td><code>--dwell-penalty-target &lt;value&gt;</code></td>
+<td>-</td>
+<td>Float</td>
+<td><code>4.0</code></td>
+<td>Target dwell time used by the dwell-penalty algorithm.</td>
+</tr>
+<tr>
+<td><code>--dwell-penalty-limit &lt;value&gt;</code></td>
+<td>-</td>
+<td>Float</td>
+<td><code>3.0</code></td>
+<td>Maximum dwell time considered for dwell-time penalty.</td>
+</tr>
+<tr>
+<td><code>--dwell-penalty-weight &lt;value&gt;</code></td>
+<td>-</td>
+<td>Float</td>
+<td><code>0.5</code></td>
+<td>Penalty weight applied to short dwell times in dwell-penalty refinement.</td>
+</tr>
+<tr>
+<td><code>--half-bandwidth &lt;n&gt;</code></td>
+<td>-</td>
+<td>Integer</td>
+<td><code>5</code></td>
+<td>Half-width of the signal band (number of neighboring bases considered during alignment).</td>
+</tr>
+<tr>
+<td><code>--min-band-size &lt;n&gt;</code></td>
+<td>-</td>
+<td>Integer</td>
+<td><code>2</code></td>
+<td>Minimum enforced sequence band size when adjusting the sequence band.</td>
+</tr>
+<tr>
+<td><code>--normalize-levels</code></td>
+<td>-</td>
+<td>Flag</td>
+<td>-</td>
+<td>Normalize expected levels from the k-mer table (equivalent to <code>do_fix_gauge</code> in Remora).</td>
+</tr>
+</tbody>
+</table>
+<h3 id="refinement-rescaling">Refinement – Rescaling</h3>
+<table>
+<thead>
+<tr>
+<th>Long flag</th>
+<th>Short flag</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--rescale-algo &lt;algo&gt;</code></td>
+<td>-</td>
+<td>Enum (<code>theil-sen</code>, <code>least-squares</code>)</td>
+<td><code>theil-sen</code></td>
+<td>Rescaling algorithm for normalizing signal (<code>norm_signal = (signal - shift) / scale</code>). Uses the full signal for estimation.</td>
+</tr>
+<tr>
+<td><code>--rescale-dwell-filter-lower-quant &lt;q&gt;</code></td>
+<td>-</td>
+<td>Float</td>
+<td><code>0.1</code></td>
+<td>Lower dwell-time quantile filter. Bases with dwell times below this are excluded.</td>
+</tr>
+<tr>
+<td><code>--rescale-dwell-filter-upper-quant &lt;q&gt;</code></td>
+<td>-</td>
+<td>Float</td>
+<td><code>0.9</code></td>
+<td>Upper dwell-time quantile filter. Bases above this dwell time are excluded.</td>
+</tr>
+<tr>
+<td><code>--rescale-min-abs-level &lt;value&gt;</code></td>
+<td>-</td>
+<td>Float</td>
+<td><code>0.2</code></td>
+<td>Minimum normalized signal intensity difference required for inclusion.</td>
+</tr>
+<tr>
+<td><code>--rescale-num-bases-truncate &lt;n&gt;</code></td>
+<td>-</td>
+<td>Integer</td>
+<td><code>10</code></td>
+<td>Number of bases trimmed from each end before rescaling.</td>
+</tr>
+<tr>
+<td><code>--rescale-min-num-filtered-levels &lt;n&gt;</code></td>
+<td>-</td>
+<td>Integer</td>
+<td><code>10</code></td>
+<td>Minimum number of bases required after filtering for valid rescaling.</td>
+</tr>
+<tr>
+<td><code>--rescale-max-len &lt;n&gt;</code></td>
+<td>-</td>
+<td>Integer</td>
+<td><code>1000</code></td>
+<td>Maximum number of bases used for rescaling. If exceeded, a random subset is used (only for <code>theil-sen</code>). Set to <code>0</code> to use all.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="refinement-rough-rescaling">Refinement – Rough Rescaling</h3>
+<table>
+<thead>
+<tr>
+<th>Long flag</th>
+<th>Short flag</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--rough-rescale-algo &lt;algo&gt;</code></td>
+<td>-</td>
+<td>Enum (<code>none</code>, <code>least-squares</code>, <code>theil-sen</code>)</td>
+<td><code>theil-sen</code></td>
+<td>Algorithm for rough pre-refinement rescaling using signal percentiles instead of full signal data.</td>
+</tr>
+<tr>
+<td><code>--rough-rescale-quants-min &lt;q&gt;</code></td>
+<td>-</td>
+<td>Float</td>
+<td><code>0.05</code></td>
+<td>Lowest signal percentile used in rough rescaling.</td>
+</tr>
+<tr>
+<td><code>--rough-rescale-quants-max &lt;q&gt;</code></td>
+<td>-</td>
+<td>Float</td>
+<td><code>0.95</code></td>
+<td>Highest signal percentile used in rough rescaling.</td>
+</tr>
+<tr>
+<td><code>--rough-rescale-quants-steps &lt;n&gt;</code></td>
+<td>-</td>
+<td>Integer</td>
+<td><code>19</code></td>
+<td>Number of percentile steps between <code>min</code> and <code>max</code>. Default percentiles: 0.05, 0.10, ..., 0.95.</td>
+</tr>
+<tr>
+<td><code>--rough-rescale-clip-bases &lt;n&gt;</code></td>
+<td>-</td>
+<td>Integer</td>
+<td><code>10</code></td>
+<td>Number of bases trimmed from each end before rough rescaling.</td>
+</tr>
+<tr>
+<td><code>--rough-rescale-use-all-signal</code></td>
+<td>-</td>
+<td>Flag</td>
+<td>-</td>
+<td>Whether to use the entire signal for percentile calculation. If unset, one measurement per base (center) is used to reduce computational load.</td>
+</tr>
+</tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["content.tabs.link"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>
